@@ -20,6 +20,13 @@
 
 Run `npm run demo:web` from the repo root.
 
+For a live Supabase-backed run, set `CCP_DATA_SOURCE=supabase`, configure the Supabase env vars from `/.env.example`, then follow `docs/runbooks/supabase_live.md`.
+
+Optional scenario targeting:
+
+- leave `CCP_SCENARIO_ID` unset to use the baseline scenario
+- set `CCP_SCENARIO_ID=<scenario-uuid>` when you need the connector inbound loop to seed or refresh a non-baseline scenario
+
 ### Connector demo mode
 
 Use the root scripts:
@@ -49,6 +56,8 @@ When the web app starts, it refreshes `demo_state.json` automatically if the see
 2. `npm run demo:inbound`
 3. `npm run demo:web`
 4. draft and queue a change set in the UI
+   - use the `Scenarios` page to create a draft scenario clone when validating multi-scenario behavior
+   - switch the `Objects` and `Change Sets` pages to the intended scenario before drafting edits
 5. `npm run demo:outbound`
 6. inspect recent writes on the overview page or in `shared/examples/runtime/demo_state.json`
 
@@ -57,3 +66,4 @@ When the web app starts, it refreshes `demo_state.json` automatically if the see
 - the web app can load objects and change sets from the runtime demo store
 - the connector can perform inbound and outbound demo loops
 - runtime files remain isolated under `shared/examples/runtime/`
+- the same web and connector entry points can switch to Supabase by env configuration without changing the UI routes

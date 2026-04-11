@@ -9,6 +9,8 @@
     "test": "tsx --test src/lib/runtime-state.test.ts src/lib/linear-schedule.test.ts"
   },
   "dependencies": {
+    "@supabase/ssr": "^0.10.2",
+    "@supabase/supabase-js": "^2.103.0",
     "next": "^15.2.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"

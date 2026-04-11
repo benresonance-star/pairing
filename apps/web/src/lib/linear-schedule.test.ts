@@ -89,6 +89,42 @@ function buildState() {
               }
             ],
             edges: [{ from: "frame-flow", to: "fitoff" }]
+          },
+          gantt_hierarchy: {
+            nodes: [
+              {
+                id: "structure-subtask",
+                label: "Structural frame",
+                package_id: "PKG-STRUCTURE",
+                parent_id: "package:PKG-STRUCTURE",
+                hierarchy_level: "subtask"
+              },
+              {
+                id: "structure-task",
+                label: "Ground floor framing",
+                package_id: "PKG-STRUCTURE",
+                parent_id: "structure-subtask",
+                hierarchy_level: "task"
+              },
+              {
+                id: "commissioning-subtask",
+                label: "Completion",
+                package_id: "PKG-COMMISSIONING",
+                parent_id: "package:PKG-COMMISSIONING",
+                hierarchy_level: "subtask"
+              },
+              {
+                id: "commissioning-task",
+                label: "Practical completion",
+                package_id: "PKG-COMMISSIONING",
+                parent_id: "commissioning-subtask",
+                hierarchy_level: "task"
+              }
+            ],
+            activity_links: [
+              { node_id: "structure-task", stage_keys: ["frame"] },
+              { node_id: "commissioning-task", stage_keys: ["fitoff"] }
+            ]
           }
         }
       }
@@ -211,12 +247,43 @@ test("buildLinearScheduleData filters by scenario and keeps matching progress po
 });
 
 
+test("buildLinearScheduleData prefers a matching schedule view for the selected scenario", () => {
+  const state = buildState();
+  state.linear_schedule_views.push({
+    id: "view-2",
+    project_id: "11111111-1111-1111-1111-111111111111",
+    scenario_id: "scenario-2",
+    location_axis_id: "axis-1",
+    name: "Recovery Delivery Sequence",
+    time_axis_start: "2026-05-10",
+    time_axis_finish: "2026-06-10",
+    orientation: "time_horizontal",
+    metadata_json: {}
+  });
+  state.linear_schedule_activities[2].linear_schedule_view_id = "view-2";
+
+  const data = buildLinearScheduleData(state, {
+    scenarioId: "scenario-2"
+  });
+
+  assert.equal(data.view.id, "view-2");
+  assert.equal(data.activities[0].id, "act-3");
+});
+
+
 test("buildLinearScheduleData derives gantt rows and progress lookup", () => {
   const data = buildLinearScheduleData(buildState());
 
-  assert.equal(data.ganttRows.length, 3);
-  assert.equal(data.ganttRows[0].activityId, "act-2");
-  assert.equal(data.ganttRows[1].activityId, "act-1");
+  assert.equal(data.ganttRows.length, 9);
+  assert.equal(data.ganttRows[0].id, "package:PKG-STRUCTURE");
+  assert.equal(data.ganttRows[1].id, "structure-subtask");
+  assert.equal(data.ganttRows[2].id, "structure-task");
+  assert.equal(data.ganttRows[3].activityId, "act-1");
+  assert.equal(data.ganttRows[3].parentId, "structure-task");
+  assert.equal(data.ganttRows[4].activityId, "act-3");
+  assert.equal(data.ganttRows[5].id, "package:PKG-COMMISSIONING");
+  assert.equal(data.ganttRows[5].rowKind, "summary");
+  assert.equal(data.ganttRows[8].activityId, "act-2");
   assert.equal(data.progressByActivityId["act-1"].length, 1);
   assert.equal(data.progressByActivityId["act-2"].length, 0);
   assert.equal(data.flow.edges[0].to, "fitoff");

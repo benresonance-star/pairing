@@ -77,8 +77,29 @@ def normalize_runtime_state(raw: Any) -> dict[str, Any]:
 
 
 def baseline_scenario_id(state: dict[str, Any]) -> str:
-    first_scenario = _require_dict(state["scenarios"][0], context="runtime state.scenarios[0]")
-    return _require_str(first_scenario, "id", context="baseline scenario")
+    return _require_str(get_baseline_scenario(state), "id", context="baseline scenario")
+
+
+def get_scenario_by_id(state: dict[str, Any], scenario_id: str) -> dict[str, Any]:
+    for scenario in state["scenarios"]:
+        scenario_record = _require_dict(scenario, context="runtime state.scenarios[]")
+        if str(scenario_record.get("id")) == scenario_id:
+            return scenario_record
+    raise RuntimeStateError(f"scenario '{scenario_id}' was not found in runtime state")
+
+
+def get_baseline_scenario(state: dict[str, Any]) -> dict[str, Any]:
+    for scenario in state["scenarios"]:
+        scenario_record = _require_dict(scenario, context="runtime state.scenarios[]")
+        if scenario_record.get("status") == "baseline":
+            return scenario_record
+    raise RuntimeStateError("runtime state does not contain a baseline scenario")
+
+
+def require_active_scenario(state: dict[str, Any], scenario_id: str | None = None) -> dict[str, Any]:
+    if scenario_id:
+        return get_scenario_by_id(state, scenario_id)
+    return get_baseline_scenario(state)
 
 
 def transition_change_set_status(current_status: str, next_status: str) -> None:
@@ -109,12 +130,17 @@ def find_object_record(
 
 
 def find_operational_state_record(
-    state: dict[str, Any], object_ref_type: str, object_ref_id: str
+    state: dict[str, Any],
+    object_ref_type: str,
+    object_ref_id: str,
+    scenario_id: str | None = None,
 ) -> dict[str, Any] | None:
-    scenario_id = baseline_scenario_id(state)
+    active_scenario_id = _require_str(
+        require_active_scenario(state, scenario_id), "id", context="active scenario"
+    )
     for record in state["operational_state"]:
         if (
-            record.get("scenario_id") == scenario_id
+            record.get("scenario_id") == active_scenario_id
             and record.get("object_ref_type") == object_ref_type
             and record.get("object_ref_id") == object_ref_id
         ):

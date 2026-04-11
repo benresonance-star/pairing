@@ -22,6 +22,10 @@ export default async function HomePage() {
           <div>{summary.modelObjectCount}</div>
         </div>
         <div className="card">
+          <strong>Scenarios</strong>
+          <div>{summary.scenarioCount}</div>
+        </div>
+        <div className="card">
           <strong>Draft Change Sets</strong>
           <div>{summary.draftCount}</div>
         </div>
@@ -37,6 +41,18 @@ export default async function HomePage() {
           <strong>Recorded Write Field</strong>
           <div>{summary.writableArchicadField}</div>
         </div>
+      </section>
+
+      <section className="panel">
+        <h2>Scenario Management</h2>
+        <p className="muted">
+          Manage baseline and draft scenarios, then switch workflow pages to operate against the
+          intended scenario rather than always assuming baseline.
+        </p>
+        <p>
+          Open the <Link href="/scenarios">Scenarios</Link> page to create a draft clone and inspect
+          scenario-specific change-set and operational counts.
+        </p>
       </section>
 
       <section className="panel">

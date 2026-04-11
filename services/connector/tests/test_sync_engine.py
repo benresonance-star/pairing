@@ -31,7 +31,7 @@ def test_inbound_sync_populates_zones_and_elements(tmp_path: Path) -> None:
 
     assert summary.status == "completed"
     assert summary.objects_read == 4
-    assert len(state["zones"]) == 2
+    assert len(state["zones"]) == 4
     assert len(state["model_objects"]) == 2
     assert len(state["operational_state"]) == 4
 
@@ -43,7 +43,7 @@ def test_inbound_sync_is_idempotent_for_records(tmp_path: Path) -> None:
     engine.run_inbound()
     state = json.loads(engine.config.runtime_state_path.read_text(encoding="utf-8"))
 
-    assert len(state["zones"]) == 2
+    assert len(state["zones"]) == 4
     assert len(state["model_objects"]) == 2
     assert len(state["operational_state"]) == 4
 
@@ -72,7 +72,7 @@ def test_outbound_sync_records_ccp_package_write(tmp_path: Path) -> None:
             "object_ref_id": target_zone["id"],
             "field_name": "package_id",
             "old_value_json": None,
-            "new_value_json": "PKG-ZONE-L08",
+            "new_value_json": "PKG-COMMISSIONING",
         }
     )
     engine.config.runtime_state_path.write_text(json.dumps(state, indent=2), encoding="utf-8")
@@ -83,7 +83,7 @@ def test_outbound_sync_records_ccp_package_write(tmp_path: Path) -> None:
     assert summary.objects_written == 1
     assert next_state["change_sets"][0]["status"] == "synced"
     assert next_state["archicad_writes"][0]["field_name"] == "CCP_PackageID"
-    assert next_state["operational_state"][0]["package_id"] == "PKG-ZONE-L08"
+    assert next_state["operational_state"][0]["package_id"] == "PKG-COMMISSIONING"
 
 
 def test_outbound_sync_marks_invalid_package_as_failed(tmp_path: Path) -> None:
@@ -149,7 +149,7 @@ def test_outbound_sync_handles_partial_failure(tmp_path: Path) -> None:
                 "object_ref_id": first_zone["id"],
                 "field_name": "package_id",
                 "old_value_json": None,
-                "new_value_json": "PKG-ZONE-L08",
+                "new_value_json": "PKG-COMMISSIONING",
             },
             {
                 "id": str(uuid.uuid4()),
@@ -171,7 +171,7 @@ def test_outbound_sync_handles_partial_failure(tmp_path: Path) -> None:
     assert summary.objects_written == 1
     assert next_state["change_sets"][0]["status"] == "sync_failed"
     assert len(next_state["archicad_writes"]) == 1
-    assert next_state["operational_state"][0]["package_id"] == "PKG-ZONE-L08"
+    assert next_state["operational_state"][0]["package_id"] == "PKG-COMMISSIONING"
 
 
 def test_runtime_state_can_be_reset_from_seed(tmp_path: Path) -> None:
@@ -188,3 +188,18 @@ def test_runtime_state_can_be_reset_from_seed(tmp_path: Path) -> None:
     reset_state = client.load_state()
 
     assert reset_state["change_sets"] == []
+
+
+def test_inbound_sync_can_target_configured_scenario(tmp_path: Path) -> None:
+    config = build_config(tmp_path)
+    seed_state = json.loads(config.seed_state_path.read_text(encoding="utf-8"))
+    config.scenario_id = str(seed_state["scenarios"][1]["id"])
+    engine = SyncEngine(config)
+
+    summary = engine.run_inbound()
+    state = json.loads(engine.config.runtime_state_path.read_text(encoding="utf-8"))
+
+    targeted_records = [record for record in state["operational_state"] if record["scenario_id"] == config.scenario_id]
+
+    assert summary.status == "completed"
+    assert len(targeted_records) == 4

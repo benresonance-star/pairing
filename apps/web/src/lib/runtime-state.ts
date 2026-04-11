@@ -11,7 +11,7 @@ type RuntimeRecord = Record<string, unknown>;
 export type RuntimeState = {
   project: { id: string; name: string; archicad_project_id: string };
   work_packages: Array<RuntimeRecord>;
-  scenarios: Array<{ id: string; name: string; status: string }>;
+  scenarios: Array<{ id: string; name: string; status: string; parent_scenario_id?: string | null }>;
   zones: Array<RuntimeRecord>;
   model_objects: Array<RuntimeRecord>;
   hotlink_instances: Array<RuntimeRecord>;
@@ -138,13 +138,42 @@ export function normalizeRuntimeState(raw: unknown): RuntimeState {
 }
 
 export function baselineScenarioId(state: RuntimeState): string {
-  return stringField(state.scenarios[0], "id", "baseline scenario");
+  return getBaselineScenario(state).id;
 }
 
-export function operationalFor(state: RuntimeState, objectRefType: ObjectRefType, objectRefId: string) {
+export function getScenarioById(state: RuntimeState, scenarioId: string) {
+  const scenario = state.scenarios.find((item) => String(item.id) === scenarioId);
+  if (!scenario) {
+    throw new Error(`Scenario '${scenarioId}' was not found in runtime state`);
+  }
+  return scenario;
+}
+
+export function getBaselineScenario(state: RuntimeState) {
+  const scenario = state.scenarios.find((item) => item.status === "baseline");
+  if (!scenario) {
+    throw new Error("Runtime state does not contain a baseline scenario");
+  }
+  return scenario;
+}
+
+export function requireActiveScenario(state: RuntimeState, scenarioId?: string | null) {
+  if (!scenarioId) {
+    return getBaselineScenario(state);
+  }
+  return getScenarioById(state, scenarioId);
+}
+
+export function operationalFor(
+  state: RuntimeState,
+  objectRefType: ObjectRefType,
+  objectRefId: string,
+  scenarioId?: string | null
+) {
+  const activeScenarioId = requireActiveScenario(state, scenarioId).id;
   return state.operational_state.find(
     (item) =>
-      item.scenario_id === baselineScenarioId(state) &&
+      item.scenario_id === activeScenarioId &&
       item.object_ref_type === objectRefType &&
       item.object_ref_id === objectRefId
   );
@@ -159,7 +188,8 @@ export function assertValidPackageAssignment(
   state: RuntimeState,
   objectRefType: ObjectRefType,
   objectRefId: string,
-  packageId: string
+  packageId: string,
+  scenarioId?: string | null
 ): void {
   if (!packageId) {
     throw new Error("Package assignment requires a selected package");
@@ -177,7 +207,7 @@ export function assertValidPackageAssignment(
     throw new Error(`Package '${packageId}' is not available in the runtime state`);
   }
 
-  const operational = operationalFor(state, objectRefType, objectRefId);
+  const operational = operationalFor(state, objectRefType, objectRefId, scenarioId);
   if (operational?.package_id === packageId) {
     throw new Error(`Target ${objectRefType} already has package '${packageId}' assigned`);
   }

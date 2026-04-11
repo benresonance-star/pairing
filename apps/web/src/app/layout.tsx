@@ -19,6 +19,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
           </p>
           <nav>
             <Link href="/">Overview</Link>
+            <Link href="/scenarios">Scenarios</Link>
             <Link href="/objects">Objects</Link>
             <Link href="/change-sets">Change Sets</Link>
             <Link href="/linear-schedule">Linear Schedule</Link>

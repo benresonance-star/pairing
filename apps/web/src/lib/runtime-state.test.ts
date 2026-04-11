@@ -3,7 +3,11 @@ import assert from "node:assert/strict";
 
 import {
   assertValidPackageAssignment,
+  baselineScenarioId,
+  getScenarioById,
   normalizeRuntimeState,
+  operationalFor,
+  requireActiveScenario,
   transitionChangeSet
 } from "./runtime-state";
 
@@ -103,4 +107,34 @@ test("assertValidPackageAssignment rejects unknown package IDs", () => {
     () => assertValidPackageAssignment(state, "zone", "zone-1", "PKG-UNKNOWN"),
     /is not available/
   );
+});
+
+
+test("baselineScenarioId resolves the scenario with baseline status", () => {
+  const state = buildState();
+  state.scenarios = [
+    { id: "scenario-2", name: "Recovery", status: "draft" },
+    { id: "scenario-1", name: "Baseline", status: "baseline" }
+  ];
+
+  assert.equal(baselineScenarioId(state), "scenario-1");
+  assert.equal(requireActiveScenario(state).id, "scenario-1");
+  assert.equal(getScenarioById(state, "scenario-2").name, "Recovery");
+});
+
+
+test("operationalFor can resolve non-baseline scenario state explicitly", () => {
+  const state = buildState();
+  state.scenarios.push({ id: "scenario-2", name: "Recovery", status: "draft" });
+  state.operational_state.push({
+    id: "op-2",
+    scenario_id: "scenario-2",
+    object_ref_type: "zone",
+    object_ref_id: "zone-1",
+    package_id: "PKG-WALL-FACADE-02",
+    construction_state: "blocked"
+  });
+
+  assert.equal(operationalFor(state, "zone", "zone-1")?.scenario_id, "scenario-1");
+  assert.equal(operationalFor(state, "zone", "zone-1", "scenario-2")?.scenario_id, "scenario-2");
 });

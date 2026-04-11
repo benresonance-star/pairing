@@ -576,11 +576,16 @@ Enable scenario cloning and comparison.
 - clone scenario action
 - compare scenario table/view
 - scenario-aware operational edits
+- scenario editor side panel linked to the currently selected schedule activity and operational row
+- guarded destructive actions for scenario deletion, including confirmation and baseline/dependency restrictions
+- form actions that preserve editor context such as selected activity, selected operational row, and scroll position after save
 
 ### Validation gate
 - scenarios can diverge without breaking identity mapping
 - baseline remains intact
 - scenario access and compare actions remain project-scoped and auditable
+- deleting a scenario never leaves the UI on a broken route and should redirect back to a valid collection view
+- clicking a plotted activity or linked Gantt item updates the selected editor records without losing context
 
 ---
 
@@ -596,6 +601,11 @@ Add a readable time-location scheduling view that communicates construction sequ
 - read-only React/SVG schedule page with linked linear, stage-flow, and Gantt views
 - demo data showing baseline, planned, actual, remaining, and milestone examples
 - package/workfront/activity-type filtering, including multi-package schedule interrogation
+- embedded scenario-editor mode that reuses the linked stage-flow, linear schedule, and Gantt views for a single selected scenario
+- embedded mode controls that hide redundant scenario filtering and lower detail/meta summaries while preserving linked highlighting
+- independent expand/collapse controls for the embedded linear schedule and linked Gantt sections
+- linked Gantt selection behavior that can drive the selected activity editor from both leaf rows and summary task/subtask rows
+- time-axis support for subtle weekly guide lines and numeric week labels beneath month labels, with enough header clearance to avoid overlap with plotted work
 
 ### Validation gate
 - the chart is understandable on one screen or page
@@ -603,6 +613,8 @@ Add a readable time-location scheduling view that communicates construction sequ
 - linear, bar, block, and milestone activity types render clearly
 - the schedule remains linked to project/scenario metadata rather than a disconnected planning model
 - stage-flow highlighting stays linked to the plotted activities rather than becoming a separate planning model
+- embedded schedule interactions should not introduce layout overflow or duplicate explanatory noise in the scenario editor
+- time navigation should rely on explicit controls rather than mouse-wheel zoom, and chart panning should not turn clicks into accidental selections
 
 ---
 

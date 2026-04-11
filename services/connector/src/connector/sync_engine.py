@@ -8,17 +8,25 @@ from .logger import log_event
 from .models import OperationalStateRecord, SyncRunSummary
 from .schema_mapper import build_operational_state_id, map_element, map_zone
 from .state_store import StateStore
-from .supabase_client import DemoSupabaseClient
+from .supabase_client import DemoSupabaseClient, LiveSupabaseClient, SupabaseClientProtocol
 from .validators import validate_outbound_item
 
 
 class SyncEngine:
     def __init__(self, config: ConnectorConfig) -> None:
         self.config = config
-        self.supabase_client = DemoSupabaseClient(
-            seed_state_path=config.seed_state_path,
-            runtime_state_path=config.runtime_state_path,
-        )
+        self.supabase_client: SupabaseClientProtocol
+        if config.data_source == "supabase":
+            self.supabase_client = LiveSupabaseClient(
+                url=config.supabase_url or "",
+                service_role_key=config.supabase_service_role_key or "",
+                project_id=config.project_id,
+            )
+        else:
+            self.supabase_client = DemoSupabaseClient(
+                seed_state_path=config.seed_state_path,
+                runtime_state_path=config.runtime_state_path,
+            )
         self.archicad_client = DemoArchicadClient(config.sample_snapshot_path)
         self.reader = ArchicadReader(self.archicad_client)
         self.writer = ArchicadWriter(self.supabase_client, dry_run=config.dry_run)
@@ -31,9 +39,11 @@ class SyncEngine:
         self.supabase_client.reset_runtime_state()
 
     def run_inbound(self) -> SyncRunSummary:
+        active_scenario_id = self.supabase_client.resolve_scenario_id(self.config.scenario_id)
         run_id = self.supabase_client.create_sync_run(
             project_id=self.config.project_id,
             direction="archicad_to_supabase",
+            scenario_id=active_scenario_id,
         )
         payload = self.reader.read_zones_and_elements()
         zones = [map_zone(self.config.project_id, item) for item in payload["zones"]]
@@ -42,14 +52,13 @@ class SyncEngine:
         self.supabase_client.upsert_zones(zones)
         self.supabase_client.upsert_model_objects(model_objects)
 
-        baseline_scenario_id = self.supabase_client.baseline_scenario_id()
         operational_state = []
         for raw_zone, zone in zip(payload["zones"], zones, strict=True):
             operational_state.append(
                 OperationalStateRecord(
-                    id=build_operational_state_id(baseline_scenario_id, "zone", zone.id),
+                    id=build_operational_state_id(active_scenario_id, "zone", zone.id),
                     project_id=self.config.project_id,
-                    scenario_id=baseline_scenario_id,
+                    scenario_id=active_scenario_id,
                     object_ref_type="zone",
                     object_ref_id=zone.id,
                     package_id=raw_zone.get("ccp_operational", {}).get("package_id"),
@@ -60,9 +69,9 @@ class SyncEngine:
         for raw_element, element in zip(payload["elements"], model_objects, strict=True):
             operational_state.append(
                 OperationalStateRecord(
-                    id=build_operational_state_id(baseline_scenario_id, "model_object", element.id),
+                    id=build_operational_state_id(active_scenario_id, "model_object", element.id),
                     project_id=self.config.project_id,
-                    scenario_id=baseline_scenario_id,
+                    scenario_id=active_scenario_id,
                     object_ref_type="model_object",
                     object_ref_id=element.id,
                     package_id=raw_element.get("ccp_operational", {}).get("package_id"),
@@ -100,9 +109,11 @@ class SyncEngine:
         last_run_id = ""
 
         for change_set in queued_change_sets:
+            change_set_scenario_id = str(change_set.get("scenario_id") or self.config.scenario_id or "")
             last_run_id = self.supabase_client.create_sync_run(
                 project_id=self.config.project_id,
                 direction="supabase_to_archicad",
+                scenario_id=change_set_scenario_id or None,
             )
             summary = SyncRunSummary(
                 direction="supabase_to_archicad",
@@ -129,8 +140,11 @@ class SyncEngine:
                     )
                     continue
                 try:
-                    self.writer.apply_change(item, archicad_guid)
-                    self.supabase_client.apply_change_set_item(item)
+                    item_with_scenario = {**item, "scenario_id": change_set_scenario_id or None}
+                    self.writer.apply_change(item_with_scenario, archicad_guid)
+                    self.supabase_client.apply_change_set_item(
+                        item, scenario_id=change_set_scenario_id or None
+                    )
                     summary.objects_written += 1
                 except Exception as error:  # noqa: BLE001
                     errors.append(str(error))

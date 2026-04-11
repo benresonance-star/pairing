@@ -10,6 +10,7 @@
     "lint:web": "npm run lint --workspace web",
     "test:web": "npm run test --workspace web",
     "connector:test": "python -m pytest services/connector/tests",
+    "supabase:bootstrap": "python scripts/dev/bootstrap_supabase.py",
     "demo:reset": "python scripts/dev/connector_cli.py reset-runtime",
     "demo:seed": "python scripts/dev/connector_cli.py seed-runtime",
     "demo:inbound": "python scripts/dev/connector_cli.py inbound",

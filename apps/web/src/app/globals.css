@@ -15,9 +15,9 @@ a {
 }
 
 main {
-  max-width: 1100px;
+  max-width: 1680px;
   margin: 0 auto;
-  padding: 32px 20px 64px;
+  padding: 32px 12px 64px;
 }
 
 nav {
@@ -233,6 +233,14 @@ button {
   min-width: 0;
 }
 
+.schedule-header-actions,
+.gantt-header-actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
 .schedule-subtitle {
   display: flex;
   flex-wrap: wrap;
@@ -419,6 +427,10 @@ button {
 }
 
 .gantt-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: center;
   margin-bottom: 12px;
 }
 
@@ -433,4 +445,197 @@ button {
   border: 1px solid #22314d;
   border-radius: 12px;
   background: #0d1628;
+}
+
+.gantt-resize-handle {
+  cursor: col-resize;
+}
+
+.section-heading {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: flex-start;
+}
+
+.secondary-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 40px;
+}
+
+.panel-subtle {
+  margin-top: 0;
+  background: #0f1830;
+}
+
+.scenario-editor-layout {
+  --scenario-editor-gap: 20px;
+  --scenario-editor-side-width: 280px;
+  display: grid;
+  grid-template-columns:
+    minmax(0, calc(100% - var(--scenario-editor-side-width) - var(--scenario-editor-gap)))
+    minmax(0, var(--scenario-editor-side-width));
+  gap: var(--scenario-editor-gap);
+  align-items: start;
+  max-width: 100%;
+  margin-top: 16px;
+}
+
+.scenario-editor-main,
+.scenario-editor-side {
+  display: grid;
+  gap: 20px;
+  min-width: 0;
+  width: 100%;
+}
+
+.scenario-editor-main {
+  overflow: hidden;
+}
+
+.scenario-editor-visuals {
+  display: grid;
+  gap: 20px;
+  align-content: start;
+  min-width: 0;
+}
+
+.scenario-editor-visuals > .panel,
+.scenario-editor-visuals > .flow-panel,
+.scenario-editor-visuals > .gantt-panel,
+.scenario-editor-visuals > .detail-panel,
+.scenario-editor-visuals > .schedule-meta {
+  margin-top: 0;
+  min-width: 0;
+}
+
+.scenario-editor-visuals .flow-shell,
+.scenario-editor-visuals .schedule-shell,
+.scenario-editor-visuals .gantt-shell {
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+.scenario-editor-visuals .flow-svg,
+.scenario-editor-visuals .schedule-svg,
+.scenario-editor-visuals .gantt-svg {
+  min-width: 480px;
+}
+
+.scenario-editor-visuals .filter-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 12px;
+  align-items: end;
+}
+
+.scenario-editor-visuals .filter-field {
+  min-width: 120px;
+}
+
+.scenario-editor-visuals .checkbox-dropdown {
+  min-width: 160px;
+}
+
+.scenario-editor-visuals .filter-row > button {
+  width: 100%;
+  min-width: 0;
+}
+
+.scenario-editor-side > .panel {
+  min-width: 0;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.scenario-editor-side .stack-form,
+.scenario-editor-side .stack-form label,
+.scenario-editor-side .stack-form input,
+.scenario-editor-side .stack-form select {
+  min-width: 0;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.scenario-editor-side .inline-actions form {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+.scenario-editor-side .inline-actions button {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.scenario-editor-visuals .schedule-focus-buttons {
+  gap: 6px;
+}
+
+.scenario-editor-visuals .schedule-focus-button {
+  padding: 6px 10px;
+}
+
+.scenario-editor-visuals .legend {
+  gap: 10px;
+}
+
+.scenario-editor-visuals .legend-group {
+  gap: 8px;
+}
+
+.scenario-editor-chart {
+  width: 100%;
+  height: auto;
+  border: 1px solid #22314d;
+  border-radius: 16px;
+  background: #0d1628;
+}
+
+.stack-form {
+  display: grid;
+  gap: 12px;
+}
+
+.stack-form label {
+  display: grid;
+  gap: 6px;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.inline-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 14px;
+}
+
+.secondary-button {
+  background: #13213b;
+}
+
+.danger-button {
+  border-color: #8c4652;
+  background: #301720;
+}
+
+.table-row-active {
+  background: rgba(111, 173, 255, 0.08);
+}
+
+@media (max-width: 1500px) {
+  .scenario-editor-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 720px) {
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
 }

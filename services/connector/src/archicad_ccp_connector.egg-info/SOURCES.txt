@@ -14,6 +14,7 @@ src/connector/logger.py
 src/connector/main.py
 src/connector/models.py
 src/connector/retry.py
+src/connector/runtime_state.py
 src/connector/schema_mapper.py
 src/connector/shared_contracts.py
 src/connector/state_store.py

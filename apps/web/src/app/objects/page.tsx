@@ -1,7 +1,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
-import { createPackageAssignmentChangeSet, getObjects, getPackages } from "../../lib/demo-store";
+import { createPackageAssignmentChangeSet, getObjects, getPackages, getScenarios } from "../../lib/demo-store";
 
 async function draftPackageAssignment(formData: FormData) {
   "use server";
@@ -10,15 +10,22 @@ async function draftPackageAssignment(formData: FormData) {
     const result = await createPackageAssignmentChangeSet({
       objectRefType: formData.get("objectRefType") as "zone" | "model_object",
       objectRefId: String(formData.get("objectRefId")),
-      packageId: String(formData.get("packageId"))
+      packageId: String(formData.get("packageId")),
+      scenarioId: String(formData.get("scenarioId") ?? "")
     });
 
     revalidatePath("/objects");
     revalidatePath("/change-sets");
     revalidatePath("/");
-    redirect(`/objects?status=${encodeURIComponent(`Draft created for ${result.targetLabel}`)}`);
+    const scenarioId = String(formData.get("scenarioId") ?? "");
+    redirect(
+      `/objects?scenarioId=${encodeURIComponent(scenarioId)}&status=${encodeURIComponent(`Draft created for ${result.targetLabel}`)}`
+    );
   } catch (error) {
-    redirect(`/objects?error=${encodeURIComponent(error instanceof Error ? error.message : "Unable to create draft change set")}`);
+    const scenarioId = String(formData.get("scenarioId") ?? "");
+    redirect(
+      `/objects?scenarioId=${encodeURIComponent(scenarioId)}&error=${encodeURIComponent(error instanceof Error ? error.message : "Unable to create draft change set")}`
+    );
   }
 }
 
@@ -27,9 +34,18 @@ type PageProps = {
 };
 
 export default async function ObjectsPage({ searchParams }: PageProps) {
-  const objects = await getObjects();
+  const scenarios = await getScenarios();
   const packages = await getPackages();
   const params = (await searchParams) ?? {};
+  const selectedScenarioId =
+    (typeof params.scenarioId === "string" ? params.scenarioId : null) ??
+    scenarios.find((scenario) => scenario.status === "baseline")?.id ??
+    scenarios[0]?.id ??
+    null;
+  const selectedScenario = selectedScenarioId
+    ? scenarios.find((scenario) => scenario.id === selectedScenarioId) ?? null
+    : null;
+  const objects = await getObjects(selectedScenarioId);
   const status = typeof params.status === "string" ? params.status : null;
   const error = typeof params.error === "string" ? params.error : null;
 
@@ -39,8 +55,26 @@ export default async function ObjectsPage({ searchParams }: PageProps) {
       <p className="muted">
         Draft a package assignment change set for any synced zone or first-slice model object.
       </p>
+      {selectedScenario ? (
+        <div className="notice">
+          Active scenario: <strong>{selectedScenario.name}</strong> ({selectedScenario.status})
+        </div>
+      ) : null}
       {status ? <div className="notice notice-success">{status}</div> : null}
       {error ? <div className="notice notice-error">{error}</div> : null}
+      <form className="filter-row" method="get">
+        <label className="filter-field">
+          <span>Scenario</span>
+          <select name="scenarioId" defaultValue={selectedScenarioId ?? ""}>
+            {scenarios.map((scenario) => (
+              <option key={scenario.id} value={scenario.id}>
+                {scenario.name} ({scenario.status})
+              </option>
+            ))}
+          </select>
+        </label>
+        <button type="submit">Switch scenario</button>
+      </form>
       <table>
         <thead>
           <tr>
@@ -76,6 +110,7 @@ export default async function ObjectsPage({ searchParams }: PageProps) {
                       <form action={draftPackageAssignment} className="inline-form">
                         <input type="hidden" name="objectRefType" value={object.objectRefType} />
                         <input type="hidden" name="objectRefId" value={object.id} />
+                        <input type="hidden" name="scenarioId" value={selectedScenarioId ?? ""} />
                         <select name="packageId" defaultValue="">
                           <option value="" disabled>
                             Select package
