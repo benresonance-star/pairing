@@ -354,6 +354,18 @@ export function buildLinearScheduleData(
       }
       return left.id.localeCompare(right.id);
     });
+  const effectiveTimeAxisStart =
+    activities.length > 0
+      ? [String(viewRecord.time_axis_start), ...activities.map((activity) => activity.startDate)].sort(
+          (left, right) => left.localeCompare(right)
+        )[0]
+      : String(viewRecord.time_axis_start);
+  const effectiveTimeAxisFinish =
+    activities.length > 0
+      ? [String(viewRecord.time_axis_finish), ...activities.map((activity) => activity.finishDate)].sort(
+          (left, right) => right.localeCompare(left)
+        )[0]
+      : String(viewRecord.time_axis_finish);
 
   const progressPoints = state.linear_progress_points
     .filter((item) => activities.some((activity) => activity.id === item.linear_schedule_activity_id))
@@ -802,8 +814,8 @@ export function buildLinearScheduleData(
       name: String(viewRecord.name),
       description: readString(viewRecord.description),
       orientation: String(viewRecord.orientation) as LinearAxisOrientation,
-      timeAxisStart: String(viewRecord.time_axis_start),
-      timeAxisFinish: String(viewRecord.time_axis_finish),
+      timeAxisStart: effectiveTimeAxisStart,
+      timeAxisFinish: effectiveTimeAxisFinish,
       dataDate: readString(viewRecord.data_date)
     },
     axis: {

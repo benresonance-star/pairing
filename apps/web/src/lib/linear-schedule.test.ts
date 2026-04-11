@@ -270,6 +270,34 @@ test("buildLinearScheduleData prefers a matching schedule view for the selected 
   assert.equal(data.activities[0].id, "act-3");
 });
 
+test("buildLinearScheduleData expands the visible window to include activity dates outside the saved view range", () => {
+  const state = buildState();
+  state.linear_schedule_activities.push({
+    id: "act-4",
+    linear_schedule_view_id: "view-1",
+    scenario_id: "scenario-1",
+    package_id: "PKG-STRUCTURE",
+    workfront: "Structure Crew",
+    activity_name: "Fishing",
+    activity_type: "bar",
+    display_layer: "baseline",
+    start_date: "2026-06-20",
+    finish_date: "2026-07-12",
+    location_ref: "a",
+    metadata_json: {
+      label: "Fishing"
+    }
+  });
+
+  const data = buildLinearScheduleData(state, {
+    scenarioId: "scenario-1"
+  });
+
+  assert.equal(data.view.timeAxisStart, "2026-05-01");
+  assert.equal(data.view.timeAxisFinish, "2026-07-12");
+  assert.equal(data.activities.some((activity) => activity.activityName === "Fishing"), true);
+});
+
 
 test("buildLinearScheduleData derives gantt rows and progress lookup", () => {
   const data = buildLinearScheduleData(buildState());

@@ -605,7 +605,9 @@ Add a readable time-location scheduling view that communicates construction sequ
 - embedded mode controls that hide redundant scenario filtering and lower detail/meta summaries while preserving linked highlighting
 - independent expand/collapse controls for the embedded linear schedule and linked Gantt sections
 - linked Gantt selection behavior that can drive the selected activity editor from both leaf rows and summary task/subtask rows
+- selected-activity editing controls where changing the package immediately refilters the available activity-name choices for that package
 - time-axis support for subtle weekly guide lines and numeric week labels beneath month labels, with enough header clearance to avoid overlap with plotted work
+- effective schedule windows that expand to include plotted activity dates when activities extend beyond the saved view range
 
 ### Validation gate
 - the chart is understandable on one screen or page
@@ -615,6 +617,7 @@ Add a readable time-location scheduling view that communicates construction sequ
 - stage-flow highlighting stays linked to the plotted activities rather than becoming a separate planning model
 - embedded schedule interactions should not introduce layout overflow or duplicate explanatory noise in the scenario editor
 - time navigation should rely on explicit controls rather than mouse-wheel zoom, and chart panning should not turn clicks into accidental selections
+- newly created or extended activities should become visible in the linked linear and Gantt views without requiring manual expansion of the stored view date range
 
 ---
 
