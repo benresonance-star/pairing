@@ -41,6 +41,8 @@ Demo runtime state lives under `shared/examples/runtime/`:
 
 The seed file is `shared/examples/demo_state.seed.json`.
 
+When the web app starts, it refreshes `demo_state.json` automatically if the seed file is newer. This keeps demo-data spec changes and seed updates visible without requiring manual file replacement. Use `npm run demo:reset` when you want to discard local runtime mutations explicitly.
+
 ## Recommended local sequence
 
 1. `npm run demo:reset`

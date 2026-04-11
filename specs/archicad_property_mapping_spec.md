@@ -424,6 +424,8 @@ The first linear scheduling milestone should treat Archicad-derived fields as me
 
 These fields support sequencing and chart overlays, but they do not define a full time-location axis by themselves.
 
+The current read-only web view may also group plotted activities into higher-level stage-flow nodes. Those stage-flow relationships should remain externally managed metadata rather than additional Archicad-written fields in the first milestone.
+
 ## 13.2 Location-axis note
 The first web-based linear scheduling view should not depend on full geometry extraction.
 
@@ -435,6 +437,8 @@ Instead, the location axis may be defined externally using project-scoped metada
 
 The Archicad model contributes identity and operational metadata, while the explicit location axis is managed in the external system.
 
+The same external metadata layer may define stage-flow nodes, links, and grouping labels used for linked highlighting above the companion Gantt view.
+
 ## 13.3 Read-only first milestone
 The first milestone should focus on a read-only visualization that communicates:
 - time
@@ -442,6 +446,9 @@ The first milestone should focus on a read-only visualization that communicates:
 - activity type
 - baseline/planned/actual layers
 - key milestones
+- high-level stage handoffs derived from external metadata
+
+The UI may support multi-package filtering for schedule interrogation, but package selection should still resolve back to stable `CCP_PackageID` values rather than introducing alternate scheduling identifiers.
 
 Editing, drag-and-drop schedule authoring, and production-rate automation are out of scope for the first release.
 

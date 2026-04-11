@@ -593,14 +593,16 @@ Add a readable time-location scheduling view that communicates construction sequ
 - location-axis model
 - plotted schedule activity schema
 - shared contracts for activity types and display layers
-- read-only React/SVG schedule page
-- demo data showing baseline, planned, actual, and milestone examples
+- read-only React/SVG schedule page with linked linear, stage-flow, and Gantt views
+- demo data showing baseline, planned, actual, remaining, and milestone examples
+- package/workfront/activity-type filtering, including multi-package schedule interrogation
 
 ### Validation gate
 - the chart is understandable on one screen or page
 - time and location axes are explicit
 - linear, bar, block, and milestone activity types render clearly
 - the schedule remains linked to project/scenario metadata rather than a disconnected planning model
+- stage-flow highlighting stays linked to the plotted activities rather than becoming a separate planning model
 
 ---
 

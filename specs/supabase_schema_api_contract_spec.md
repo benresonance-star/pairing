@@ -416,6 +416,7 @@ Fields:
 - `time_axis_finish` date not null
 - `data_date` date nullable
 - `orientation` text not null default 'time_horizontal'
+- `metadata_json` jsonb nullable
 - `created_at` timestamptz default now()
 - `updated_at` timestamptz default now()
 
@@ -426,6 +427,10 @@ Allowed `orientation`:
 Indexes:
 - (`project_id`)
 - (`scenario_id`)
+
+Notes:
+- `metadata_json` may store read-only UI metadata for the schedule view, such as stage-flow nodes, links, and layout hints
+- that metadata should remain project-scoped and must not become a substitute for normalized approval or write-back records
 
 ---
 
@@ -485,6 +490,7 @@ Notes:
 - `bar` activities should use `location_ref`
 - `block` and `linear` activities should use `start_location_ref` and `finish_location_ref`
 - `milestone` activities may use a single location reference or remain location-agnostic
+- `metadata_json` may include a stage-grouping key used to link plotted activities to higher-level stage-flow nodes in the web UI
 
 ---
 

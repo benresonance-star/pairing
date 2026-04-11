@@ -22,6 +22,13 @@ The current implementation uses demo adapters and runtime files for local valida
 
 The repo now also includes a first read-only linear scheduling path in the web app, driven by explicit location-axis and plotted-activity metadata rather than direct geometry rendering.
 
+That current demo path is modeled as a four-townhouse Melbourne-style development and now includes:
+
+- a linked time-location chart and companion Gantt
+- a high-level stage-flow panel rendered from explicit schedule-view metadata
+- package checkbox filtering, including multi-package selection
+- automatic refresh of the mutable demo runtime when the seed file is newer
+
 ## System boundaries
 
 - Archicad owns geometry and BIM authoring truth

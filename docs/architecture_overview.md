@@ -63,8 +63,10 @@ It uses:
 - project and scenario metadata
 - explicit location-axis definitions
 - plotted activity records for linear, bar, block, and milestone views
+- explicit schedule-view metadata for stage-flow nodes and edges
+- activity metadata that can map plotted items back to high-level stages
 
-It does not yet introduce editing behavior or geometry-derived stationing.
+The current web implementation also includes a companion Gantt, stage-flow highlighting, and multi-package filtering, but it does not yet introduce editing behavior or geometry-derived stationing.
 
 ## First Vertical Slice
 
@@ -92,6 +94,8 @@ flowchart LR
 ## Local Development Note
 
 The codebase includes a local file-backed demo path for development and validation where live Supabase or Archicad access is not available. That path exists to exercise the workflow without changing the architecture boundaries.
+
+That demo path currently uses a townhouse-oriented seed dataset and a mutable runtime snapshot under `shared/examples/runtime/`. The web app refreshes that runtime snapshot automatically when the seed file is newer so demo data changes show up without manual file copying.
 
 ## Security References
 
