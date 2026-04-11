@@ -1,0 +1,65 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ModelObjectRecord",
+  "type": "object",
+  "required": [
+    "project_id",
+    "archicad_guid",
+    "object_type"
+  ],
+  "properties": {
+    "project_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "archicad_guid": {
+      "type": "string"
+    },
+    "object_type": {
+      "type": "string"
+    },
+    "classification": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "storey": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "zone_key": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "hotlink_key": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "name": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "quantity_json": {
+      "type": [
+        "object",
+        "null"
+      ]
+    },
+    "archicad_snapshot_json": {
+      "type": [
+        "object",
+        "null"
+      ]
+    }
+  },
+  "additionalProperties": false
+}

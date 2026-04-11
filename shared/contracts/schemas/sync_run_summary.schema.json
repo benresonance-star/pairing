@@ -1,0 +1,52 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "SyncRunSummary",
+  "type": "object",
+  "required": [
+    "direction",
+    "status",
+    "objects_read",
+    "objects_written",
+    "warnings",
+    "errors"
+  ],
+  "properties": {
+    "direction": {
+      "type": "string",
+      "enum": [
+        "archicad_to_supabase",
+        "supabase_to_archicad"
+      ]
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "running",
+        "completed",
+        "completed_with_errors",
+        "failed"
+      ]
+    },
+    "objects_read": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "objects_written": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "warnings": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "errors": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "additionalProperties": false
+}

@@ -1,0 +1,49 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ZoneRecord",
+  "type": "object",
+  "required": [
+    "project_id",
+    "zone_key"
+  ],
+  "properties": {
+    "project_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "zone_key": {
+      "type": "string"
+    },
+    "zone_name": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "storey": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "archicad_guid": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "area": {
+      "type": [
+        "number",
+        "null"
+      ]
+    },
+    "metadata_json": {
+      "type": [
+        "object",
+        "null"
+      ]
+    }
+  },
+  "additionalProperties": false
+}

@@ -1,0 +1,84 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "LocationAxis",
+  "type": "object",
+  "required": [
+    "project_id",
+    "name",
+    "location_reference_model",
+    "orientation_default",
+    "locations_json"
+  ],
+  "properties": {
+    "project_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "name": {
+      "type": "string"
+    },
+    "description": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "units_label": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "location_reference_model": {
+      "type": "string",
+      "enum": [
+        "stationing",
+        "storey_sequence",
+        "named_segments"
+      ]
+    },
+    "orientation_default": {
+      "type": "string",
+      "enum": [
+        "time_horizontal",
+        "time_vertical"
+      ]
+    },
+    "locations_json": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "label",
+          "order"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "order": {
+            "type": "integer"
+          },
+          "start_station": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "finish_station": {
+            "type": [
+              "number",
+              "null"
+            ]
+          }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}

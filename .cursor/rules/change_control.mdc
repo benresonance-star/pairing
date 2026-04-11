@@ -1,0 +1,6 @@
+# Change Control
+
+- Do not rename spec-defined fields casually.
+- Any schema change must update the relevant docs and contracts.
+- Any new enum value must be documented in `shared/contracts/`.
+- Do not broaden outbound write scope without updating validators and tests.

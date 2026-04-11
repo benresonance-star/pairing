@@ -1,0 +1,6 @@
+# Testing Rules
+
+- Add unit tests for mapping and validation logic.
+- Add focused integration-style tests for state transitions and storage adapters.
+- Keep manual validation runbooks current for Archicad-specific checks.
+- Prefer deterministic fixture data for the first vertical slice.

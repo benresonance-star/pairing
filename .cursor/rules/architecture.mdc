@@ -1,0 +1,8 @@
+# Architecture Rules
+
+- Treat files in `specs/` as source of truth.
+- Archicad owns geometry and model authoring truth.
+- Do not add UI-driven geometry rendering for the MVP.
+- The web app must not write directly to Archicad.
+- Connector write-back is limited to approved allowlisted CCP fields.
+- Scenario logic overlays identity tables rather than duplicating them.

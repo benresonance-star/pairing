@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "OperationalWriteRecord",
+  "type": "object",
+  "required": [
+    "object_ref_type",
+    "object_ref_id",
+    "field_name",
+    "new_value",
+    "change_set_id"
+  ],
+  "properties": {
+    "object_ref_type": {
+      "type": "string",
+      "enum": [
+        "model_object",
+        "zone",
+        "hotlink_instance"
+      ]
+    },
+    "object_ref_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "archicad_guid": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "field_name": {
+      "type": "string"
+    },
+    "new_value": {},
+    "change_set_id": {
+      "type": "string",
+      "format": "uuid"
+    }
+  },
+  "additionalProperties": false
+}

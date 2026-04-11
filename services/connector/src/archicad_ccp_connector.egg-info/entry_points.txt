@@ -1,0 +1,2 @@
+[console_scripts]
+ccp-connector = connector.main:main

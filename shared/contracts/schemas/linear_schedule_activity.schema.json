@@ -1,0 +1,134 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "LinearScheduleActivity",
+  "type": "object",
+  "required": [
+    "project_id",
+    "linear_schedule_view_id",
+    "activity_name",
+    "activity_type",
+    "display_layer",
+    "start_date",
+    "finish_date"
+  ],
+  "properties": {
+    "project_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "scenario_id": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "format": "uuid"
+    },
+    "linear_schedule_view_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "object_ref_type": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "enum": [
+        "model_object",
+        "zone",
+        "hotlink_instance",
+        null
+      ]
+    },
+    "object_ref_id": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "format": "uuid"
+    },
+    "package_id": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "workfront": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "activity_name": {
+      "type": "string"
+    },
+    "activity_type": {
+      "type": "string",
+      "enum": [
+        "linear",
+        "bar",
+        "block",
+        "milestone"
+      ]
+    },
+    "display_layer": {
+      "type": "string",
+      "enum": [
+        "baseline",
+        "planned",
+        "actual",
+        "remaining"
+      ]
+    },
+    "color_key": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "start_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "finish_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "location_ref": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "start_location_ref": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "finish_location_ref": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "sequence_group": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "sequence_order": {
+      "type": [
+        "integer",
+        "null"
+      ]
+    },
+    "metadata_json": {
+      "type": [
+        "object",
+        "null"
+      ]
+    }
+  },
+  "additionalProperties": false
+}

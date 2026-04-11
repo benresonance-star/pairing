@@ -1,0 +1,112 @@
+{
+  "objectRefTypes": [
+    "model_object",
+    "zone",
+    "hotlink_instance"
+  ],
+  "scenarioStatuses": [
+    "baseline",
+    "draft",
+    "active",
+    "archived"
+  ],
+  "changeSetStatuses": [
+    "draft",
+    "submitted",
+    "approved",
+    "rejected",
+    "queued_for_sync",
+    "synced",
+    "sync_failed"
+  ],
+  "syncDirections": [
+    "archicad_to_supabase",
+    "supabase_to_archicad"
+  ],
+  "syncRunStatuses": [
+    "running",
+    "completed",
+    "completed_with_errors",
+    "failed"
+  ],
+  "constructionStates": [
+    "not_started",
+    "ready",
+    "in_progress",
+    "blocked",
+    "complete"
+  ],
+  "unitValues": [
+    "m2",
+    "m3",
+    "lm",
+    "count",
+    "item",
+    "manual"
+  ],
+  "linearActivityTypes": [
+    "linear",
+    "bar",
+    "block",
+    "milestone"
+  ],
+  "linearAxisOrientations": [
+    "time_horizontal",
+    "time_vertical"
+  ],
+  "linearDisplayLayers": [
+    "baseline",
+    "planned",
+    "actual",
+    "remaining"
+  ],
+  "linearLocationReferenceModels": [
+    "stationing",
+    "storey_sequence",
+    "named_segments"
+  ],
+  "archicadWritableFields": [
+    "CCP_PackageID",
+    "CCP_PackageName",
+    "CCP_TradeCode",
+    "CCP_Workfront",
+    "CCP_SequenceGroup",
+    "CCP_SequenceOrder",
+    "CCP_PlannedStart",
+    "CCP_PlannedFinish",
+    "CCP_ActualStart",
+    "CCP_ActualFinish",
+    "CCP_ConstructionState",
+    "CCP_CostCode",
+    "CCP_Unit",
+    "CCP_UnitRate",
+    "CCP_QuantityBasis",
+    "CCP_BudgetAmount",
+    "CCP_SyncStatus",
+    "CCP_LastSyncAt",
+    "CCP_LastScenarioID",
+    "CCP_LastApprovedChangeSet"
+  ],
+  "operationalWritableFields": [
+    "package_id",
+    "package_name",
+    "trade_code",
+    "workfront",
+    "sequence_group",
+    "sequence_order",
+    "planned_start",
+    "planned_finish",
+    "actual_start",
+    "actual_finish",
+    "construction_state",
+    "cost_code",
+    "unit",
+    "unit_rate",
+    "quantity_basis",
+    "budget_amount"
+  ],
+  "firstSliceElementTypes": [
+    "wall",
+    "slab"
+  ]
+}

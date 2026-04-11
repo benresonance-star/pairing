@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ChangeSetItem",
+  "type": "object",
+  "required": [
+    "change_set_id",
+    "object_ref_type",
+    "object_ref_id",
+    "field_name",
+    "new_value_json"
+  ],
+  "properties": {
+    "change_set_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "object_ref_type": {
+      "type": "string",
+      "enum": [
+        "model_object",
+        "zone",
+        "hotlink_instance"
+      ]
+    },
+    "object_ref_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "field_name": {
+      "type": "string"
+    },
+    "old_value_json": {},
+    "new_value_json": {}
+  },
+  "additionalProperties": false
+}

@@ -1,0 +1,7 @@
+# Coding Standards
+
+- Prefer typed interfaces and explicit schemas.
+- Keep module boundaries narrow and purposeful.
+- Avoid silent fallback behavior for business rules.
+- Add validation close to external inputs.
+- Use comments sparingly and only when the logic is not obvious.

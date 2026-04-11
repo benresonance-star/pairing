@@ -1,0 +1,62 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "LinearScheduleView",
+  "type": "object",
+  "required": [
+    "project_id",
+    "location_axis_id",
+    "name",
+    "time_axis_start",
+    "time_axis_finish",
+    "orientation"
+  ],
+  "properties": {
+    "project_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "scenario_id": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "format": "uuid"
+    },
+    "location_axis_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "name": {
+      "type": "string"
+    },
+    "description": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "time_axis_start": {
+      "type": "string",
+      "format": "date"
+    },
+    "time_axis_finish": {
+      "type": "string",
+      "format": "date"
+    },
+    "data_date": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "format": "date"
+    },
+    "orientation": {
+      "type": "string",
+      "enum": [
+        "time_horizontal",
+        "time_vertical"
+      ]
+    }
+  },
+  "additionalProperties": false
+}
