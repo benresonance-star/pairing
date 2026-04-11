@@ -43,6 +43,7 @@ The MVP must support these primary entities:
 - approvals
 - sync_runs
 - audit_events
+- archicad_writes
 - location_axes
 - linear_schedule_views
 - linear_schedule_activities
@@ -256,6 +257,7 @@ Fields:
 - `title` text not null
 - `description` text nullable
 - `status` text not null default 'draft'
+- `sync_errors` text[] not null default empty array
 - `submitted_by` text nullable
 - `submitted_at` timestamptz nullable
 - `created_at` timestamptz default now()
@@ -365,7 +367,33 @@ Indexes:
 
 ---
 
-## 4.13 location_axes
+## 4.13 archicad_writes
+
+Purpose:
+- append-only record of connector write attempts against Archicad properties
+
+Fields:
+- `id` uuid primary key
+- `project_id` uuid references projects(id)
+- `change_set_id` uuid nullable references change_sets(id)
+- `archicad_guid` text nullable
+- `field_name` text not null
+- `field_value` jsonb nullable
+- `applied_at` timestamptz not null default now()
+- `dry_run` boolean not null default false
+- `created_at` timestamptz default now()
+
+Indexes:
+- (`project_id`, `applied_at`)
+- (`change_set_id`)
+
+Notes:
+- `archicad_writes` complements `audit_events` with a queryable write ledger suited to recent-write UI views and connector validation
+- dry-run entries may be recorded for validation-only outbound passes when the connector is configured not to mutate Archicad
+
+---
+
+## 4.14 location_axes
 
 Purpose:
 - define the ordered location axis used by linear scheduling views
@@ -400,7 +428,7 @@ Notes:
 
 ---
 
-## 4.14 linear_schedule_views
+## 4.15 linear_schedule_views
 
 Purpose:
 - named read-only linear scheduling configurations for a project or scenario
@@ -434,7 +462,7 @@ Notes:
 
 ---
 
-## 4.15 linear_schedule_activities
+## 4.16 linear_schedule_activities
 
 Purpose:
 - plotted activities for read-only linear schedule rendering
@@ -494,7 +522,7 @@ Notes:
 
 ---
 
-## 4.16 linear_progress_points
+## 4.17 linear_progress_points
 
 Purpose:
 - actual progress samples for plotting updated linear activities over time and location
@@ -576,12 +604,17 @@ The logical API contract should remain stable regardless of transport.
 - create baseline scenario
 - clone scenario
 - list scenarios
+- update scenario name
+- update scenario status
+- archive scenario
+- delete scenario when no change sets depend on it
 - compare scenarios
 
 ## 7.5 Operational state actions
 - get operational state for scenario
 - bulk upsert operational records
 - bulk edit filtered operational records
+- update a single operational state row for scenario editing
 
 ## 7.6 Change set actions
 - create draft change set
@@ -595,12 +628,17 @@ The logical API contract should remain stable regardless of transport.
 ## 7.7 Sync actions
 - list approved pending changes
 - write sync result
+- record Archicad write history
+- record per-item sync errors on failed outbound change sets
 - list sync logs
 
 ## 7.8 Linear scheduling actions
 - list location axes
 - create or update a linear schedule view
 - list plotted schedule activities for a view
+- create schedule activity
+- update schedule activity
+- delete schedule activity
 - list actual progress points for a view
 - compare baseline and actual schedule layers
 
@@ -702,8 +740,16 @@ A submitted change set must:
 - not already be synced
 - have field names that exist in the writeable operational model
 
+Queued change sets should clear stale `sync_errors` before the next outbound attempt.
+
 ## 9.5 Scenario validation
 Scenario clone must copy operational state, not duplicate model identity tables.
+
+Additional scenario rules:
+- baseline scenarios cannot be archived or deleted
+- deleting a scenario must also remove scenario-scoped schedule rows and progress points
+- scenarios with existing change sets should be archived instead of deleted
+- cloning should copy scenario-scoped linear schedule views, activities, and progress points together with operational state
 
 ## 9.6 Linear scheduling validation
 - every linear schedule view must point to a valid location axis
@@ -711,6 +757,8 @@ Scenario clone must copy operational state, not duplicate model identity tables.
 - display layers must use a controlled vocabulary
 - activity dates must fit within a reasonable project timescale
 - location references used by schedule activities must exist in the selected axis definition
+- schedule activity names must be non-empty
+- package-linked schedule activities must reference an active package in `work_packages`
 
 ---
 
@@ -806,6 +854,8 @@ Security-relevant events should also be recorded, including:
 - sync failures caused by validation or authorization issues
 - package-register changes that affect write-back validity
 
+Where implemented, Archicad property write attempts should also be queryable through `archicad_writes` so recent connector activity can be reviewed without reconstructing it from generic audit payloads alone.
+
 ---
 
 ## 14. Performance Guidelines
@@ -831,10 +881,11 @@ This spec is implemented successfully when:
 5. Change sets can be submitted, approved, and queued.
 6. Pending approved changes can be retrieved by the connector.
 7. Sync runs and audit events can be recorded.
-8. Scenario comparisons can be generated from operational data.
-9. Row-level security and project-scoped authorization rules exist for all MVP tables.
-10. No browser-facing workflow requires direct use of elevated backend credentials.
-11. A project-scoped linear scheduling view can be rendered from an explicit location axis and plotted activity records.
+8. Outbound write attempts can be recorded in `archicad_writes`, including dry-run entries where used.
+9. Scenario comparisons can be generated from operational data.
+10. Row-level security and project-scoped authorization rules exist for all MVP tables.
+11. No browser-facing workflow requires direct use of elevated backend credentials.
+12. A project-scoped linear scheduling view can be rendered from an explicit location axis and plotted activity records.
 
 ---
 

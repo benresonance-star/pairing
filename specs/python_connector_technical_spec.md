@@ -93,6 +93,8 @@ Loads:
 - Archicad connection settings
 - Supabase URL/key
 - project mapping
+- data source mode
+- optional scenario targeting
 - enabled object classes
 - writable field allowlist
 - polling interval
@@ -132,10 +134,13 @@ Maps Archicad payloads into normalized external records.
 ## 6.6 supabase_client.py
 Handles:
 - authenticated Supabase requests
+- demo file-backed runtime access for local development
 - bulk upserts
 - queries for pending approved changes
 - sync run updates
 - audit event creation
+- Archicad write history recording
+- failed outbound sync error recording on change sets
 
 Security expectations:
 - service-role credentials must only be used in trusted backend or connector execution contexts
@@ -177,6 +182,10 @@ Shared retry/backoff helpers for transient failures.
 
 The connector should support at least these modes:
 
+### 7.0 Data source modes
+- `demo`: use the local runtime JSON store for development and validation
+- `supabase`: use a real Supabase project through backend credentials
+
 ### 7.1 Inbound sync mode
 - read Archicad
 - push records to Supabase
@@ -193,15 +202,21 @@ The connector should support at least these modes:
 - validate and log what would happen
 - do not write to Archicad
 
+### 7.5 Scenario-targeted execution
+- when `CCP_SCENARIO_ID` is unset, use the baseline scenario
+- when `CCP_SCENARIO_ID` is set, inbound and outbound runs should resolve writes against that scenario scope
+
 ---
 
 ## 8. Configuration Specification
 
 Suggested environment variables:
 
+- `CCP_DATA_SOURCE`
 - `SUPABASE_URL`
 - `SUPABASE_SERVICE_ROLE_KEY`
 - `PROJECT_ID`
+- `CCP_SCENARIO_ID`
 - `ARCHICAD_HOST`
 - `ARCHICAD_PORT`
 - `SYNC_INTERVAL_SECONDS`
@@ -215,6 +230,11 @@ Optional config file:
 - property group names
 - writable property allowlist
 - controlled vocabulary rules
+
+Expected values and notes:
+- `CCP_DATA_SOURCE` should accept at least `demo` and `supabase`
+- live Supabase mode should require the Supabase URL and service-role key at startup
+- demo seed/reset commands are valid only for demo mode; live mode should rely on the bootstrap process outside the connector
 
 Security rules for configuration:
 - do not log raw secret values
@@ -299,7 +319,7 @@ Bulk upsert:
 - hotlink_instances
 
 ## Step 6
-Optionally compare/update mirrored baseline operational values if required by design
+Ensure operational state rows exist for the active scenario so the UI and outbound sync can operate on scenario-scoped records even when values originate from the inbound Archicad snapshot.
 
 ## Step 7
 Complete sync run and write summary
@@ -331,12 +351,14 @@ Attempt property writes to Archicad
 ## Step 5
 For each successful write:
 - log success
+- record an `archicad_writes` entry, including dry-run metadata when applicable
 - record audit event if needed
 
 ## Step 6
 For each failed write:
 - log item error
 - accumulate summary
+- persist item-level errors back onto the parent change set
 
 ## Step 7
 Set change set status:
@@ -381,6 +403,7 @@ Additional security requirements:
 - the connector must fail closed on unknown fields rather than attempting best-effort writes
 - live outbound modes should support dry-run validation before enabling actual writes
 - connector logs must include enough context for audit, but must not leak secrets or raw credentials
+- live writes and dry-run attempts should remain project-scoped and attributable to a specific change set where applicable
 
 ---
 
@@ -469,6 +492,10 @@ State may be stored in:
 
 For MVP, a small local state file is acceptable.
 
+Operational note:
+- demo mode may seed and reset this runtime state locally
+- live Supabase mode should not mutate seed/runtime fixture files and should use a separate bootstrap workflow for database setup
+
 ---
 
 ## 17. Supabase Integration Notes
@@ -486,6 +513,8 @@ Recommended operations:
 - query approved queued change sets
 - query change_set_items
 - update change_set status
+- write `sync_errors` back onto failed change sets
+- insert `archicad_writes` records for successful or dry-run property applications
 - create sync_runs
 - store run summaries
 
@@ -572,6 +601,9 @@ def run_outbound_sync():
 - sync run lifecycle
 - authentication and authorization failure handling
 - allowlist enforcement and unknown-field rejection
+- demo vs live data-source configuration boundaries
+- change-set `sync_errors` persistence
+- `archicad_writes` recording for dry-run and live outbound flows
 
 ## 19.3 Manual Archicad tests
 - connect to running Archicad
@@ -595,7 +627,8 @@ The connector is successful if it can:
 7. update sync and change-set status correctly
 8. produce useful logs for failures and successes
 9. reject non-allowlisted or unauthorized write attempts safely
-10. keep live credentials and secret material out of logs and source-controlled config
+10. record Archicad write attempts and failed-item sync errors in the backing store
+11. keep live credentials and secret material out of logs and source-controlled config
 
 ---
 
