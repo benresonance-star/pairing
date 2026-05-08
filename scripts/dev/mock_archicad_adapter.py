@@ -90,7 +90,7 @@ def build_handler(snapshot_path: Path, writes_path: Path):
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Mock Archicad live adapter for local connector validation")
     parser.add_argument("--host", default="127.0.0.1")
-    parser.add_argument("--port", type=int, default=19723)
+    parser.add_argument("--port", type=int, default=19724)
     parser.add_argument(
         "--snapshot-path",
         type=Path,

@@ -13,7 +13,7 @@ import requests
 
 
 HOST = "127.0.0.1"
-PORT = 19723
+PORT = 19724
 TARGET_GUID = "ZONE-1001"
 
 

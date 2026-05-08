@@ -11,8 +11,8 @@ Use `archicad_live_adapter.md` as the HTTP contract for the Archicad-side bridge
 1. Open a model with the `CCP_Operational` property group configured.
 2. Run `npm run archicad:smoke:mock` to confirm the connector can use the live HTTP adapter contract locally.
 3. Run `npm run archicad:probe` to confirm Python can connect to the local Archicad instance.
-4. Start the Archicad-side bridge that implements the live adapter contract.
-5. Set `CCP_ARCHICAD_ADAPTER=live`, `ARCHICAD_HOST`, and `ARCHICAD_PORT`.
+4. Start the Python bridge with `npm run archicad:bridge`, or start another Archicad-side bridge that implements the live adapter contract.
+5. Set `CCP_ARCHICAD_ADAPTER=live`, `ARCHICAD_HOST=127.0.0.1`, and `ARCHICAD_PORT=19724` (or another free adapter port).
 6. Apply an approved CCP property update through the outbound connector flow.
 7. Inspect the target object properties in Archicad.
 8. Verify schedules can display the updated value.
@@ -24,3 +24,4 @@ Use `archicad_live_adapter.md` as the HTTP contract for the Archicad-side bridge
 - the property remains schedule-friendly
 - Archicad display behavior reacts to the synced value without geometry changes
 - failed adapter calls mark the change set as `sync_failed` rather than silently applying partial state
+- if the model does not define the target `CCP_Operational` field, outbound sync should fail with a clear adapter error and the change set should remain `sync_failed`

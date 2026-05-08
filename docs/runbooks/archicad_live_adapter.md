@@ -18,7 +18,7 @@ Set these variables for live adapter mode:
 ```powershell
 CCP_ARCHICAD_ADAPTER=live
 ARCHICAD_HOST=127.0.0.1
-ARCHICAD_PORT=19723
+ARCHICAD_PORT=19724
 ```
 
 The connector builds the base URL as:
@@ -40,7 +40,7 @@ Expected response:
 ```json
 {
   "product_name": "Archicad 28",
-  "connection": "127.0.0.1:19723"
+  "connection": "build 6100 AUS"
 }
 ```
 
@@ -153,7 +153,7 @@ npm run archicad:smoke:mock
 
 This command:
 
-- starts `scripts/dev/mock_archicad_adapter.py` on `127.0.0.1:19723`
+- starts `scripts/dev/mock_archicad_adapter.py` on `127.0.0.1:19724`
 - serves `shared/examples/sample_archicad_snapshot.json` through `GET /api/v1/snapshot`
 - resets the demo runtime state
 - runs connector inbound with `CCP_ARCHICAD_ADAPTER=live`
@@ -187,6 +187,22 @@ The probe:
 - calls `ACConnection.connect()`
 - attempts basic product info and element count commands
 - prints setup guidance when the package is missing or Archicad is not reachable
+
+Then start the first read-only Python bridge:
+
+```powershell
+npm run archicad:bridge
+```
+
+By default, both `npm run archicad:mock` and `npm run archicad:bridge` use port `19724`. This avoids collisions with local Archicad services that can already occupy `19723`.
+
+The bridge implements the live adapter HTTP contract against the currently open Archicad instance:
+
+- `GET /api/v1/product-info` returns Archicad version/build information
+- `GET /api/v1/snapshot` extracts zones, walls, and slabs into the connector snapshot shape
+- `POST /api/v1/properties` attempts allowlisted `CCP_Operational` property writes
+
+The current bridge can read built-in Archicad identity/name/zone/area properties. CCP operational values are included only when the active model already contains the `CCP_Operational` properties. If those properties are missing, snapshot extraction still works but write-back returns a clear error.
 
 The first true-connection milestone should use a disposable or backed-up model and prove only:
 
