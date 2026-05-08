@@ -174,6 +174,20 @@ The mock server records property writes at `shared/examples/runtime/mock_archica
 
 After the mock smoke check passes, replace the mock server internals with calls into the Archicad-side integration while preserving the same HTTP contract.
 
+First confirm that Python can connect to the local Archicad instance:
+
+```powershell
+pip install archicad
+npm run archicad:probe
+```
+
+The probe:
+
+- imports Graphisoft's `archicad` Python package
+- calls `ACConnection.connect()`
+- attempts basic product info and element count commands
+- prints setup guidance when the package is missing or Archicad is not reachable
+
 The first true-connection milestone should use a disposable or backed-up model and prove only:
 
 1. `GET /api/v1/product-info` returns the running Archicad bridge identity.
