@@ -20,9 +20,8 @@ async function runCompanionAction(formData: FormData) {
   const search = new URLSearchParams();
   try {
     if (action === "connect") {
-      await connectCompanion();
-      const status = await getCompanionStatus();
-      if (status.bridge.reachable) {
+      const connectResult = await connectCompanion();
+      if (connectResult.bridge?.reachable) {
         search.set("status", "Connected. Bridge is reachable and ready.");
       } else {
         search.set(

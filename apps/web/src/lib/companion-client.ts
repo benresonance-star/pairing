@@ -27,6 +27,16 @@ type CompanionLogsResponse = {
   logs: string[];
 };
 
+export type CompanionConnectResponse = {
+  status: string;
+  product_info?: Record<string, unknown>;
+  bridge?: {
+    reachable?: boolean;
+    [key: string]: unknown;
+  };
+  [key: string]: unknown;
+};
+
 export type CompanionErrorKind =
   | "timeout"
   | "connection_refused"
@@ -137,9 +147,9 @@ export async function getCompanionLogs(limit = 120): Promise<string[]> {
 }
 
 export async function connectCompanion() {
-  return companionRequest<Record<string, unknown>>("/companion/connect", {
+  return companionRequest<CompanionConnectResponse>("/companion/connect", {
     method: "POST",
-    timeoutMs: 20000
+    timeoutMs: 45000
   });
 }
 
