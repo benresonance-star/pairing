@@ -56,6 +56,7 @@ Start with the runbooks in `docs/runbooks/`:
 - `local_dev.md`
 - `inbound_sync_test.md`
 - `outbound_sync_test.md`
+- `archicad_live_adapter.md`
 - `archicad_validation.md`
 - `scenario_clone_validation.md`
 
