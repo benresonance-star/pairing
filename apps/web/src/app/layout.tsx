@@ -23,6 +23,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
             <Link href="/objects">Objects</Link>
             <Link href="/change-sets">Change Sets</Link>
             <Link href="/linear-schedule">Linear Schedule</Link>
+            <Link href="/integrations/archicad">Integrations</Link>
           </nav>
           {children}
         </main>

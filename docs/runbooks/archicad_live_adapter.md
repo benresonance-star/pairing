@@ -222,6 +222,23 @@ For manual live validation:
 5. Run outbound without `--dry-run` only when the target model is disposable or backed up.
 6. Confirm the Archicad property changed and the change set moved to `synced`.
 
+## Web app live-link controls
+
+To let users launch and control the local Archicad connection from the web app:
+
+1. Start the local desktop companion:
+
+```powershell
+npm run archicad:companion
+```
+
+2. Open the web app and use the `Integrations` tab (`/integrations/archicad`) to:
+   - connect/disconnect the managed bridge process
+   - inspect bridge health and snapshot summary
+   - run inbound/outbound connector commands
+
+The companion binds to `127.0.0.1` and can require `ARCHICAD_COMPANION_TOKEN` through the `x-companion-token` header. Configure the web app with `ARCHICAD_COMPANION_URL` and matching token when enabled.
+
 For quick contract and inbound verification without an outbound write:
 
 ```powershell

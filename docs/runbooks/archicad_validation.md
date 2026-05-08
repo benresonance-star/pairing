@@ -11,14 +11,15 @@ Use `archicad_live_adapter.md` as the HTTP contract for the Archicad-side bridge
 1. Open a model with the `CCP_Operational` property group configured.
 2. Run `npm run archicad:smoke:mock` to confirm the connector can use the live HTTP adapter contract locally.
 3. Run `npm run archicad:probe` to confirm Python can connect to the local Archicad instance.
-4. Start the Python bridge with `npm run archicad:bridge`, or start another Archicad-side bridge that implements the live adapter contract.
-5. Run `npm run archicad:smoke:live` to verify endpoint contract + inbound integration against the live bridge.
-6. Set `CCP_ARCHICAD_ADAPTER=live`, `ARCHICAD_HOST=127.0.0.1`, and `ARCHICAD_PORT=19724` (or another free adapter port).
-7. Apply an approved CCP property update through the outbound connector flow, or run `npm run archicad:smoke:live -- --validate-write --target-guid YOUR_ZONE_GUID` for a scripted write check.
+4. Start the local desktop companion with `npm run archicad:companion`.
+5. Open the web app `Integrations` tab and click **Connect** to launch/check the bridge.
+6. Run `npm run archicad:smoke:live` to verify endpoint contract + inbound integration against the live bridge.
+7. Set `CCP_ARCHICAD_ADAPTER=live`, `ARCHICAD_HOST=127.0.0.1`, and `ARCHICAD_PORT=19724` (or another free adapter port).
+8. Apply an approved CCP property update through the outbound connector flow, or run `npm run archicad:smoke:live -- --validate-write --target-guid YOUR_ZONE_GUID` for a scripted write check.
    - Add `--expect-write-status synced` to fail fast when outbound does not end in `synced`.
-8. Inspect the target object properties in Archicad.
-9. Verify schedules can display the updated value.
-10. Verify a Graphic Override rule can react to the updated value.
+9. Inspect the target object properties in Archicad.
+10. Verify schedules can display the updated value.
+11. Verify a Graphic Override rule can react to the updated value.
 
 ## Expected outcomes
 

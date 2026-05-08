@@ -13,6 +13,7 @@
     "supabase:bootstrap": "python scripts/dev/bootstrap_supabase.py",
     "supabase:smoke:governed": "tsx scripts/dev/supabase_governed_smoke.ts",
     "archicad:probe": "python scripts/dev/archicad_probe.py",
+    "archicad:companion": "python scripts/dev/desktop_companion.py",
     "archicad:bridge": "python scripts/dev/archicad_bridge.py --port 19724",
     "archicad:mock": "python scripts/dev/mock_archicad_adapter.py --port 19724",
     "archicad:smoke:mock": "python scripts/dev/mock_archicad_smoke.py",

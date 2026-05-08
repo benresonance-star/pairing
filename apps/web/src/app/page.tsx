@@ -1,10 +1,20 @@
 import Link from "next/link";
 
+import { getCompanionStatus } from "../lib/companion-client";
 import { getDashboardSummary, getRecentWrites } from "../lib/demo-store";
 
 export default async function HomePage() {
-  const summary = await getDashboardSummary();
-  const writes = await getRecentWrites();
+  const [summary, writes] = await Promise.all([getDashboardSummary(), getRecentWrites()]);
+  let companionReachable = false;
+  let bridgeReachable = false;
+
+  try {
+    const companionStatus = await getCompanionStatus();
+    companionReachable = true;
+    bridgeReachable = companionStatus.bridge.reachable;
+  } catch {
+    companionReachable = false;
+  }
 
   return (
     <>
@@ -52,6 +62,16 @@ export default async function HomePage() {
         <p>
           Open the <Link href="/scenarios">Scenarios</Link> page to create a draft clone and inspect
           scenario-specific change-set and operational counts.
+        </p>
+      </section>
+
+      <section className="panel">
+        <h2>Live Integration</h2>
+        <p>
+          Companion: <strong>{companionReachable ? "online" : "offline"}</strong> | Bridge:{" "}
+          <strong>{bridgeReachable ? "reachable" : "not reachable"}</strong>. Open{" "}
+          <Link href="/integrations/archicad">Integrations</Link> to connect/disconnect and run
+          inbound/outbound controls from the UI.
         </p>
       </section>
 

@@ -1,6 +1,8 @@
+import Link from "next/link";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
+import { getCompanionStatus } from "../../lib/companion-client";
 import { actionsForStatus, getChangeSets, getScenarios, transitionChangeSet } from "../../lib/demo-store";
 
 async function moveChangeSet(formData: FormData) {
@@ -41,6 +43,13 @@ export default async function ChangeSetsPage({ searchParams }: PageProps) {
     ? scenarios.find((scenario) => scenario.id === selectedScenarioId) ?? null
     : null;
   const changeSets = await getChangeSets(selectedScenarioId);
+  let bridgeReachable = false;
+  try {
+    const companionStatus = await getCompanionStatus();
+    bridgeReachable = companionStatus.bridge.reachable;
+  } catch {
+    bridgeReachable = false;
+  }
   const status = typeof params.status === "string" ? params.status : null;
   const error = typeof params.error === "string" ? params.error : null;
 
@@ -50,6 +59,11 @@ export default async function ChangeSetsPage({ searchParams }: PageProps) {
       <p className="muted">
         Move package assignment changes through draft, submit, approve, and queue. Once queued,
         run the connector outbound command to record the `CCP_PackageID` write-back payload.
+      </p>
+      <p className="muted">
+        Archicad bridge: <strong>{bridgeReachable ? "reachable" : "not reachable"}</strong>. Manage
+        connection and run sync controls on the <Link href="/integrations/archicad">Integrations</Link>{" "}
+        tab.
       </p>
       {selectedScenario ? (
         <div className="notice">
