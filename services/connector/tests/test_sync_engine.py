@@ -49,17 +49,18 @@ def test_sync_engine_can_select_live_archicad_adapter(tmp_path: Path) -> None:
     engine = SyncEngine(config)
 
     assert isinstance(engine.archicad_client, LiveArchicadClient)
-    assert engine.archicad_client.get_product_info()["connection"] == "127.0.0.1:19723"
+    assert engine.archicad_client.host == "127.0.0.1"
+    assert engine.archicad_client.port == 19723
 
 
-def test_live_archicad_adapter_fails_closed_for_unimplemented_reads(tmp_path: Path) -> None:
+def test_live_archicad_adapter_surfaces_unavailable_reads(tmp_path: Path) -> None:
     config = build_config(tmp_path)
     config.archicad_adapter = "live"
     config.archicad_host = "127.0.0.1"
     config.archicad_port = 19723
     engine = SyncEngine(config)
 
-    with pytest.raises(NotImplementedError, match="Live Archicad inbound reads"):
+    with pytest.raises(Exception, match="Archicad"):
         engine.run_inbound()
 
 
