@@ -15,6 +15,7 @@ Use `archicad_live_adapter.md` as the HTTP contract for the Archicad-side bridge
 5. Run `npm run archicad:smoke:live` to verify endpoint contract + inbound integration against the live bridge.
 6. Set `CCP_ARCHICAD_ADAPTER=live`, `ARCHICAD_HOST=127.0.0.1`, and `ARCHICAD_PORT=19724` (or another free adapter port).
 7. Apply an approved CCP property update through the outbound connector flow, or run `npm run archicad:smoke:live -- --validate-write --target-guid YOUR_ZONE_GUID` for a scripted write check.
+   - Add `--expect-write-status synced` to fail fast when outbound does not end in `synced`.
 8. Inspect the target object properties in Archicad.
 9. Verify schedules can display the updated value.
 10. Verify a Graphic Override rule can react to the updated value.

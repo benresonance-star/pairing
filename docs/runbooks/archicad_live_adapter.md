@@ -235,3 +235,9 @@ npm run archicad:smoke:live -- --validate-write --target-guid YOUR_ZONE_GUID
 ```
 
 The write validation reports the resulting change set status (`synced` or `sync_failed`) and any adapter error returned by `POST /api/v1/properties`.
+
+To enforce an expected outbound result in CI or scripted checks, add `--expect-write-status`:
+
+```powershell
+npm run archicad:smoke:live -- --validate-write --target-guid YOUR_ZONE_GUID --expect-write-status synced
+```

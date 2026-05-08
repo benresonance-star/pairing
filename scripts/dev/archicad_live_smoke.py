@@ -162,6 +162,11 @@ def build_parser() -> argparse.ArgumentParser:
         "--target-guid",
         help="Zone archicad_guid used for --validate-write; must exist in inbound snapshot",
     )
+    parser.add_argument(
+        "--expect-write-status",
+        choices=["synced", "sync_failed"],
+        help="When set with --validate-write, fail if outbound change-set status does not match",
+    )
     return parser
 
 
@@ -194,6 +199,11 @@ def main() -> None:
         result["requested_state"] = expected_state
         result["write_validation"] = status
         result["sync_errors"] = errors
+        if args.expect_write_status and status != args.expect_write_status:
+            raise RuntimeError(
+                f"Expected write status '{args.expect_write_status}', got '{status}' "
+                f"for change_set_id={change_set_id}"
+            )
 
     print(json.dumps(result, indent=2))
 
