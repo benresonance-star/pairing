@@ -3,6 +3,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import {
+  CompanionRequestError,
   connectCompanion,
   disconnectCompanion,
   getCompanionLogs,
@@ -10,6 +11,7 @@ import {
   runCompanionInbound,
   runCompanionOutbound
 } from "../../../lib/companion-client";
+import { CompanionActionButton } from "./companion-action-button";
 
 async function runCompanionAction(formData: FormData) {
   "use server";
@@ -19,7 +21,15 @@ async function runCompanionAction(formData: FormData) {
   try {
     if (action === "connect") {
       await connectCompanion();
-      search.set("status", "Connected to local Archicad companion.");
+      const status = await getCompanionStatus();
+      if (status.bridge.reachable) {
+        search.set("status", "Connected. Bridge is reachable and ready.");
+      } else {
+        search.set(
+          "warning",
+          "Companion responded but bridge is not reachable yet. Ensure Archicad is open, then retry Connect."
+        );
+      }
     } else if (action === "disconnect") {
       await disconnectCompanion();
       search.set("status", "Disconnected managed bridge process.");
@@ -45,7 +55,17 @@ async function runCompanionAction(formData: FormData) {
       throw new Error("Unsupported companion action");
     }
   } catch (error) {
-    search.set("error", error instanceof Error ? error.message : "Companion action failed");
+    if (error instanceof CompanionRequestError) {
+      if (error.kind === "connection_refused") {
+        search.set("error", "Desktop companion is offline. Start `npm run archicad:companion` and retry.");
+      } else if (error.kind === "timeout") {
+        search.set("error", "The action timed out. Retry, and ensure Archicad is open for Connect.");
+      } else {
+        search.set("error", error.message);
+      }
+    } else {
+      search.set("error", error instanceof Error ? error.message : "Companion action failed");
+    }
   }
 
   revalidatePath("/");
@@ -62,15 +82,16 @@ export default async function ArchicadIntegrationPage({ searchParams }: PageProp
   const params = (await searchParams) ?? {};
   const statusMessage = typeof params.status === "string" ? params.status : null;
   const errorMessage = typeof params.error === "string" ? params.error : null;
+  const warningMessage = typeof params.warning === "string" ? params.warning : null;
 
   let status: Awaited<ReturnType<typeof getCompanionStatus>> | null = null;
   let logs: string[] = [];
-  let statusError: string | null = null;
+  let companionOffline = false;
 
   try {
     [status, logs] = await Promise.all([getCompanionStatus(), getCompanionLogs(80)]);
-  } catch (error) {
-    statusError = error instanceof Error ? error.message : "Failed to read companion status";
+  } catch {
+    companionOffline = true;
   }
 
   return (
@@ -90,7 +111,12 @@ export default async function ArchicadIntegrationPage({ searchParams }: PageProp
 
       {statusMessage ? <div className="notice notice-success">{statusMessage}</div> : null}
       {errorMessage ? <div className="notice notice-error">{errorMessage}</div> : null}
-      {statusError ? <div className="notice notice-error">{statusError}</div> : null}
+      {warningMessage ? <div className="notice notice-warning">{warningMessage}</div> : null}
+      {companionOffline ? (
+        <div className="notice">
+          Desktop companion is offline. Start <code>npm run archicad:companion</code>, then click Connect.
+        </div>
+      ) : null}
 
       <div className="card-grid">
         <div className="card">
@@ -114,28 +140,17 @@ export default async function ArchicadIntegrationPage({ searchParams }: PageProp
         </div>
       </div>
 
-      <div className="actions integrations-actions">
-        <form action={runCompanionAction}>
-          <input type="hidden" name="action" value="connect" />
-          <button type="submit">Connect</button>
-        </form>
-        <form action={runCompanionAction}>
-          <input type="hidden" name="action" value="disconnect" />
-          <button type="submit">Disconnect</button>
-        </form>
-        <form action={runCompanionAction}>
-          <input type="hidden" name="action" value="inbound" />
-          <button type="submit">Run Inbound</button>
-        </form>
-        <form action={runCompanionAction}>
-          <input type="hidden" name="action" value="outbound_dry_run" />
-          <button type="submit">Run Outbound Dry-Run</button>
-        </form>
-        <form action={runCompanionAction}>
-          <input type="hidden" name="action" value="outbound" />
-          <button type="submit">Run Outbound</button>
-        </form>
-      </div>
+      <form action={runCompanionAction} className="actions integrations-actions">
+        <CompanionActionButton action="connect" label="Connect" pendingLabel="Connecting..." />
+        <CompanionActionButton action="disconnect" label="Disconnect" pendingLabel="Disconnecting..." />
+        <CompanionActionButton action="inbound" label="Run Inbound" pendingLabel="Running inbound..." />
+        <CompanionActionButton
+          action="outbound_dry_run"
+          label="Run Outbound Dry-Run"
+          pendingLabel="Running dry-run..."
+        />
+        <CompanionActionButton action="outbound" label="Run Outbound" pendingLabel="Running outbound..." />
+      </form>
 
       <section className="panel panel-subtle">
         <h3>Bridge Identity</h3>

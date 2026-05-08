@@ -127,6 +127,11 @@ button {
   background: #11271d;
 }
 
+.notice-warning {
+  border-color: #7d6a37;
+  background: #2c2410;
+}
+
 .filter-row {
   display: flex;
   gap: 12px;

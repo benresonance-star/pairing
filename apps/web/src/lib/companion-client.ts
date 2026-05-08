@@ -27,56 +27,140 @@ type CompanionLogsResponse = {
   logs: string[];
 };
 
+export type CompanionErrorKind =
+  | "timeout"
+  | "connection_refused"
+  | "unauthorized"
+  | "not_found"
+  | "server_error"
+  | "network_error";
+
+export class CompanionRequestError extends Error {
+  kind: CompanionErrorKind;
+  statusCode?: number;
+
+  constructor(message: string, kind: CompanionErrorKind, statusCode?: number) {
+    super(message);
+    this.name = "CompanionRequestError";
+    this.kind = kind;
+    this.statusCode = statusCode;
+  }
+}
+
 function companionBaseUrl() {
   return process.env.ARCHICAD_COMPANION_URL ?? "http://127.0.0.1:19725";
 }
 
-async function companionRequest<T>(path: string, init?: RequestInit): Promise<T> {
+type CompanionRequestOptions = RequestInit & {
+  timeoutMs?: number;
+};
+
+function toCompanionRequestError(error: unknown, path: string): CompanionRequestError {
+  if (error instanceof CompanionRequestError) {
+    return error;
+  }
+  if (error instanceof DOMException && error.name === "AbortError") {
+    return new CompanionRequestError(
+      `Companion request to '${path}' timed out. Ensure the local companion is running and retry.`,
+      "timeout"
+    );
+  }
+  const message = error instanceof Error ? error.message : String(error);
+  if (message.includes("ECONNREFUSED") || message.includes("fetch failed")) {
+    return new CompanionRequestError(
+      "Could not reach desktop companion. Start it with `npm run archicad:companion`.",
+      "connection_refused"
+    );
+  }
+  return new CompanionRequestError(
+    `Companion request to '${path}' failed: ${message}`,
+    "network_error"
+  );
+}
+
+async function companionRequest<T>(path: string, init?: CompanionRequestOptions): Promise<T> {
   const headers = new Headers(init?.headers);
   headers.set("Content-Type", "application/json");
   const token = process.env.ARCHICAD_COMPANION_TOKEN;
   if (token) {
     headers.set("x-companion-token", token);
   }
+  const timeoutSignal = AbortSignal.timeout(init?.timeoutMs ?? 2500);
 
-  const response = await fetch(`${companionBaseUrl()}${path}`, {
-    ...init,
-    headers,
-    cache: "no-store"
-  });
+  let response: Response;
+  try {
+    response = await fetch(`${companionBaseUrl()}${path}`, {
+      ...init,
+      headers,
+      signal: init?.signal ?? timeoutSignal,
+      cache: "no-store"
+    });
+  } catch (error) {
+    throw toCompanionRequestError(error, path);
+  }
 
   if (!response.ok) {
     const body = await response.text();
-    throw new Error(`Companion request failed (${response.status}): ${body}`);
+    if (response.status === 401) {
+      throw new CompanionRequestError(
+        "Companion authorization failed. Check ARCHICAD_COMPANION_TOKEN.",
+        "unauthorized",
+        response.status
+      );
+    }
+    if (response.status === 404) {
+      throw new CompanionRequestError(
+        "Companion endpoint was not found. Ensure desktop_companion.py is up to date.",
+        "not_found",
+        response.status
+      );
+    }
+    throw new CompanionRequestError(
+      `Companion request failed (${response.status}): ${body}`,
+      "server_error",
+      response.status
+    );
   }
 
   return (await response.json()) as T;
 }
 
 export async function getCompanionStatus(): Promise<CompanionStatusResponse> {
-  return companionRequest<CompanionStatusResponse>("/companion/status");
+  return companionRequest<CompanionStatusResponse>("/companion/status", { timeoutMs: 1500 });
 }
 
 export async function getCompanionLogs(limit = 120): Promise<string[]> {
-  const payload = await companionRequest<CompanionLogsResponse>(`/companion/logs?limit=${limit}`);
+  const payload = await companionRequest<CompanionLogsResponse>(`/companion/logs?limit=${limit}`, {
+    timeoutMs: 1500
+  });
   return payload.logs;
 }
 
 export async function connectCompanion() {
-  return companionRequest<Record<string, unknown>>("/companion/connect", { method: "POST" });
+  return companionRequest<Record<string, unknown>>("/companion/connect", {
+    method: "POST",
+    timeoutMs: 20000
+  });
 }
 
 export async function disconnectCompanion() {
-  return companionRequest<Record<string, unknown>>("/companion/disconnect", { method: "POST" });
+  return companionRequest<Record<string, unknown>>("/companion/disconnect", {
+    method: "POST",
+    timeoutMs: 7000
+  });
 }
 
 export async function runCompanionInbound() {
-  return companionRequest<CompanionConnectorResult>("/companion/inbound", { method: "POST" });
+  return companionRequest<CompanionConnectorResult>("/companion/inbound", {
+    method: "POST",
+    timeoutMs: 45000
+  });
 }
 
 export async function runCompanionOutbound(dryRun: boolean) {
   return companionRequest<CompanionConnectorResult>("/companion/outbound", {
     method: "POST",
-    body: JSON.stringify({ dry_run: dryRun })
+    body: JSON.stringify({ dry_run: dryRun }),
+    timeoutMs: dryRun ? 45000 : 60000
   });
 }
