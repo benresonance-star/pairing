@@ -143,6 +143,46 @@ Run the governed Supabase smoke check after changing outbound behavior:
 npm run supabase:smoke:governed
 ```
 
+## Mock adapter rehearsal
+
+Before connecting to a real Archicad bridge, run the connector against the local mock adapter:
+
+```powershell
+npm run archicad:smoke:mock
+```
+
+This command:
+
+- starts `scripts/dev/mock_archicad_adapter.py` on `127.0.0.1:19723`
+- serves `shared/examples/sample_archicad_snapshot.json` through `GET /api/v1/snapshot`
+- resets the demo runtime state
+- runs connector inbound with `CCP_ARCHICAD_ADAPTER=live`
+- queues a construction-state change against the inbound target zone
+- runs connector outbound without `--dry-run`
+- verifies that the mock adapter received `POST /api/v1/properties`
+- verifies that the connector recorded the write and marked the change set `synced`
+
+To inspect the mock server manually, run:
+
+```powershell
+npm run archicad:mock
+```
+
+The mock server records property writes at `shared/examples/runtime/mock_archicad_writes.json`.
+
+## True Archicad bridge handoff
+
+After the mock smoke check passes, replace the mock server internals with calls into the Archicad-side integration while preserving the same HTTP contract.
+
+The first true-connection milestone should use a disposable or backed-up model and prove only:
+
+1. `GET /api/v1/product-info` returns the running Archicad bridge identity.
+2. `GET /api/v1/snapshot` returns zones and first-slice elements in the documented shape.
+3. `POST /api/v1/properties` writes one approved `CCP_*` property to one known target.
+4. Connector outbound marks the change set `synced` only after the Archicad-side write succeeds.
+
+Do not expand the bridge to geometry editing, dependency management, or broad property writes in this milestone.
+
 For manual live validation:
 
 1. Start the Archicad-side bridge on `ARCHICAD_HOST:ARCHICAD_PORT`.
