@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from .archicad_client import DemoArchicadClient
+from .archicad_client import ArchicadClientProtocol, DemoArchicadClient, LiveArchicadClient
 from .archicad_reader import ArchicadReader
 from .archicad_writer import ArchicadWriter
 from .config import ConnectorConfig
@@ -10,6 +10,14 @@ from .schema_mapper import build_operational_state_id, map_element, map_zone
 from .state_store import StateStore
 from .supabase_client import DemoSupabaseClient, LiveSupabaseClient, SupabaseClientProtocol
 from .validators import validate_outbound_item
+
+
+def build_archicad_client(config: ConnectorConfig) -> ArchicadClientProtocol:
+    if config.archicad_adapter == "live":
+        if not config.archicad_host or config.archicad_port is None:
+            raise ValueError("Live Archicad adapter requires ARCHICAD_HOST and ARCHICAD_PORT")
+        return LiveArchicadClient(host=config.archicad_host, port=config.archicad_port)
+    return DemoArchicadClient(config.sample_snapshot_path)
 
 
 class SyncEngine:
@@ -27,9 +35,13 @@ class SyncEngine:
                 seed_state_path=config.seed_state_path,
                 runtime_state_path=config.runtime_state_path,
             )
-        self.archicad_client = DemoArchicadClient(config.sample_snapshot_path)
+        self.archicad_client = build_archicad_client(config)
         self.reader = ArchicadReader(self.archicad_client)
-        self.writer = ArchicadWriter(self.supabase_client, dry_run=config.dry_run)
+        self.writer = ArchicadWriter(
+            self.supabase_client,
+            self.archicad_client,
+            dry_run=config.dry_run,
+        )
         self.state_store = StateStore(config.connector_state_path)
 
     def seed_runtime(self) -> None:

@@ -4,6 +4,9 @@ import json
 import uuid
 from pathlib import Path
 
+import pytest
+
+from connector.archicad_client import DemoArchicadClient, LiveArchicadClient
 from connector.config import ConnectorConfig
 from connector.sync_engine import SyncEngine
 from connector.supabase_client import DemoSupabaseClient
@@ -34,6 +37,30 @@ def test_inbound_sync_populates_zones_and_elements(tmp_path: Path) -> None:
     assert len(state["zones"]) == 4
     assert len(state["model_objects"]) == 2
     assert len(state["operational_state"]) == 4
+    assert isinstance(engine.archicad_client, DemoArchicadClient)
+
+
+def test_sync_engine_can_select_live_archicad_adapter(tmp_path: Path) -> None:
+    config = build_config(tmp_path)
+    config.archicad_adapter = "live"
+    config.archicad_host = "127.0.0.1"
+    config.archicad_port = 19723
+
+    engine = SyncEngine(config)
+
+    assert isinstance(engine.archicad_client, LiveArchicadClient)
+    assert engine.archicad_client.get_product_info()["connection"] == "127.0.0.1:19723"
+
+
+def test_live_archicad_adapter_fails_closed_for_unimplemented_reads(tmp_path: Path) -> None:
+    config = build_config(tmp_path)
+    config.archicad_adapter = "live"
+    config.archicad_host = "127.0.0.1"
+    config.archicad_port = 19723
+    engine = SyncEngine(config)
+
+    with pytest.raises(NotImplementedError, match="Live Archicad inbound reads"):
+        engine.run_inbound()
 
 
 def test_inbound_sync_is_idempotent_for_records(tmp_path: Path) -> None:

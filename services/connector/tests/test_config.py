@@ -14,10 +14,16 @@ def test_load_config_defaults_to_demo(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.delenv("SUPABASE_URL", raising=False)
     monkeypatch.delenv("NEXT_PUBLIC_SUPABASE_URL", raising=False)
     monkeypatch.delenv("SUPABASE_SERVICE_ROLE_KEY", raising=False)
+    monkeypatch.delenv("CCP_ARCHICAD_ADAPTER", raising=False)
+    monkeypatch.delenv("ARCHICAD_HOST", raising=False)
+    monkeypatch.delenv("ARCHICAD_PORT", raising=False)
 
     config = load_config()
 
     assert config.data_source == "demo"
+    assert config.archicad_adapter == "demo"
+    assert config.archicad_host is None
+    assert config.archicad_port is None
     assert config.project_id == "11111111-1111-1111-1111-111111111111"
     assert config.scenario_id is None
     assert config.runtime_state_path.name == "demo_state.json"
@@ -49,3 +55,28 @@ def test_load_config_reads_supabase_env(monkeypatch: pytest.MonkeyPatch) -> None
     assert config.supabase_service_role_key == "service-role-key"
     assert config.dry_run is True
     assert isinstance(config.repo_root, Path)
+
+
+def test_load_config_requires_live_archicad_connection(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("CCP_ARCHICAD_ADAPTER", "live")
+    monkeypatch.delenv("ARCHICAD_HOST", raising=False)
+    monkeypatch.delenv("ARCHICAD_PORT", raising=False)
+
+    with pytest.raises(ValueError, match="ARCHICAD_HOST"):
+        load_config()
+
+    monkeypatch.setenv("ARCHICAD_HOST", "127.0.0.1")
+    with pytest.raises(ValueError, match="ARCHICAD_PORT"):
+        load_config()
+
+
+def test_load_config_reads_live_archicad_env(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("CCP_ARCHICAD_ADAPTER", "live")
+    monkeypatch.setenv("ARCHICAD_HOST", "127.0.0.1")
+    monkeypatch.setenv("ARCHICAD_PORT", "19723")
+
+    config = load_config()
+
+    assert config.archicad_adapter == "live"
+    assert config.archicad_host == "127.0.0.1"
+    assert config.archicad_port == 19723

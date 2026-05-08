@@ -17,6 +17,9 @@ class ConnectorConfig:
     scenario_id: str | None = None
     supabase_url: str | None = None
     supabase_service_role_key: str | None = None
+    archicad_adapter: str = "demo"
+    archicad_host: str | None = None
+    archicad_port: int | None = None
     dry_run: bool = False
     enable_inbound_sync: bool = True
     enable_outbound_sync: bool = True
@@ -30,12 +33,23 @@ def load_config(dry_run: bool = False) -> ConnectorConfig:
     scenario_id = os.environ.get("CCP_SCENARIO_ID")
     supabase_url = os.environ.get("SUPABASE_URL") or os.environ.get("NEXT_PUBLIC_SUPABASE_URL")
     supabase_service_role_key = os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
+    archicad_adapter = os.environ.get("CCP_ARCHICAD_ADAPTER", "demo").strip().lower() or "demo"
+    archicad_host = os.environ.get("ARCHICAD_HOST")
+    archicad_port_raw = os.environ.get("ARCHICAD_PORT")
+    archicad_port = int(archicad_port_raw) if archicad_port_raw else None
 
     if data_source == "supabase":
         if not supabase_url:
             raise ValueError("SUPABASE_URL or NEXT_PUBLIC_SUPABASE_URL is required in Supabase mode")
         if not supabase_service_role_key:
             raise ValueError("SUPABASE_SERVICE_ROLE_KEY is required in Supabase mode")
+    if archicad_adapter not in {"demo", "live"}:
+        raise ValueError("CCP_ARCHICAD_ADAPTER must be 'demo' or 'live'")
+    if archicad_adapter == "live":
+        if not archicad_host:
+            raise ValueError("ARCHICAD_HOST is required when CCP_ARCHICAD_ADAPTER=live")
+        if archicad_port is None:
+            raise ValueError("ARCHICAD_PORT is required when CCP_ARCHICAD_ADAPTER=live")
 
     return ConnectorConfig(
         repo_root=repo_root,
@@ -48,5 +62,8 @@ def load_config(dry_run: bool = False) -> ConnectorConfig:
         scenario_id=scenario_id,
         supabase_url=supabase_url,
         supabase_service_role_key=supabase_service_role_key,
+        archicad_adapter=archicad_adapter,
+        archicad_host=archicad_host,
+        archicad_port=archicad_port,
         dry_run=dry_run,
     )

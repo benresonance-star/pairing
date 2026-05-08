@@ -2,12 +2,12 @@ from __future__ import annotations
 
 from typing import Any
 
-from .archicad_client import DemoArchicadClient
+from .archicad_client import ArchicadClientProtocol
 from .shared_contracts import first_slice_element_types
 
 
 class ArchicadReader:
-    def __init__(self, client: DemoArchicadClient) -> None:
+    def __init__(self, client: ArchicadClientProtocol) -> None:
         self.client = client
 
     def read_zones_and_elements(self) -> dict[str, list[dict[str, Any]]]:
