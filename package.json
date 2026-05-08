@@ -18,6 +18,7 @@
     "archicad:mock": "python scripts/dev/mock_archicad_adapter.py --port 19724",
     "archicad:smoke:mock": "python scripts/dev/mock_archicad_smoke.py",
     "archicad:smoke:live": "python scripts/dev/archicad_live_smoke.py",
+    "archicad:test:ingestion:first": "python scripts/dev/archicad_live_smoke.py --verify-ingestion",
     "demo:reset": "python scripts/dev/connector_cli.py reset-runtime",
     "demo:seed": "python scripts/dev/connector_cli.py seed-runtime",
     "demo:inbound": "python scripts/dev/connector_cli.py inbound",

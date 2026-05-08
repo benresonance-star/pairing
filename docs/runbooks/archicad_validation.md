@@ -21,6 +21,16 @@ Use `archicad_live_adapter.md` as the HTTP contract for the Archicad-side bridge
 10. Verify schedules can display the updated value.
 11. Verify a Graphic Override rule can react to the updated value.
 
+## First ingestion milestone
+
+Run the focused live property ingestion test for one zone:
+
+```powershell
+npm run archicad:test:ingestion:first -- --target-guid YOUR_ZONE_GUID
+```
+
+This checks that `package_id` and `construction_state` are read from the live snapshot and persisted into runtime `operational_state`.
+
 ## Expected outcomes
 
 - the written `CCP_*` property matches the approved change

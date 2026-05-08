@@ -139,6 +139,54 @@ def queue_construction_state_change(target_guid: str) -> tuple[str, str]:
     return change_set_id, next_state
 
 
+def find_zone_in_snapshot(snapshot: dict[str, Any], target_guid: str) -> dict[str, Any]:
+    for zone in snapshot.get("zones", []):
+        if str(zone.get("archicad_guid")) == target_guid:
+            return zone
+    raise RuntimeError(f"Snapshot does not contain target zone {target_guid}")
+
+
+def verify_runtime_ingestion(
+    *,
+    target_guid: str,
+    expected_package_id: str | None,
+    expected_construction_state: str | None,
+    allow_empty_values: bool,
+) -> dict[str, Any]:
+    state = read_json(runtime_state_path())
+    scenario_id = baseline_scenario_id(state)
+    zone = next((item for item in state["zones"] if item.get("archicad_guid") == target_guid), None)
+    if zone is None:
+        raise RuntimeError(f"Inbound runtime state does not contain zone {target_guid}")
+    row = find_operational_row(state, scenario_id, str(zone["id"]))
+    actual_package_id = row.get("package_id")
+    actual_construction_state = row.get("construction_state")
+
+    if not allow_empty_values and not (expected_package_id or expected_construction_state):
+        raise RuntimeError(
+            "Target zone is missing both package_id and construction_state in snapshot. "
+            "Populate CCP_Operational values or rerun with --allow-empty-values."
+        )
+
+    package_match = actual_package_id == expected_package_id
+    state_match = actual_construction_state == expected_construction_state
+    if not package_match or not state_match:
+        raise RuntimeError(
+            "Runtime ingestion mismatch for target zone. "
+            f"expected(package_id={expected_package_id}, construction_state={expected_construction_state}) "
+            f"actual(package_id={actual_package_id}, construction_state={actual_construction_state})"
+        )
+
+    return {
+        "target_guid": target_guid,
+        "expected_package_id": expected_package_id,
+        "actual_package_id": actual_package_id,
+        "expected_construction_state": expected_construction_state,
+        "actual_construction_state": actual_construction_state,
+        "matched": package_match and state_match,
+    }
+
+
 def outbound_result(change_set_id: str) -> tuple[str, list[str]]:
     state = read_json(runtime_state_path())
     change_set = next((item for item in state["change_sets"] if item["id"] == change_set_id), None)
@@ -167,6 +215,16 @@ def build_parser() -> argparse.ArgumentParser:
         choices=["synced", "sync_failed"],
         help="When set with --validate-write, fail if outbound change-set status does not match",
     )
+    parser.add_argument(
+        "--verify-ingestion",
+        action="store_true",
+        help="Verify target zone package/state values are ingested into runtime operational_state after inbound",
+    )
+    parser.add_argument(
+        "--allow-empty-values",
+        action="store_true",
+        help="Allow ingestion verification to pass even when both source values are empty",
+    )
     return parser
 
 
@@ -185,8 +243,33 @@ def main() -> None:
         "product_name": product.get("product_name"),
         "zones_reported": len(snapshot.get("zones", [])),
         "elements_reported": len(snapshot.get("elements", [])),
+        "target_guid": args.target_guid,
         "write_validation": "skipped",
     }
+
+    if args.verify_ingestion:
+        target_guid = args.target_guid
+        if not target_guid:
+            zones = snapshot.get("zones", [])
+            if not zones:
+                raise RuntimeError("No zones available in snapshot for ingestion verification")
+            target_guid = str(zones[0].get("archicad_guid") or "")
+        if not target_guid:
+            raise RuntimeError("Unable to determine target_guid for ingestion verification")
+
+        snapshot_zone = find_zone_in_snapshot(snapshot, target_guid)
+        source_operational = snapshot_zone.get("ccp_operational") or {}
+        if not isinstance(source_operational, dict):
+            source_operational = {}
+
+        ingestion_result = verify_runtime_ingestion(
+            target_guid=target_guid,
+            expected_package_id=source_operational.get("package_id"),
+            expected_construction_state=source_operational.get("construction_state"),
+            allow_empty_values=args.allow_empty_values,
+        )
+        result["target_guid"] = target_guid
+        result["ingestion_validation"] = {"status": "passed", **ingestion_result}
 
     if args.validate_write:
         if not args.target_guid:
