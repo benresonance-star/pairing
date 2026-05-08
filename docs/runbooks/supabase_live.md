@@ -81,6 +81,28 @@ Expected checks:
 - outbound writes `archicad_writes`
 - failed items write `sync_errors` back to `change_sets`
 
+## Governed scenario smoke check
+
+After changing scenario editing, change-set approval, connector outbound validation, or the Supabase store, run:
+
+```powershell
+npm run supabase:smoke:governed
+```
+
+This script loads `/.env`, applies the Supabase bootstrap unless `-- --skip-bootstrap` is passed, then validates the governed scenario path end to end:
+
+- creates a scenario operational edit through the same store API used by the scenario editor
+- confirms the operational row is unchanged while the change set is still draft
+- submits, approves, and queues the change set
+- runs connector outbound in `--dry-run` mode
+- verifies the change set is `synced`, the operational row is updated, and an `archicad_writes` record exists for `CCP_ConstructionState`
+
+To reuse an already bootstrapped project without reseeding:
+
+```powershell
+npm run supabase:smoke:governed -- --skip-bootstrap
+```
+
 ## Notes
 
 - Demo mode still works with `CCP_DATA_SOURCE=demo`.
