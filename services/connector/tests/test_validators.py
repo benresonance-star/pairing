@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from connector.validators import validate_outbound_item
+from connector.validators import archicad_field_name, validate_outbound_item
 
 
 def test_validate_outbound_item_accepts_known_package() -> None:
@@ -25,7 +25,7 @@ def test_validate_outbound_item_rejects_unknown_package() -> None:
     assert error == "package_id does not exist in work_packages"
 
 
-def test_validate_outbound_item_rejects_non_first_slice_field() -> None:
+def test_validate_outbound_item_accepts_governed_scenario_fields() -> None:
     error = validate_outbound_item(
         {
             "field_name": "construction_state",
@@ -33,4 +33,20 @@ def test_validate_outbound_item_rejects_non_first_slice_field() -> None:
         },
         {"PKG-ZONE-L08"},
     )
-    assert error == "construction_state is outside the first-slice allowlist"
+    assert error is None
+
+
+def test_validate_outbound_item_rejects_unknown_field() -> None:
+    error = validate_outbound_item(
+        {
+            "field_name": "cost_code",
+            "new_value_json": "COST-01",
+        },
+        {"PKG-ZONE-L08"},
+    )
+    assert error == "cost_code is outside the first-slice allowlist"
+
+
+def test_archicad_field_name_maps_scenario_operational_fields() -> None:
+    assert archicad_field_name("construction_state") == "CCP_ConstructionState"
+    assert archicad_field_name("planned_start") == "CCP_PlannedStart"

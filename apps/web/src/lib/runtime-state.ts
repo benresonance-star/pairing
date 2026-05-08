@@ -5,6 +5,22 @@ import { vocab } from "../../../../shared/contracts/api/index";
 export type ObjectRefType = "zone" | "model_object";
 export type ChangeSetAction = "submit" | "approve" | "queue";
 export type ChangeSetStatus = (typeof vocab.changeSetStatuses)[number];
+export type GovernedOperationalPatch = {
+  packageId?: string | null;
+  constructionState?: string | null;
+  sequenceGroup?: string | null;
+  sequenceOrder?: number | null;
+  plannedStart?: string | null;
+  plannedFinish?: string | null;
+  actualStart?: string | null;
+  actualFinish?: string | null;
+};
+
+export type GovernedOperationalChangeSetResult = {
+  changeSetId: string;
+  targetLabel: string;
+  itemCount: number;
+};
 
 type RuntimeRecord = Record<string, unknown>;
 
@@ -56,6 +72,17 @@ const ALLOWED_TRANSITIONS: Record<ChangeSetStatus, ChangeSetAction[]> = {
   synced: [],
   sync_failed: []
 };
+
+const GOVERNED_OPERATIONAL_FIELDS = [
+  ["packageId", "package_id"],
+  ["constructionState", "construction_state"],
+  ["sequenceGroup", "sequence_group"],
+  ["sequenceOrder", "sequence_order"],
+  ["plannedStart", "planned_start"],
+  ["plannedFinish", "planned_finish"],
+  ["actualStart", "actual_start"],
+  ["actualFinish", "actual_finish"]
+] as const;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -211,6 +238,120 @@ export function assertValidPackageAssignment(
   if (operational?.package_id === packageId) {
     throw new Error(`Target ${objectRefType} already has package '${packageId}' assigned`);
   }
+}
+
+function validateOperationalDates(record: {
+  planned_start?: unknown;
+  planned_finish?: unknown;
+  actual_start?: unknown;
+  actual_finish?: unknown;
+}) {
+  const plannedStart = record.planned_start ? String(record.planned_start) : null;
+  const plannedFinish = record.planned_finish ? String(record.planned_finish) : null;
+  const actualStart = record.actual_start ? String(record.actual_start) : null;
+  const actualFinish = record.actual_finish ? String(record.actual_finish) : null;
+
+  if (plannedStart && plannedFinish && plannedFinish < plannedStart) {
+    throw new Error("Planned finish must be on or after planned start");
+  }
+  if (actualStart && actualFinish && actualFinish < actualStart) {
+    throw new Error("Actual finish must be on or after actual start");
+  }
+}
+
+function objectLabelForChangeSet(state: RuntimeState, objectRefType: ObjectRefType, objectRefId: string) {
+  const objectRef = findObjectRef(state, objectRefType, objectRefId);
+  if (objectRefType === "zone") {
+    return String(objectRef?.zone_key ?? objectRef?.zone_name ?? objectRefId);
+  }
+  return String(objectRef?.name ?? objectRef?.archicad_guid ?? objectRefId);
+}
+
+export function createGovernedOperationalChangeSet(
+  state: RuntimeState,
+  input: {
+    scenarioId: string;
+    operationalRowId: string;
+    patch: GovernedOperationalPatch;
+  }
+): GovernedOperationalChangeSetResult {
+  const scenario = getScenarioById(state, input.scenarioId);
+  const row = state.operational_state.find(
+    (item) => String(item.id) === input.operationalRowId && String(item.scenario_id ?? "") === scenario.id
+  );
+  if (!row) {
+    throw new Error(`Operational state row '${input.operationalRowId}' was not found`);
+  }
+
+  const objectRefType = String(row.object_ref_type ?? "") as ObjectRefType;
+  const objectRefId = String(row.object_ref_id ?? "");
+  if (objectRefType !== "zone" && objectRefType !== "model_object") {
+    throw new Error(`Operational row '${input.operationalRowId}' has unsupported object reference type`);
+  }
+
+  const proposedRow: RuntimeRecord = { ...row };
+  const changedItems = GOVERNED_OPERATIONAL_FIELDS.flatMap(([patchKey, fieldName]) => {
+    if (!(patchKey in input.patch)) {
+      return [];
+    }
+    const newValue = input.patch[patchKey];
+    const oldValue = row[fieldName] ?? null;
+    proposedRow[fieldName] = newValue ?? null;
+    return oldValue === (newValue ?? null)
+      ? []
+      : [{ fieldName, oldValue, newValue: newValue ?? null }];
+  });
+
+  if (input.patch.packageId) {
+    const packageExists = state.work_packages.some(
+      (item) => item.active !== false && item.package_id === input.patch.packageId
+    );
+    if (!packageExists) {
+      throw new Error(`Package '${input.patch.packageId}' does not exist`);
+    }
+  }
+  if (
+    input.patch.constructionState &&
+    !vocab.constructionStates.includes(input.patch.constructionState as (typeof vocab.constructionStates)[number])
+  ) {
+    throw new Error(`Construction state '${input.patch.constructionState}' is not available`);
+  }
+
+  validateOperationalDates(proposedRow);
+
+  if (changedItems.length === 0) {
+    throw new Error("No operational changes were made");
+  }
+
+  const changeSetId = randomUUID();
+  const now = new Date().toISOString();
+  const targetLabel = objectLabelForChangeSet(state, objectRefType, objectRefId);
+
+  state.change_sets.push({
+    id: changeSetId,
+    project_id: state.project.id,
+    scenario_id: scenario.id,
+    title: `Update ${targetLabel} in ${scenario.name}`,
+    description: "Created from governed scenario operational edits",
+    status: "draft",
+    sync_errors: [],
+    created_at: now
+  });
+
+  for (const item of changedItems) {
+    state.change_set_items.push({
+      id: randomUUID(),
+      change_set_id: changeSetId,
+      object_ref_type: objectRefType,
+      object_ref_id: objectRefId,
+      field_name: item.fieldName,
+      old_value_json: item.oldValue,
+      new_value_json: item.newValue,
+      created_at: now
+    });
+  }
+
+  return { changeSetId, targetLabel, itemCount: changedItems.length };
 }
 
 export function actionsForStatus(status: string): ChangeSetAction[] {

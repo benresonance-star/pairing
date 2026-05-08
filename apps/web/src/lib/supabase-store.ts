@@ -6,6 +6,7 @@ import { buildLinearScheduleData, type LinearScheduleData, type LinearScheduleFi
 import {
   actionsForStatus,
   assertValidPackageAssignment,
+  createGovernedOperationalChangeSet,
   findObjectRef,
   getScenarioById,
   normalizeRuntimeState,
@@ -13,6 +14,7 @@ import {
   requireActiveScenario,
   transitionChangeSet as applyChangeSetTransition,
   type ChangeSetAction,
+  type GovernedOperationalPatch,
   type RuntimeState
 } from "./runtime-state";
 import { createServerSupabaseClient } from "./supabase-server";
@@ -584,6 +586,52 @@ export async function createPackageAssignmentChangeSet(input: {
   }
 
   return { changeSetId, targetLabel: objectLabel };
+}
+
+export async function createScenarioOperationalChangeSet(input: {
+  scenarioId: string;
+  operationalRowId: string;
+  patch: GovernedOperationalPatch;
+}): Promise<{ changeSetId: string; targetLabel: string; itemCount: number }> {
+  const state = await readSupabaseState();
+  const client = createServerSupabaseClient();
+  const previousChangeSetCount = state.change_sets.length;
+  const previousItemCount = state.change_set_items.length;
+  const result = createGovernedOperationalChangeSet(state, input);
+  const changeSet = state.change_sets[previousChangeSetCount];
+  const items = state.change_set_items.slice(previousItemCount);
+
+  const { error: changeSetError } = await client.from("change_sets").insert({
+    id: changeSet.id,
+    project_id: changeSet.project_id,
+    scenario_id: changeSet.scenario_id,
+    title: changeSet.title,
+    description: changeSet.description,
+    status: changeSet.status,
+    sync_errors: changeSet.sync_errors ?? []
+  });
+
+  if (changeSetError) {
+    throw new Error(`Unable to create scenario change set in Supabase: ${changeSetError.message}`);
+  }
+
+  const { error: itemsError } = await client.from("change_set_items").insert(
+    items.map((item) => ({
+      id: item.id,
+      change_set_id: item.change_set_id,
+      object_ref_type: item.object_ref_type,
+      object_ref_id: item.object_ref_id,
+      field_name: item.field_name,
+      old_value_json: item.old_value_json,
+      new_value_json: item.new_value_json
+    }))
+  );
+
+  if (itemsError) {
+    throw new Error(`Unable to create scenario change set items in Supabase: ${itemsError.message}`);
+  }
+
+  return result;
 }
 
 export async function transitionChangeSet(

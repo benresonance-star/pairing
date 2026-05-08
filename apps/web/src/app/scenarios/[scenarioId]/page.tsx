@@ -6,10 +6,10 @@ import { isRedirectError } from "next/dist/client/components/redirect-error";
 import {
   archiveScenario,
   createScheduleActivity,
+  createScenarioOperationalChangeSet,
   deleteScenario,
   deleteScheduleActivity,
   getScenarioEditorData,
-  updateOperationalStateRow,
   updateScenario,
   updateScheduleActivity,
   type ScenarioEditorOperationalRow
@@ -171,22 +171,26 @@ async function saveOperationalRowAction(formData: FormData) {
   const selectedActivityId = emptyToNull(formData.get("selectedActivityId"));
 
   try {
-    await updateOperationalStateRow(operationalRowId, {
-      packageId: emptyToNull(formData.get("packageId")),
-      constructionState: emptyToNull(formData.get("constructionState")),
-      sequenceGroup: emptyToNull(formData.get("sequenceGroup")),
-      sequenceOrder: optionalNumber(formData.get("sequenceOrder")),
-      plannedStart: emptyToNull(formData.get("plannedStart")),
-      plannedFinish: emptyToNull(formData.get("plannedFinish")),
-      actualStart: emptyToNull(formData.get("actualStart")),
-      actualFinish: emptyToNull(formData.get("actualFinish"))
+    const result = await createScenarioOperationalChangeSet({
+      scenarioId,
+      operationalRowId,
+      patch: {
+        packageId: emptyToNull(formData.get("packageId")),
+        constructionState: emptyToNull(formData.get("constructionState")),
+        sequenceGroup: emptyToNull(formData.get("sequenceGroup")),
+        sequenceOrder: optionalNumber(formData.get("sequenceOrder")),
+        plannedStart: emptyToNull(formData.get("plannedStart")),
+        plannedFinish: emptyToNull(formData.get("plannedFinish")),
+        actualStart: emptyToNull(formData.get("actualStart")),
+        actualFinish: emptyToNull(formData.get("actualFinish"))
+      }
     });
     revalidateScenarioEditorPaths(scenarioId);
     redirect(
       editorUrl(scenarioId, {
         selectedActivityId,
         selectedOperationalId: operationalRowId,
-        status: "Operational row updated"
+        status: `Draft change set created with ${result.itemCount} item${result.itemCount === 1 ? "" : "s"}`
       })
     );
   } catch (error) {
@@ -194,7 +198,7 @@ async function saveOperationalRowAction(formData: FormData) {
       editorUrl(scenarioId, {
         selectedActivityId,
         selectedOperationalId: operationalRowId,
-        error: getActionErrorMessage(error, "Unable to update operational row")
+        error: getActionErrorMessage(error, "Unable to create operational change set")
       })
     );
   }
@@ -533,7 +537,7 @@ function scenarioStatusOptions(currentStatus: string) {
 
 function constructionStateOptions(currentValue: string | null) {
   const values = [
-    "planned",
+    "not_started",
     "ready",
     "in_progress",
     "blocked",
@@ -658,68 +662,74 @@ function OperationalEditorForm(props: {
 }) {
   const { row, packages } = props;
   if (!row) {
-    return <p className="muted">Select an operational row to edit package, sequence, and dates.</p>;
+    return <p className="muted">Select an operational row to stage package, sequence, and date changes.</p>;
   }
 
   return (
-    <form action={saveOperationalRowAction} className="stack-form">
-      <input type="hidden" name="scenarioId" value={props.scenarioId} />
-      <input type="hidden" name="operationalRowId" value={row.id} />
-      <input type="hidden" name="selectedActivityId" value={props.selectedActivityId ?? ""} />
-      <label>
-        <span>Package</span>
-        <select name="packageId" defaultValue={row.packageId ?? ""}>
-          <option value="">Unassigned</option>
-          {packages.map((pkg) => (
-            <option key={pkg.id} value={pkg.id}>
-              {pkg.label}
-            </option>
-          ))}
-        </select>
-      </label>
-      <label>
-        <span>Construction state</span>
-        <select name="constructionState" defaultValue={row.constructionState ?? ""}>
-          <option value="">Unspecified</option>
-          {constructionStateOptions(row.constructionState).map((state) => (
-            <option key={state} value={state}>
-              {state}
-            </option>
-          ))}
-        </select>
-      </label>
-      <div className="form-grid">
+    <>
+      <p className="muted">
+        Operational edits are staged as draft change sets. Submit and approve them on the{" "}
+        <Link href="/change-sets">Change Sets</Link> page before sync.
+      </p>
+      <form action={saveOperationalRowAction} className="stack-form">
+        <input type="hidden" name="scenarioId" value={props.scenarioId} />
+        <input type="hidden" name="operationalRowId" value={row.id} />
+        <input type="hidden" name="selectedActivityId" value={props.selectedActivityId ?? ""} />
         <label>
-          <span>Sequence group</span>
-          <input name="sequenceGroup" type="text" defaultValue={row.sequenceGroup ?? ""} />
+          <span>Package</span>
+          <select name="packageId" defaultValue={row.packageId ?? ""}>
+            <option value="">Unassigned</option>
+            {packages.map((pkg) => (
+              <option key={pkg.id} value={pkg.id}>
+                {pkg.label}
+              </option>
+            ))}
+          </select>
         </label>
         <label>
-          <span>Sequence order</span>
-          <input name="sequenceOrder" type="number" defaultValue={row.sequenceOrder ?? ""} />
+          <span>Construction state</span>
+          <select name="constructionState" defaultValue={row.constructionState ?? ""}>
+            <option value="">Unspecified</option>
+            {constructionStateOptions(row.constructionState).map((state) => (
+              <option key={state} value={state}>
+                {state}
+              </option>
+            ))}
+          </select>
         </label>
-      </div>
-      <div className="form-grid">
-        <label>
-          <span>Planned start</span>
-          <input name="plannedStart" type="date" defaultValue={row.plannedStart ?? ""} />
-        </label>
-        <label>
-          <span>Planned finish</span>
-          <input name="plannedFinish" type="date" defaultValue={row.plannedFinish ?? ""} />
-        </label>
-      </div>
-      <div className="form-grid">
-        <label>
-          <span>Actual start</span>
-          <input name="actualStart" type="date" defaultValue={row.actualStart ?? ""} />
-        </label>
-        <label>
-          <span>Actual finish</span>
-          <input name="actualFinish" type="date" defaultValue={row.actualFinish ?? ""} />
-        </label>
-      </div>
-      <button type="submit">Save operational row</button>
-    </form>
+        <div className="form-grid">
+          <label>
+            <span>Sequence group</span>
+            <input name="sequenceGroup" type="text" defaultValue={row.sequenceGroup ?? ""} />
+          </label>
+          <label>
+            <span>Sequence order</span>
+            <input name="sequenceOrder" type="number" defaultValue={row.sequenceOrder ?? ""} />
+          </label>
+        </div>
+        <div className="form-grid">
+          <label>
+            <span>Planned start</span>
+            <input name="plannedStart" type="date" defaultValue={row.plannedStart ?? ""} />
+          </label>
+          <label>
+            <span>Planned finish</span>
+            <input name="plannedFinish" type="date" defaultValue={row.plannedFinish ?? ""} />
+          </label>
+        </div>
+        <div className="form-grid">
+          <label>
+            <span>Actual start</span>
+            <input name="actualStart" type="date" defaultValue={row.actualStart ?? ""} />
+          </label>
+          <label>
+            <span>Actual finish</span>
+            <input name="actualFinish" type="date" defaultValue={row.actualFinish ?? ""} />
+          </label>
+        </div>
+        <button type="submit">Create draft change set</button>
+      </form>
+    </>
   );
 }
 
@@ -762,8 +772,8 @@ export default async function ScenarioEditorPage({ params, searchParams }: PageP
           <div>
             <h2>Scenario Editor</h2>
             <p className="muted">
-              Visualize scenario-scoped schedule data through a copied Gantt and linked linear preview, then amend the
-              selected record in the side panel.
+              Visualize scenario-scoped schedule data through a copied Gantt and linked linear preview. Operational
+              edits are staged for approval; schedule activity edits remain scenario-local planning changes.
             </p>
           </div>
           <Link href="/scenarios" className="secondary-link">

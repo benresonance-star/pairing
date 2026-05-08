@@ -9,6 +9,7 @@ import { buildLinearScheduleData, type LinearScheduleData, type LinearScheduleFi
 import {
   actionsForStatus,
   assertValidPackageAssignment,
+  createGovernedOperationalChangeSet,
   findObjectRef,
   getBaselineScenario,
   getScenarioById,
@@ -17,6 +18,7 @@ import {
   requireActiveScenario,
   transitionChangeSet as applyChangeSetTransition,
   type ChangeSetAction,
+  type GovernedOperationalPatch,
   type RuntimeState
 } from "./runtime-state";
 
@@ -501,6 +503,20 @@ export async function createPackageAssignmentChangeSet(input: {
 
   await writeState(state);
   return { changeSetId, targetLabel: objectLabel };
+}
+
+export async function createScenarioOperationalChangeSet(input: {
+  scenarioId: string;
+  operationalRowId: string;
+  patch: GovernedOperationalPatch;
+}): Promise<{ changeSetId: string; targetLabel: string; itemCount: number }> {
+  if (isSupabaseMode()) {
+    return (await getSupabaseStore()).createScenarioOperationalChangeSet(input);
+  }
+  const state = await readState();
+  const result = createGovernedOperationalChangeSet(state, input);
+  await writeState(state);
+  return result;
 }
 
 export async function transitionChangeSet(

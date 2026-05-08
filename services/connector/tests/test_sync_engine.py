@@ -86,6 +86,44 @@ def test_outbound_sync_records_ccp_package_write(tmp_path: Path) -> None:
     assert next_state["operational_state"][0]["package_id"] == "PKG-COMMISSIONING"
 
 
+def test_outbound_sync_records_governed_scenario_field_write(tmp_path: Path) -> None:
+    engine = SyncEngine(build_config(tmp_path))
+    engine.run_inbound()
+
+    state = json.loads(engine.config.runtime_state_path.read_text(encoding="utf-8"))
+    target_zone = state["zones"][0]
+    change_set_id = str(uuid.uuid4())
+    state["change_sets"].append(
+        {
+            "id": change_set_id,
+            "project_id": state["project"]["id"],
+            "scenario_id": state["scenarios"][0]["id"],
+            "title": "Update construction state for first zone",
+            "status": "queued_for_sync",
+        }
+    )
+    state["change_set_items"].append(
+        {
+            "id": str(uuid.uuid4()),
+            "change_set_id": change_set_id,
+            "object_ref_type": "zone",
+            "object_ref_id": target_zone["id"],
+            "field_name": "construction_state",
+            "old_value_json": "ready",
+            "new_value_json": "in_progress",
+        }
+    )
+    engine.config.runtime_state_path.write_text(json.dumps(state, indent=2), encoding="utf-8")
+
+    summary = engine.run_outbound()
+    next_state = json.loads(engine.config.runtime_state_path.read_text(encoding="utf-8"))
+
+    assert summary.objects_written == 1
+    assert next_state["change_sets"][0]["status"] == "synced"
+    assert next_state["archicad_writes"][0]["field_name"] == "CCP_ConstructionState"
+    assert next_state["operational_state"][0]["construction_state"] == "in_progress"
+
+
 def test_outbound_sync_marks_invalid_package_as_failed(tmp_path: Path) -> None:
     engine = SyncEngine(build_config(tmp_path))
     engine.run_inbound()

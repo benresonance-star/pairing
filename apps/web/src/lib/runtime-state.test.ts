@@ -4,6 +4,7 @@ import assert from "node:assert/strict";
 import {
   assertValidPackageAssignment,
   baselineScenarioId,
+  createGovernedOperationalChangeSet,
   getScenarioById,
   normalizeRuntimeState,
   operationalFor,
@@ -137,4 +138,83 @@ test("operationalFor can resolve non-baseline scenario state explicitly", () => 
 
   assert.equal(operationalFor(state, "zone", "zone-1")?.scenario_id, "scenario-1");
   assert.equal(operationalFor(state, "zone", "zone-1", "scenario-2")?.scenario_id, "scenario-2");
+});
+
+
+test("createGovernedOperationalChangeSet stages operational diffs without mutating the row", () => {
+  const state = buildState();
+
+  const result = createGovernedOperationalChangeSet(state, {
+    scenarioId: "scenario-1",
+    operationalRowId: "op-1",
+    patch: {
+      packageId: "PKG-WALL-FACADE-02",
+      constructionState: "in_progress",
+      plannedStart: "2026-05-01",
+      plannedFinish: "2026-05-10"
+    }
+  });
+
+  const changeSet = state.change_sets.find((item) => item.id === result.changeSetId);
+  const items = state.change_set_items.filter((item) => item.change_set_id === result.changeSetId);
+
+  assert.equal(result.itemCount, 4);
+  assert.equal(changeSet?.scenario_id, "scenario-1");
+  assert.equal(changeSet?.status, "draft");
+  assert.equal(items.length, 4);
+  assert.deepEqual(
+    items.map((item) => item.field_name).sort(),
+    ["construction_state", "package_id", "planned_finish", "planned_start"]
+  );
+  assert.equal(items.find((item) => item.field_name === "package_id")?.old_value_json, null);
+  assert.equal(items.find((item) => item.field_name === "package_id")?.new_value_json, "PKG-WALL-FACADE-02");
+  assert.equal(state.operational_state[0].package_id, null);
+  assert.equal(state.operational_state[0].construction_state, "ready");
+});
+
+
+test("createGovernedOperationalChangeSet rejects no-op submissions", () => {
+  const state = buildState();
+
+  assert.throws(
+    () =>
+      createGovernedOperationalChangeSet(state, {
+        scenarioId: "scenario-1",
+        operationalRowId: "op-1",
+        patch: {
+          constructionState: "ready"
+        }
+      }),
+    /No operational changes were made/
+  );
+});
+
+
+test("createGovernedOperationalChangeSet validates package and date changes", () => {
+  const state = buildState();
+
+  assert.throws(
+    () =>
+      createGovernedOperationalChangeSet(state, {
+        scenarioId: "scenario-1",
+        operationalRowId: "op-1",
+        patch: {
+          packageId: "PKG-UNKNOWN"
+        }
+      }),
+    /does not exist/
+  );
+
+  assert.throws(
+    () =>
+      createGovernedOperationalChangeSet(state, {
+        scenarioId: "scenario-1",
+        operationalRowId: "op-1",
+        patch: {
+          plannedStart: "2026-05-10",
+          plannedFinish: "2026-05-01"
+        }
+      }),
+    /Planned finish/
+  );
 });
