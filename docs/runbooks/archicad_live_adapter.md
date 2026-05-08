@@ -221,3 +221,17 @@ For manual live validation:
 4. Queue an approved change set.
 5. Run outbound without `--dry-run` only when the target model is disposable or backed up.
 6. Confirm the Archicad property changed and the change set moved to `synced`.
+
+For quick contract and inbound verification without an outbound write:
+
+```powershell
+npm run archicad:smoke:live
+```
+
+For an optional write validation against a known disposable target zone:
+
+```powershell
+npm run archicad:smoke:live -- --validate-write --target-guid YOUR_ZONE_GUID
+```
+
+The write validation reports the resulting change set status (`synced` or `sync_failed`) and any adapter error returned by `POST /api/v1/properties`.
