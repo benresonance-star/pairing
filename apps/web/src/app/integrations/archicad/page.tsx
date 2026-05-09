@@ -314,6 +314,7 @@ export default async function ArchicadIntegrationPage({ searchParams }: PageProp
                   <th>Layer</th>
                   <th>Storey</th>
                   <th>Area</th>
+                  <th>BuildSync assembly</th>
                   <th>IFC / classification</th>
                 </tr>
               </thead>
@@ -326,6 +327,16 @@ export default async function ArchicadIntegrationPage({ searchParams }: PageProp
                     <td>{row.layer ?? "—"}</td>
                     <td>{row.storey ?? "—"}</td>
                     <td>{row.area ?? "—"}</td>
+                    <td>
+                      {row.assembly_id ? (
+                        <>
+                          <strong>{row.assembly_id}</strong>
+                          {row.assembly_name ? <span className="muted"> {row.assembly_name}</span> : null}
+                        </>
+                      ) : (
+                        "—"
+                      )}
+                    </td>
                     <td>{row.ifc_type ?? "—"}</td>
                   </tr>
                 ))}

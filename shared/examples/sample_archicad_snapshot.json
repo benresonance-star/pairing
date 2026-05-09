@@ -50,6 +50,17 @@
       "zone_number": "APT-0803",
       "name": "Ext Wall Type A",
       "ifc_type": "IfcWall",
+      "buildsync_assembly": {
+        "assembly_uuid": "9fa58df4-2ad7-40fd-88c2-c739399f21cc",
+        "assembly_id": "JN-014",
+        "name": "Kitchen Island",
+        "type": "Joinery",
+        "role": "Carcass side panel",
+        "version": 1,
+        "task_id": "TASK-240",
+        "trade": "Joinery",
+        "status": "active"
+      },
       "quantities": {
         "area": 22.5,
         "length": 7.2
@@ -72,6 +83,16 @@
       "layer": "S-Slab",
       "zone_number": "APT-0804",
       "name": "Balcony Slab B",
+      "buildsync_assembly": {
+        "assembly_uuid": "fcd-103-demo-assembly",
+        "assembly_id": "FCD-103",
+        "name": "East Facade Bay",
+        "type": "Facade",
+        "role": "Balcony slab",
+        "version": 1,
+        "trade": "Facade",
+        "status": "warning"
+      },
       "quantities": {
         "area": 9.1
       },

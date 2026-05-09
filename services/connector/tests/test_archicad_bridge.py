@@ -1,6 +1,12 @@
 from __future__ import annotations
 
-from scripts.dev.archicad_bridge import dedupe_zones_for_snapshot, element_area, layer_name_from_value, story_display
+from scripts.dev.archicad_bridge import (
+    buildsync_assembly,
+    dedupe_zones_for_snapshot,
+    element_area,
+    layer_name_from_value,
+    story_display,
+)
 
 
 def test_layer_name_from_value_maps_archicad_control_character_to_default_layer() -> None:
@@ -49,3 +55,29 @@ def test_element_area_maps_wall_and_slab_only() -> None:
     assert element_area("slab", {"slab_top_area": 20.04, "slab_holes_area": 2.0}) == 20.0
     assert element_area("slab", {"slab_gross_top_area": 20.04, "slab_holes_area": 2.0}) == 18.0
     assert element_area("beam", {"area": 99.0}) is None
+
+
+def test_buildsync_assembly_maps_bs_properties() -> None:
+    assert buildsync_assembly(
+        {
+            "BS_AssemblyID": "JN-014",
+            "BS_AssemblyUUID": "uuid-jn-014",
+            "BS_AssemblyName": "Kitchen Island",
+            "BS_AssemblyType": "Joinery",
+            "BS_AssemblyRole": "Benchtop",
+            "BS_AssemblyVersion": 2,
+            "BS_TaskID": "TASK-240",
+            "BS_Trade": "Joinery",
+            "BS_Status": "active",
+        }
+    ) == {
+        "assembly_id": "JN-014",
+        "assembly_uuid": "uuid-jn-014",
+        "name": "Kitchen Island",
+        "type": "Joinery",
+        "role": "Benchtop",
+        "version": 2,
+        "task_id": "TASK-240",
+        "trade": "Joinery",
+        "status": "active",
+    }

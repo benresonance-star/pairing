@@ -20,6 +20,8 @@ export type CompanionSnapshotPreviewRow = {
   layer?: string | null;
   storey?: string | null;
   ifc_type?: string | null;
+  assembly_id?: string | null;
+  assembly_name?: string | null;
   area?: number | null;
 };
 

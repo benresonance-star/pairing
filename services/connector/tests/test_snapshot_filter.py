@@ -40,7 +40,16 @@ def test_parse_filter_from_env_invalid_returns_none() -> None:
 def test_build_snapshot_rows_order() -> None:
     snap = {
         "zones": [{"archicad_guid": "z", "zone_number": "ZN", "layer": "A", "area": 42.54}],
-        "elements": [{"archicad_guid": "e", "object_type": "wall", "name": "W", "layer": "B", "quantities": {"area": 3.04}}],
+        "elements": [
+            {
+                "archicad_guid": "e",
+                "object_type": "wall",
+                "name": "W",
+                "layer": "B",
+                "quantities": {"area": 3.04},
+                "buildsync_assembly": {"assembly_id": "JN-014", "name": "Kitchen Island"},
+            }
+        ],
     }
     rows = build_snapshot_rows(snap, 10)
     assert len(rows) == 2
@@ -48,3 +57,5 @@ def test_build_snapshot_rows_order() -> None:
     assert rows[0]["area"] == 42.5
     assert rows[1]["kind"] == "element"
     assert rows[1]["area"] == 3.0
+    assert rows[1]["assembly_id"] == "JN-014"
+    assert rows[1]["assembly_name"] == "Kitchen Island"

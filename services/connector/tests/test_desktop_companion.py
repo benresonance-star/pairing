@@ -1,9 +1,17 @@
 from __future__ import annotations
 
+from pathlib import Path
+
+import pytest
+
+from scripts.dev import desktop_companion
 from scripts.dev.desktop_companion import CompanionState
 
 
-def test_status_derives_layers_and_rows_from_legacy_snapshot() -> None:
+def test_status_derives_layers_and_rows_from_legacy_snapshot(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(desktop_companion, "snapshot_filter_file_path", lambda: tmp_path / "snapshot-filter.json")
     state = CompanionState(
         bridge_host="127.0.0.1",
         bridge_port=19724,
@@ -58,6 +66,7 @@ def test_status_derives_layers_and_rows_from_legacy_snapshot() -> None:
             "layer": "A-Zone",
             "storey": "Ground",
             "ifc_type": None,
+            "area": None,
         },
         {
             "kind": "element",
@@ -67,5 +76,8 @@ def test_status_derives_layers_and_rows_from_legacy_snapshot() -> None:
             "layer": "A-Wall",
             "storey": "Ground",
             "ifc_type": None,
+            "assembly_id": None,
+            "assembly_name": None,
+            "area": None,
         },
     ]

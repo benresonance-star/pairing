@@ -53,6 +53,19 @@ CCP_PROPERTIES = {
     "CCP_ActualFinish": "actual_finish",
 }
 
+BUILDSYNC_PROPERTY_GROUP = "BuildSync"
+BUILDSYNC_PROPERTIES = {
+    "BS_AssemblyID": "assembly_id",
+    "BS_AssemblyUUID": "assembly_uuid",
+    "BS_AssemblyName": "name",
+    "BS_AssemblyType": "type",
+    "BS_AssemblyRole": "role",
+    "BS_AssemblyVersion": "version",
+    "BS_TaskID": "task_id",
+    "BS_Trade": "trade",
+    "BS_Status": "status",
+}
+
 # (GetElementsByType name, object_type string for CCP snapshot)
 ELEMENT_SPECS: list[tuple[str, str]] = [
     ("Wall", "wall"),
@@ -132,6 +145,20 @@ def resolve_ccp_property_ids(commands: Any, types: Any) -> dict[str, Any]:
     resolved = commands.GetPropertyIds(requested)
     property_ids: dict[str, Any] = {}
     for archicad_name, item in zip(CCP_PROPERTIES.keys(), resolved, strict=True):
+        property_id = getattr(item, "propertyId", None)
+        if property_id is not None:
+            property_ids[archicad_name] = property_id
+    return property_ids
+
+
+def resolve_buildsync_property_ids(commands: Any, types: Any) -> dict[str, Any]:
+    requested = [
+        types.PropertyUserId("UserDefined", localizedName=[BUILDSYNC_PROPERTY_GROUP, archicad_name])
+        for archicad_name in BUILDSYNC_PROPERTIES
+    ]
+    resolved = commands.GetPropertyIds(requested)
+    property_ids: dict[str, Any] = {}
+    for archicad_name, item in zip(BUILDSYNC_PROPERTIES.keys(), resolved, strict=True):
         property_id = getattr(item, "propertyId", None)
         if property_id is not None:
             property_ids[archicad_name] = property_id
@@ -342,6 +369,14 @@ def ccp_operational(values: dict[str, Any]) -> dict[str, Any]:
     return operational
 
 
+def buildsync_assembly(values: dict[str, Any]) -> dict[str, Any] | None:
+    assembly: dict[str, Any] = {}
+    for archicad_name, field_name in BUILDSYNC_PROPERTIES.items():
+        if archicad_name in values and values[archicad_name] not in (None, ""):
+            assembly[field_name] = values[archicad_name]
+    return assembly or None
+
+
 def element_area(object_type: str, values: dict[str, Any]) -> int | float | None:
     if object_type == "slab":
         if isinstance(values.get("slab_top_area"), int | float):
@@ -468,7 +503,8 @@ class ArchicadSnapshotBuilder:
         filt = normalize_snapshot_filter(snapshot_filter or {})
         builtins = resolve_property_ids(self.commands, self.types, BUILTIN_PROPERTIES)
         ccp_ids = resolve_ccp_property_ids(self.commands, self.types)
-        property_ids = {**builtins, **ccp_ids}
+        buildsync_ids = resolve_buildsync_property_ids(self.commands, self.types)
+        property_ids = {**builtins, **ccp_ids, **buildsync_ids}
         layer_names_by_index = layer_index_name_map(self.commands, self.types)
         story_info_by_index = project_story_info_by_index(self.commands, self.types)
 
@@ -562,7 +598,7 @@ class ArchicadSnapshotBuilder:
         layer = layer_name_from_value(values.get("layer_name"), layer_names_by_index)
         element_classification = _ifc_display(values) or classification
         area = element_area(object_type, values)
-        return {
+        payload = {
             "archicad_guid": guid,
             "object_type": object_type,
             "classification": element_classification,
@@ -575,6 +611,10 @@ class ArchicadSnapshotBuilder:
             "ifc_type": element_classification,
             "ccp_operational": ccp_operational(values),
         }
+        assembly = buildsync_assembly(values)
+        if assembly:
+            payload["buildsync_assembly"] = assembly
+        return payload
 
     def write_property(self, payload: dict[str, Any]) -> None:
         archicad_guid = str(payload.get("archicad_guid") or "")

@@ -9,3 +9,4 @@ __pycache__/
 .env
 .env.local
 shared/examples/runtime/
+buildsync-archicad-addon/build/
