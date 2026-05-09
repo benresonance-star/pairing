@@ -5,6 +5,240 @@ import { vocab } from "../../../../shared/contracts/api/index";
 export type ObjectRefType = "zone" | "model_object";
 export type ChangeSetAction = "submit" | "approve" | "queue";
 export type ChangeSetStatus = (typeof vocab.changeSetStatuses)[number];
+export type CostRangeKey = "low" | "mid" | "high" | "other";
+export type SiteConstraintCategory = "planning" | "site" | "services" | "risk";
+export type ScenarioKind = "template" | "site_active" | "site_archived" | "legacy";
+export type EstimateGranularity = "allowance" | "provisional_sum" | "system" | "element" | "assembly" | "material";
+export type CostingMethod =
+  | "rate_per_sqm"
+  | "rate_per_lm"
+  | "rate_per_m3"
+  | "rate_per_item"
+  | "rate_per_dwelling"
+  | "rate_per_zone"
+  | "fixed_sum";
+
+export type DevelopmentSiteRecord = {
+  id: string;
+  project_id: string;
+  name: string;
+  address: string;
+  locality?: string | null;
+  status: string;
+  current_stage?: string | null;
+  acquisition_status?: string | null;
+  priority?: string | null;
+  site_area_sqm?: number | null;
+  summary?: string | null;
+};
+
+export type SitePatch = {
+  name?: string;
+  address?: string;
+  locality?: string | null;
+  status?: string;
+  currentStage?: string | null;
+  acquisitionStatus?: string | null;
+  priority?: string | null;
+  siteAreaSqm?: number | null;
+  summary?: string | null;
+};
+
+export type SiteConstraintRecord = {
+  id: string;
+  site_id: string;
+  category: SiteConstraintCategory | string;
+  title: string;
+  description: string;
+  severity: string;
+  status?: string | null;
+  authority?: string | null;
+  source?: string | null;
+};
+
+export type ScenarioOptionRecord = {
+  id: string;
+  site_id: string;
+  scenario_id?: string | null;
+  scenario_template_id?: string | null;
+  master_cost_template_id?: string | null;
+  name: string;
+  configuration: string;
+  dwellings?: number | null;
+  gross_floor_area_sqm?: number | null;
+  planning_fit?: string | null;
+  status: string;
+  summary?: string | null;
+  target_margin_percent?: number | null;
+};
+
+export type MasterCostTemplateRecord = {
+  id: string;
+  project_id: string;
+  name: string;
+  description?: string | null;
+  status: string;
+  template_type?: string | null;
+};
+
+export type MasterCodeCatalogRecord = {
+  id: string;
+  name: string;
+  description?: string | null;
+  status: string;
+  version_label?: string | null;
+};
+
+export type MasterCodeItemRecord = {
+  id: string;
+  catalog_id: string;
+  parent_item_id?: string | null;
+  code: string;
+  title: string;
+  code_type: string;
+  trade_code?: string | null;
+  package_id?: string | null;
+  default_unit?: string | null;
+  default_estimate_granularity?: EstimateGranularity | string | null;
+  default_costing_method?: CostingMethod | string | null;
+  notes?: string | null;
+  status: string;
+  sort_order?: number | null;
+};
+
+export type MasterCostItemRecord = {
+  id: string;
+  project_id: string;
+  master_code_item_id?: string | null;
+  cost_code: string;
+  title: string;
+  trade_code?: string | null;
+  package_id?: string | null;
+  estimate_granularity: EstimateGranularity | string;
+  costing_method: CostingMethod | string;
+  unit: string;
+  base_rate: number;
+  source_label?: string | null;
+  source_url?: string | null;
+  source_notes?: string | null;
+  notes?: string | null;
+  status?: string | null;
+};
+
+export type MasterCostItemSourceRecord = {
+  id: string;
+  project_id: string;
+  master_cost_item_id: string;
+  source_type: string;
+  source_label: string;
+  source_url?: string | null;
+  source_date?: string | null;
+  confidence?: string | null;
+  notes?: string | null;
+};
+
+export type MasterCostItemTargetLinkRecord = {
+  id: string;
+  project_id: string;
+  master_cost_item_id: string;
+  target_type: string;
+  target_ref: string;
+  link_basis?: string | null;
+  notes?: string | null;
+};
+
+export type MasterCostTemplateItemRecord = {
+  id: string;
+  project_id: string;
+  master_cost_template_id: string;
+  master_cost_item_id?: string | null;
+  master_code_item_id?: string | null;
+  parent_item_id?: string | null;
+  cost_code: string;
+  title: string;
+  trade_code?: string | null;
+  package_id?: string | null;
+  estimate_granularity: EstimateGranularity | string;
+  costing_method: CostingMethod | string;
+  unit: string;
+  base_rate: number;
+  default_quantity?: number | null;
+  quantity_basis?: string | null;
+  low_factor?: number | null;
+  mid_factor?: number | null;
+  high_factor?: number | null;
+  contingency_percent?: number | null;
+  notes?: string | null;
+  sort_order?: number | null;
+};
+
+export type MasterCostItemLinkRecord = {
+  id: string;
+  project_id: string;
+  master_cost_template_item_id: string;
+  target_type: string;
+  target_ref: string;
+  link_basis?: string | null;
+  notes?: string | null;
+};
+
+export type ScenarioCostPlanItemRecord = {
+  id: string;
+  project_id: string;
+  scenario_option_id: string;
+  master_cost_template_item_id?: string | null;
+  parent_item_id?: string | null;
+  cost_code: string;
+  title: string;
+  estimate_granularity: EstimateGranularity | string;
+  costing_method: CostingMethod | string;
+  unit: string;
+  quantity: number;
+  rate: number;
+  range_key?: CostRangeKey | string | null;
+  confidence?: string | null;
+  inclusion_status?: string | null;
+  linked_target_type?: string | null;
+  linked_target_ref?: string | null;
+  notes?: string | null;
+};
+
+export type ScenarioCostRangeRecord = {
+  id: string;
+  scenario_option_id: string;
+  range_key: CostRangeKey | string;
+  label: string;
+  construction_cost: number;
+  professional_fees?: number | null;
+  contingency?: number | null;
+  statutory_fees?: number | null;
+  finance_cost?: number | null;
+  other_costs?: number | null;
+  notes?: string | null;
+};
+
+export type SalesAssumptionRecord = {
+  id: string;
+  scenario_option_id: string;
+  gross_realisation: number;
+  average_sale_price?: number | null;
+  sale_rate_per_month?: number | null;
+  settlement_months?: number | null;
+  notes?: string | null;
+};
+
+export type ArchicadLinkRecord = {
+  id: string;
+  site_id: string;
+  scenario_option_id?: string | null;
+  archicad_project_id: string;
+  file_label: string;
+  file_url?: string | null;
+  model_scope?: string | null;
+  linked_guid_count?: number | null;
+  assembly_task_ids?: string[];
+  last_snapshot_at?: string | null;
+};
 export type GovernedOperationalPatch = {
   packageId?: string | null;
   constructionState?: string | null;
@@ -26,8 +260,30 @@ type RuntimeRecord = Record<string, unknown>;
 
 export type RuntimeState = {
   project: { id: string; name: string; archicad_project_id: string };
+  sites: DevelopmentSiteRecord[];
+  site_constraints: SiteConstraintRecord[];
+  scenario_options: ScenarioOptionRecord[];
+  scenario_cost_ranges: ScenarioCostRangeRecord[];
+  sales_assumptions: SalesAssumptionRecord[];
+  archicad_links: ArchicadLinkRecord[];
+  master_code_catalogs: MasterCodeCatalogRecord[];
+  master_code_items: MasterCodeItemRecord[];
+  master_cost_templates: MasterCostTemplateRecord[];
+  master_cost_items: MasterCostItemRecord[];
+  master_cost_item_sources: MasterCostItemSourceRecord[];
+  master_cost_item_target_links: MasterCostItemTargetLinkRecord[];
+  master_cost_template_items: MasterCostTemplateItemRecord[];
+  master_cost_item_links: MasterCostItemLinkRecord[];
+  scenario_cost_plan_items: ScenarioCostPlanItemRecord[];
   work_packages: Array<RuntimeRecord>;
-  scenarios: Array<{ id: string; name: string; status: string; parent_scenario_id?: string | null }>;
+  scenarios: Array<{
+    id: string;
+    name: string;
+    status: string;
+    parent_scenario_id?: string | null;
+    scenario_kind?: ScenarioKind | string | null;
+    template_scenario_id?: string | null;
+  }>;
   zones: Array<RuntimeRecord>;
   model_objects: Array<RuntimeRecord>;
   hotlink_instances: Array<RuntimeRecord>;
@@ -45,6 +301,21 @@ export type RuntimeState = {
 };
 
 const ARRAY_KEYS = [
+  "sites",
+  "site_constraints",
+  "scenario_options",
+  "scenario_cost_ranges",
+  "sales_assumptions",
+  "archicad_links",
+  "master_code_catalogs",
+  "master_code_items",
+  "master_cost_templates",
+  "master_cost_items",
+  "master_cost_item_sources",
+  "master_cost_item_target_links",
+  "master_cost_template_items",
+  "master_cost_item_links",
+  "scenario_cost_plan_items",
   "work_packages",
   "scenarios",
   "zones",
@@ -63,6 +334,24 @@ const ARRAY_KEYS = [
   "linear_progress_points"
 ] as const;
 
+const FEASIBILITY_ARRAY_KEYS = new Set<string>([
+  "sites",
+  "site_constraints",
+  "scenario_options",
+  "scenario_cost_ranges",
+  "sales_assumptions",
+  "archicad_links",
+  "master_code_catalogs",
+  "master_code_items",
+  "master_cost_templates",
+  "master_cost_items",
+  "master_cost_item_sources",
+  "master_cost_item_target_links",
+  "master_cost_template_items",
+  "master_cost_item_links",
+  "scenario_cost_plan_items"
+]);
+
 const ALLOWED_TRANSITIONS: Record<ChangeSetStatus, ChangeSetAction[]> = {
   draft: ["submit"],
   submitted: ["approve"],
@@ -72,6 +361,10 @@ const ALLOWED_TRANSITIONS: Record<ChangeSetStatus, ChangeSetAction[]> = {
   synced: [],
   sync_failed: []
 };
+
+function isFeasibilityArrayKey(key: string): boolean {
+  return FEASIBILITY_ARRAY_KEYS.has(key);
+}
 
 const GOVERNED_OPERATIONAL_FIELDS = [
   ["packageId", "package_id"],
@@ -109,12 +402,30 @@ export function normalizeRuntimeState(raw: unknown): RuntimeState {
   const arrayValues = Object.fromEntries(
     ARRAY_KEYS.map((key) => {
       const value = raw[key];
+      if (value === undefined && isFeasibilityArrayKey(key)) {
+        return [key, []];
+      }
       if (!Array.isArray(value)) {
         throw new Error(`Runtime state key '${key}' must be an array`);
       }
       return [key, value];
     })
   ) as Record<(typeof ARRAY_KEYS)[number], RuntimeState[keyof Pick<RuntimeState,
+    | "sites"
+    | "site_constraints"
+    | "scenario_options"
+    | "scenario_cost_ranges"
+    | "sales_assumptions"
+    | "archicad_links"
+    | "master_code_catalogs"
+    | "master_code_items"
+    | "master_cost_templates"
+    | "master_cost_items"
+    | "master_cost_item_sources"
+    | "master_cost_item_target_links"
+    | "master_cost_template_items"
+    | "master_cost_item_links"
+    | "scenario_cost_plan_items"
     | "work_packages"
     | "scenarios"
     | "zones"
@@ -139,6 +450,21 @@ export function normalizeRuntimeState(raw: unknown): RuntimeState {
       name: stringField(project, "name", "project"),
       archicad_project_id: stringField(project, "archicad_project_id", "project")
     },
+    sites: arrayValues.sites as RuntimeState["sites"],
+    site_constraints: arrayValues.site_constraints as RuntimeState["site_constraints"],
+    scenario_options: arrayValues.scenario_options as RuntimeState["scenario_options"],
+    scenario_cost_ranges: arrayValues.scenario_cost_ranges as RuntimeState["scenario_cost_ranges"],
+    sales_assumptions: arrayValues.sales_assumptions as RuntimeState["sales_assumptions"],
+    archicad_links: arrayValues.archicad_links as RuntimeState["archicad_links"],
+    master_code_catalogs: arrayValues.master_code_catalogs as RuntimeState["master_code_catalogs"],
+    master_code_items: arrayValues.master_code_items as RuntimeState["master_code_items"],
+    master_cost_templates: arrayValues.master_cost_templates as RuntimeState["master_cost_templates"],
+    master_cost_items: arrayValues.master_cost_items as RuntimeState["master_cost_items"],
+    master_cost_item_sources: arrayValues.master_cost_item_sources as RuntimeState["master_cost_item_sources"],
+    master_cost_item_target_links: arrayValues.master_cost_item_target_links as RuntimeState["master_cost_item_target_links"],
+    master_cost_template_items: arrayValues.master_cost_template_items as RuntimeState["master_cost_template_items"],
+    master_cost_item_links: arrayValues.master_cost_item_links as RuntimeState["master_cost_item_links"],
+    scenario_cost_plan_items: arrayValues.scenario_cost_plan_items as RuntimeState["scenario_cost_plan_items"],
     work_packages: arrayValues.work_packages,
     scenarios: arrayValues.scenarios as RuntimeState["scenarios"],
     zones: arrayValues.zones,
@@ -182,6 +508,76 @@ export function getBaselineScenario(state: RuntimeState) {
     throw new Error("Runtime state does not contain a baseline scenario");
   }
   return scenario;
+}
+
+function validateSiteName(state: RuntimeState, siteId: string | null, name: string): string {
+  const trimmed = name.trim();
+  if (!trimmed) {
+    throw new Error("Site name is required");
+  }
+  if (state.sites.some((site) => site.name === trimmed && site.id !== (siteId ?? ""))) {
+    throw new Error(`Site '${trimmed}' already exists`);
+  }
+  return trimmed;
+}
+
+export function createDevelopmentSite(
+  state: RuntimeState,
+  input: SitePatch & { id: string; projectId?: string }
+): DevelopmentSiteRecord {
+  const name = validateSiteName(state, null, input.name ?? "");
+  const address = (input.address ?? "").trim();
+  if (!address) {
+    throw new Error("Site address is required");
+  }
+  const site: DevelopmentSiteRecord = {
+    id: input.id,
+    project_id: input.projectId ?? state.project.id,
+    name,
+    address,
+    locality: input.locality ?? null,
+    status: input.status ?? "screening",
+    current_stage: input.currentStage ?? null,
+    acquisition_status: input.acquisitionStatus ?? null,
+    priority: input.priority ?? null,
+    site_area_sqm: input.siteAreaSqm ?? null,
+    summary: input.summary ?? null
+  };
+  state.sites.push(site);
+  return site;
+}
+
+export function updateDevelopmentSite(
+  state: RuntimeState,
+  siteId: string,
+  patch: SitePatch
+): DevelopmentSiteRecord {
+  const site = state.sites.find((item) => item.id === siteId);
+  if (!site) {
+    throw new Error(`Site '${siteId}' was not found`);
+  }
+  if (patch.name !== undefined) {
+    site.name = validateSiteName(state, siteId, patch.name);
+  }
+  if (patch.address !== undefined) {
+    const address = patch.address.trim();
+    if (!address) {
+      throw new Error("Site address is required");
+    }
+    site.address = address;
+  }
+  if (patch.locality !== undefined) site.locality = patch.locality;
+  if (patch.status !== undefined) site.status = patch.status;
+  if (patch.currentStage !== undefined) site.current_stage = patch.currentStage;
+  if (patch.acquisitionStatus !== undefined) site.acquisition_status = patch.acquisitionStatus;
+  if (patch.priority !== undefined) site.priority = patch.priority;
+  if (patch.siteAreaSqm !== undefined) site.site_area_sqm = patch.siteAreaSqm;
+  if (patch.summary !== undefined) site.summary = patch.summary;
+  return site;
+}
+
+export function archiveDevelopmentSite(state: RuntimeState, siteId: string): DevelopmentSiteRecord {
+  return updateDevelopmentSite(state, siteId, { status: "archived" });
 }
 
 export function requireActiveScenario(state: RuntimeState, scenarioId?: string | null) {

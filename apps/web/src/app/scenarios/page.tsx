@@ -2,7 +2,7 @@ import { revalidatePath } from "next/cache";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
-import { createScenario, getScenarios } from "../../lib/demo-store";
+import { createScenario, createScenarioTemplate, getFeasibilityPortfolio, getScenarios } from "../../lib/demo-store";
 
 async function submitScenario(formData: FormData) {
   "use server";
@@ -26,32 +26,65 @@ async function submitScenario(formData: FormData) {
   }
 }
 
+async function submitScenarioTemplate(formData: FormData) {
+  "use server";
+
+  const name = String(formData.get("name") ?? "");
+  const sourceScenarioId = String(formData.get("sourceScenarioId") ?? "");
+
+  try {
+    const result = await createScenarioTemplate({
+      name,
+      sourceScenarioId: sourceScenarioId.length > 0 ? sourceScenarioId : null
+    });
+    revalidatePath("/");
+    revalidatePath("/scenarios");
+    revalidatePath("/sites");
+    revalidatePath("/feasibility");
+    redirect(`/scenarios?status=${encodeURIComponent(`Template created: ${result.scenarioId}`)}`);
+  } catch (error) {
+    redirect(`/scenarios?error=${encodeURIComponent(error instanceof Error ? error.message : "Unable to create template")}`);
+  }
+}
+
 type PageProps = {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
 };
 
 export default async function ScenariosPage({ searchParams }: PageProps) {
-  const scenarios = await getScenarios();
+  const [scenarios, portfolio] = await Promise.all([getScenarios(), getFeasibilityPortfolio()]);
   const params = (await searchParams) ?? {};
   const status = typeof params.status === "string" ? params.status : null;
   const error = typeof params.error === "string" ? params.error : null;
   const baselineScenario = scenarios.find((scenario) => scenario.status === "baseline") ?? scenarios[0] ?? null;
+  const scenarioOptionByScenarioId = new Map(
+    portfolio.sites.flatMap((site) =>
+      site.scenarioOptions
+        .filter((option) => option.scenario_id)
+        .map((option) => [option.scenario_id!, { site, option }] as const)
+    )
+  );
+  const templates = scenarios.filter((scenario) => scenario.scenarioKind === "template" || scenario.status === "template");
+  const activeSiteScenarios = scenarios.filter((scenario) => scenarioOptionByScenarioId.has(scenario.id));
+  const unlinkedScenarios = scenarios.filter(
+    (scenario) => !scenarioOptionByScenarioId.has(scenario.id) && scenario.scenarioKind !== "template" && scenario.status !== "template"
+  );
 
   return (
     <>
       <section className="panel">
-        <h2>Scenarios</h2>
+        <h2>Scenario Templates</h2>
         <p className="muted">
-          Establish a baseline, then create draft scenario clones for alternative sequencing and
-          package-assignment decisions without duplicating model identity tables.
+          Reusable scenario templates are not tied to one site. Use them as starting points when creating
+          site scenario options from the Sites tab.
         </p>
         {status ? <div className="notice notice-success">{status}</div> : null}
         {error ? <div className="notice notice-error">{error}</div> : null}
 
-        <form action={submitScenario} className="filter-row">
+        <form action={submitScenarioTemplate} className="filter-row">
           <label className="filter-field">
-            <span>Scenario name</span>
-            <input name="name" type="text" placeholder={scenarios.length === 0 ? "Baseline" : "Recovery Plan"} />
+            <span>Template name</span>
+            <input name="name" type="text" placeholder="Template - 3 Townhouse Standard" />
           </label>
           {scenarios.length > 0 ? (
             <label className="filter-field">
@@ -65,14 +98,14 @@ export default async function ScenariosPage({ searchParams }: PageProps) {
               </select>
             </label>
           ) : null}
-          <button type="submit">{scenarios.length === 0 ? "Create Baseline" : "Create Draft Scenario"}</button>
+          <button type="submit">Create Template</button>
         </form>
       </section>
 
       <section className="panel">
-        <h2>Existing Scenarios</h2>
-        {scenarios.length === 0 ? (
-          <p className="muted">No scenarios exist yet. Create a baseline to establish scenario-scoped state.</p>
+        <h2>Templates</h2>
+        {templates.length === 0 ? (
+          <p className="muted">No scenario templates exist yet.</p>
         ) : (
           <table>
             <thead>
@@ -81,11 +114,10 @@ export default async function ScenariosPage({ searchParams }: PageProps) {
                 <th>Status</th>
                 <th>Parent</th>
                 <th>Operational Rows</th>
-                <th>Change Sets</th>
               </tr>
             </thead>
             <tbody>
-              {scenarios.map((scenario) => (
+              {templates.map((scenario) => (
                 <tr key={scenario.id}>
                   <td>
                     <Link href={`/scenarios/${scenario.id}`}>{scenario.name}</Link>
@@ -95,7 +127,89 @@ export default async function ScenariosPage({ searchParams }: PageProps) {
                   </td>
                   <td>{scenario.parentScenarioId ?? "none"}</td>
                   <td>{scenario.operationalStateCount}</td>
-                  <td>{scenario.changeSetCount}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </section>
+
+      <section className="panel">
+        <h2>Active Site Scenarios</h2>
+        {activeSiteScenarios.length === 0 ? (
+          <p className="muted">No active site-linked scenarios exist yet. Create them from a site detail page.</p>
+        ) : (
+          <table>
+            <thead>
+              <tr>
+                <th>Scenario</th>
+                <th>Site Option</th>
+                <th>Template</th>
+                <th>Status</th>
+                <th>Operational Rows</th>
+                <th>Change Sets</th>
+              </tr>
+            </thead>
+            <tbody>
+              {activeSiteScenarios.map((scenario) => {
+                const link = scenarioOptionByScenarioId.get(scenario.id)!;
+                return (
+                  <tr key={scenario.id}>
+                    <td>
+                      <Link href={`/scenarios/${scenario.id}`}>{scenario.name}</Link>
+                    </td>
+                    <td>
+                      <Link href={`/sites/${link.site.id}`}>{link.option.name}</Link>
+                      <div className="muted">{link.site.name}</div>
+                    </td>
+                    <td>{link.option.templateScenarioName ?? scenario.templateScenarioId ?? "not set"}</td>
+                    <td>
+                      <span className="tag">{scenario.status}</span>
+                    </td>
+                    <td>{scenario.operationalStateCount}</td>
+                    <td>{scenario.changeSetCount}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        )}
+      </section>
+
+      <section className="panel">
+        <h2>Operational / Legacy Scenarios</h2>
+        <p className="muted">
+          These scenarios are not linked to a site option. Keep them only as old operational baselines or clone sources.
+        </p>
+        {unlinkedScenarios.length === 0 ? (
+          <p className="muted">No unlinked scenarios.</p>
+        ) : (
+          <table>
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Kind</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {unlinkedScenarios.map((scenario) => (
+                <tr key={scenario.id}>
+                  <td>
+                    <Link href={`/scenarios/${scenario.id}`}>{scenario.name}</Link>
+                  </td>
+                  <td>{scenario.scenarioKind}</td>
+                  <td>
+                    <span className="tag">{scenario.status}</span>
+                  </td>
+                  <td>
+                    <form action={submitScenario} className="inline-form">
+                      <input type="hidden" name="sourceScenarioId" value={scenario.id} />
+                      <input name="name" placeholder={`${scenario.name} copy`} />
+                      <button type="submit">Create Legacy Clone</button>
+                    </form>
+                  </td>
                 </tr>
               ))}
             </tbody>

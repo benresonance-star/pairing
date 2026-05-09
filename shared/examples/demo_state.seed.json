@@ -4,6 +4,699 @@
     "name": "Mews Lane Townhouses",
     "archicad_project_id": "ARCHICAD-MEWS-LANE-TOWNHOUSES"
   },
+  "sites": [
+    {
+      "id": "site-mews-lane",
+      "project_id": "11111111-1111-1111-1111-111111111111",
+      "name": "Mews Lane Assemblage",
+      "address": "12-18 Mews Lane",
+      "locality": "Brunswick",
+      "status": "shortlisted",
+      "current_stage": "concept feasibility",
+      "acquisition_status": "under option",
+      "priority": "high",
+      "site_area_sqm": 1240,
+      "summary": "Inner-suburban townhouse site with existing Archicad concept model and live construction planning data."
+    },
+    {
+      "id": "site-river-road",
+      "project_id": "11111111-1111-1111-1111-111111111111",
+      "name": "River Road Infill",
+      "address": "44 River Road",
+      "locality": "Preston",
+      "status": "screening",
+      "current_stage": "site identification",
+      "acquisition_status": "watchlist",
+      "priority": "medium",
+      "site_area_sqm": 710,
+      "summary": "Smaller infill site used to compare duplex and compact townhouse feasibility before model authoring."
+    }
+  ],
+  "site_constraints": [
+    {
+      "id": "constraint-mews-planning-height",
+      "site_id": "site-mews-lane",
+      "category": "planning",
+      "title": "Neighbourhood height control",
+      "description": "Two-storey street wall is generally acceptable; third-storey bulk requires setback testing.",
+      "severity": "medium",
+      "status": "active",
+      "authority": "Local planning scheme",
+      "source": "desktop review"
+    },
+    {
+      "id": "constraint-mews-services-easement",
+      "site_id": "site-mews-lane",
+      "category": "services",
+      "title": "Rear drainage easement",
+      "description": "Stormwater spine constrains basement and private open-space layouts near the rear boundary.",
+      "severity": "high",
+      "status": "active",
+      "authority": "Water authority",
+      "source": "survey"
+    },
+    {
+      "id": "constraint-river-planning-access",
+      "site_id": "site-river-road",
+      "category": "planning",
+      "title": "Vehicle access width",
+      "description": "Crossover and driveway width limit the practical yield for rear dwellings.",
+      "severity": "medium",
+      "status": "active",
+      "authority": "Council engineering",
+      "source": "site inspection"
+    },
+    {
+      "id": "constraint-river-risk-flood",
+      "site_id": "site-river-road",
+      "category": "risk",
+      "title": "Flood overlay check",
+      "description": "Confirm finished floor level and drainage detention requirements before acquisition commitment.",
+      "severity": "high",
+      "status": "needs review",
+      "authority": "Catchment overlay",
+      "source": "planning map"
+    }
+  ],
+  "scenario_options": [
+    {
+      "id": "option-mews-3-townhouse",
+      "site_id": "site-mews-lane",
+      "scenario_id": "22222222-2222-2222-2222-222222222222",
+      "scenario_template_id": "22222222-2222-2222-2222-222222222225",
+      "master_cost_template_id": "cost-template-townhouse-standard",
+      "name": "3 Townhouse Premium",
+      "configuration": "3 townhouse",
+      "dwellings": 3,
+      "gross_floor_area_sqm": 480,
+      "planning_fit": "strong",
+      "status": "preferred",
+      "summary": "Lower planning risk with larger dwellings, stronger end value, and current baseline schedule.",
+      "target_margin_percent": 18
+    },
+    {
+      "id": "option-mews-4-townhouse",
+      "site_id": "site-mews-lane",
+      "scenario_id": "22222222-2222-2222-2222-222222222223",
+      "scenario_template_id": "22222222-2222-2222-2222-222222222226",
+      "master_cost_template_id": "cost-template-townhouse-standard",
+      "name": "4 Townhouse Yield",
+      "configuration": "4 townhouse",
+      "dwellings": 4,
+      "gross_floor_area_sqm": 640,
+      "planning_fit": "moderate",
+      "status": "testing",
+      "summary": "Higher yield option using the recovery scenario for tighter sequencing and sales release testing.",
+      "target_margin_percent": 20
+    },
+    {
+      "id": "option-river-duplex",
+      "site_id": "site-river-road",
+      "scenario_id": null,
+      "scenario_template_id": "22222222-2222-2222-2222-222222222224",
+      "master_cost_template_id": "cost-template-duplex-base",
+      "name": "Duplex Base Case",
+      "configuration": "duplex",
+      "dwellings": 2,
+      "gross_floor_area_sqm": 310,
+      "planning_fit": "strong",
+      "status": "screening",
+      "summary": "Early feasibility option without an Archicad model; used to test acquisition and planning constraints.",
+      "target_margin_percent": 17
+    }
+  ],
+  "scenario_cost_ranges": [
+    {
+      "id": "cost-mews-3-low",
+      "scenario_option_id": "option-mews-3-townhouse",
+      "range_key": "low",
+      "label": "Low",
+      "construction_cost": 1710000,
+      "professional_fees": 138000,
+      "contingency": 86000,
+      "statutory_fees": 72000,
+      "finance_cost": 155000,
+      "other_costs": 45000,
+      "notes": "Assumes no authority-driven redesign and stable civil scope."
+    },
+    {
+      "id": "cost-mews-3-mid",
+      "scenario_option_id": "option-mews-3-townhouse",
+      "range_key": "mid",
+      "label": "Mid",
+      "construction_cost": 1845000,
+      "professional_fees": 148000,
+      "contingency": 125000,
+      "statutory_fees": 76000,
+      "finance_cost": 178000,
+      "other_costs": 52000,
+      "notes": "Base estimating case aligned to current package and schedule model."
+    },
+    {
+      "id": "cost-mews-3-high",
+      "scenario_option_id": "option-mews-3-townhouse",
+      "range_key": "high",
+      "label": "High",
+      "construction_cost": 1990000,
+      "professional_fees": 160000,
+      "contingency": 180000,
+      "statutory_fees": 83000,
+      "finance_cost": 215000,
+      "other_costs": 62000,
+      "notes": "Includes services easement risk and extended approval period."
+    },
+    {
+      "id": "cost-mews-4-low",
+      "scenario_option_id": "option-mews-4-townhouse",
+      "range_key": "low",
+      "label": "Low",
+      "construction_cost": 2140000,
+      "professional_fees": 168000,
+      "contingency": 110000,
+      "statutory_fees": 88000,
+      "finance_cost": 192000,
+      "other_costs": 60000,
+      "notes": "Assumes compact layouts pass with minor design changes."
+    },
+    {
+      "id": "cost-mews-4-mid",
+      "scenario_option_id": "option-mews-4-townhouse",
+      "range_key": "mid",
+      "label": "Mid",
+      "construction_cost": 2310000,
+      "professional_fees": 184000,
+      "contingency": 166000,
+      "statutory_fees": 94000,
+      "finance_cost": 226000,
+      "other_costs": 69000,
+      "notes": "Includes additional facade and fire-separation allowances."
+    },
+    {
+      "id": "cost-mews-4-high",
+      "scenario_option_id": "option-mews-4-townhouse",
+      "range_key": "high",
+      "label": "High",
+      "construction_cost": 2530000,
+      "professional_fees": 202000,
+      "contingency": 238000,
+      "statutory_fees": 102000,
+      "finance_cost": 275000,
+      "other_costs": 82000,
+      "notes": "Planning redesign and slower sales release sensitivity."
+    },
+    {
+      "id": "cost-river-duplex-low",
+      "scenario_option_id": "option-river-duplex",
+      "range_key": "low",
+      "label": "Low",
+      "construction_cost": 980000,
+      "professional_fees": 78000,
+      "contingency": 52000,
+      "statutory_fees": 42000,
+      "finance_cost": 84000,
+      "other_costs": 28000,
+      "notes": "Clean planning pathway and no flood mitigation allowance."
+    },
+    {
+      "id": "cost-river-duplex-mid",
+      "scenario_option_id": "option-river-duplex",
+      "range_key": "mid",
+      "label": "Mid",
+      "construction_cost": 1085000,
+      "professional_fees": 85000,
+      "contingency": 79000,
+      "statutory_fees": 46000,
+      "finance_cost": 97000,
+      "other_costs": 34000,
+      "notes": "Screening case pending drainage and access advice."
+    },
+    {
+      "id": "cost-river-duplex-high",
+      "scenario_option_id": "option-river-duplex",
+      "range_key": "high",
+      "label": "High",
+      "construction_cost": 1215000,
+      "professional_fees": 96000,
+      "contingency": 120000,
+      "statutory_fees": 54000,
+      "finance_cost": 122000,
+      "other_costs": 42000,
+      "notes": "Includes flood overlay and slower authority pathway sensitivity."
+    }
+  ],
+  "sales_assumptions": [
+    {
+      "id": "sales-mews-3",
+      "scenario_option_id": "option-mews-3-townhouse",
+      "gross_realisation": 3420000,
+      "average_sale_price": 1140000,
+      "sale_rate_per_month": 1.2,
+      "settlement_months": 4,
+      "notes": "Premium larger townhouse product with staggered private treaty release."
+    },
+    {
+      "id": "sales-mews-4",
+      "scenario_option_id": "option-mews-4-townhouse",
+      "gross_realisation": 4320000,
+      "average_sale_price": 1080000,
+      "sale_rate_per_month": 1.5,
+      "settlement_months": 5,
+      "notes": "Higher count with slightly lower average price and longer release."
+    },
+    {
+      "id": "sales-river-duplex",
+      "scenario_option_id": "option-river-duplex",
+      "gross_realisation": 2060000,
+      "average_sale_price": 1030000,
+      "sale_rate_per_month": 0.8,
+      "settlement_months": 3,
+      "notes": "Comparable infill duplex sales from recent nearby campaigns."
+    }
+  ],
+  "archicad_links": [
+    {
+      "id": "archicad-mews-baseline",
+      "site_id": "site-mews-lane",
+      "scenario_option_id": "option-mews-3-townhouse",
+      "archicad_project_id": "ARCHICAD-MEWS-LANE-TOWNHOUSES",
+      "file_label": "Mews Lane 3TH concept.pln",
+      "file_url": "file:///projects/mews-lane/Mews-Lane-3TH-concept.pln",
+      "model_scope": "baseline zones, siteworks, facade screen, and package-linked elements",
+      "linked_guid_count": 6,
+      "assembly_task_ids": [
+        "siteworks-task-drainage",
+        "structure-task-ground-floor",
+        "envelope-task-facade"
+      ],
+      "last_snapshot_at": "2026-05-08T07:30:00.000Z"
+    },
+    {
+      "id": "archicad-mews-yield",
+      "site_id": "site-mews-lane",
+      "scenario_option_id": "option-mews-4-townhouse",
+      "archicad_project_id": "ARCHICAD-MEWS-LANE-TOWNHOUSES",
+      "file_label": "Mews Lane 4TH yield study.pln",
+      "file_url": "file:///projects/mews-lane/Mews-Lane-4TH-yield-study.pln",
+      "model_scope": "draft yield model linked to recovery schedule scenario",
+      "linked_guid_count": 6,
+      "assembly_task_ids": [
+        "siteworks-task-earthworks",
+        "civils-task-slab",
+        "interiors-task-fitout"
+      ],
+      "last_snapshot_at": "2026-05-08T08:15:00.000Z"
+    }
+  ],
+  "master_code_catalogs": [
+    {
+      "id": "global-residential-code-catalog",
+      "name": "Global Residential Cost and Construction Codes",
+      "description": "Editable shared code catalog for feasibility cost items, construction trades, and work packages.",
+      "status": "active",
+      "version_label": "2026 starter"
+    }
+  ],
+  "master_code_items": [
+    {
+      "id": "code-preliminaries",
+      "catalog_id": "global-residential-code-catalog",
+      "code": "00",
+      "title": "Preliminaries",
+      "code_type": "section",
+      "status": "active",
+      "sort_order": 10
+    },
+    {
+      "id": "code-siteworks",
+      "catalog_id": "global-residential-code-catalog",
+      "code": "10",
+      "title": "Siteworks",
+      "code_type": "section",
+      "status": "active",
+      "sort_order": 20
+    },
+    {
+      "id": "trade-siteworks",
+      "catalog_id": "global-residential-code-catalog",
+      "parent_item_id": "code-siteworks",
+      "code": "siteworks",
+      "title": "Siteworks trade",
+      "code_type": "trade",
+      "status": "active",
+      "sort_order": 21
+    },
+    {
+      "id": "package-siteworks",
+      "catalog_id": "global-residential-code-catalog",
+      "parent_item_id": "code-siteworks",
+      "code": "PKG-SITEWORKS",
+      "title": "Siteworks package",
+      "code_type": "package",
+      "trade_code": "siteworks",
+      "package_id": "PKG-SITEWORKS",
+      "status": "active",
+      "sort_order": 22
+    },
+    {
+      "id": "code-concrete",
+      "catalog_id": "global-residential-code-catalog",
+      "code": "20",
+      "title": "Concrete",
+      "code_type": "section",
+      "status": "active",
+      "sort_order": 30
+    },
+    {
+      "id": "trade-structure",
+      "catalog_id": "global-residential-code-catalog",
+      "parent_item_id": "code-concrete",
+      "code": "structure",
+      "title": "Structure trade",
+      "code_type": "trade",
+      "status": "active",
+      "sort_order": 31
+    },
+    {
+      "id": "package-structure",
+      "catalog_id": "global-residential-code-catalog",
+      "parent_item_id": "code-concrete",
+      "code": "PKG-STRUCTURE",
+      "title": "Structure package",
+      "code_type": "package",
+      "trade_code": "structure",
+      "package_id": "PKG-STRUCTURE",
+      "status": "active",
+      "sort_order": 32
+    },
+    {
+      "id": "code-framing",
+      "catalog_id": "global-residential-code-catalog",
+      "code": "30",
+      "title": "Framing",
+      "code_type": "section",
+      "status": "active",
+      "sort_order": 40
+    },
+    {
+      "id": "code-cladding",
+      "catalog_id": "global-residential-code-catalog",
+      "code": "40",
+      "title": "Cladding and Envelope",
+      "code_type": "section",
+      "status": "active",
+      "sort_order": 50
+    },
+    {
+      "id": "code-roofing",
+      "catalog_id": "global-residential-code-catalog",
+      "code": "50",
+      "title": "Roofing",
+      "code_type": "section",
+      "status": "active",
+      "sort_order": 60
+    },
+    {
+      "id": "code-services",
+      "catalog_id": "global-residential-code-catalog",
+      "code": "60",
+      "title": "Services",
+      "code_type": "section",
+      "status": "active",
+      "sort_order": 70
+    },
+    {
+      "id": "trade-services",
+      "catalog_id": "global-residential-code-catalog",
+      "parent_item_id": "code-services",
+      "code": "services",
+      "title": "Services trade",
+      "code_type": "trade",
+      "status": "active",
+      "sort_order": 71
+    },
+    {
+      "id": "code-finishes",
+      "catalog_id": "global-residential-code-catalog",
+      "code": "70",
+      "title": "Finishes",
+      "code_type": "section",
+      "status": "active",
+      "sort_order": 80
+    },
+    {
+      "id": "cost-townhouse-gfa",
+      "catalog_id": "global-residential-code-catalog",
+      "parent_item_id": "code-preliminaries",
+      "code": "TH-ALLOW-GFA",
+      "title": "Townhouse building allowance",
+      "code_type": "cost_item",
+      "trade_code": "build",
+      "package_id": "PKG-STRUCTURE",
+      "default_unit": "sqm",
+      "default_estimate_granularity": "allowance",
+      "default_costing_method": "rate_per_sqm",
+      "status": "active",
+      "sort_order": 90
+    },
+    {
+      "id": "cost-services-ps",
+      "catalog_id": "global-residential-code-catalog",
+      "parent_item_id": "code-services",
+      "code": "TH-PS-SERV",
+      "title": "Services authority upgrade provisional sum",
+      "code_type": "cost_item",
+      "trade_code": "services",
+      "package_id": "PKG-SITEWORKS",
+      "default_unit": "sum",
+      "default_estimate_granularity": "provisional_sum",
+      "default_costing_method": "fixed_sum",
+      "status": "active",
+      "sort_order": 100
+    }
+  ],
+  "master_cost_templates": [
+    {
+      "id": "cost-template-townhouse-standard",
+      "project_id": "11111111-1111-1111-1111-111111111111",
+      "name": "Townhouse Standard",
+      "description": "Reusable townhouse feasibility template from loose sqm allowances through elemental and material-level lines.",
+      "status": "active",
+      "template_type": "townhouse"
+    },
+    {
+      "id": "cost-template-duplex-base",
+      "project_id": "11111111-1111-1111-1111-111111111111",
+      "name": "Duplex Base",
+      "description": "Early duplex feasibility library with provisional sums and core building system allowances.",
+      "status": "active",
+      "template_type": "duplex"
+    }
+  ],
+  "master_cost_template_items": [
+    {
+      "id": "mct-townhouse-gfa-allowance",
+      "project_id": "11111111-1111-1111-1111-111111111111",
+      "master_cost_template_id": "cost-template-townhouse-standard",
+      "master_code_item_id": "cost-townhouse-gfa",
+      "cost_code": "TH-ALLOW-GFA",
+      "title": "Townhouse building allowance",
+      "trade_code": "build",
+      "estimate_granularity": "allowance",
+      "costing_method": "rate_per_sqm",
+      "unit": "sqm",
+      "base_rate": 2450,
+      "default_quantity": 520,
+      "quantity_basis": "gross_floor_area_sqm",
+      "low_factor": 0.92,
+      "mid_factor": 1,
+      "high_factor": 1.12,
+      "contingency_percent": 8,
+      "notes": "Loose feasibility rate before full elemental takeoff.",
+      "sort_order": 10
+    },
+    {
+      "id": "mct-townhouse-services-ps",
+      "project_id": "11111111-1111-1111-1111-111111111111",
+      "master_cost_template_id": "cost-template-townhouse-standard",
+      "master_code_item_id": "cost-services-ps",
+      "cost_code": "TH-PS-SERV",
+      "title": "Services authority upgrade provisional sum",
+      "trade_code": "services",
+      "estimate_granularity": "provisional_sum",
+      "costing_method": "fixed_sum",
+      "unit": "sum",
+      "base_rate": 85000,
+      "default_quantity": 1,
+      "quantity_basis": "manual",
+      "low_factor": 0.75,
+      "mid_factor": 1,
+      "high_factor": 1.4,
+      "contingency_percent": 15,
+      "notes": "Carries unresolved authority and easement scope.",
+      "sort_order": 20
+    },
+    {
+      "id": "mct-townhouse-facade-assembly",
+      "project_id": "11111111-1111-1111-1111-111111111111",
+      "master_cost_template_id": "cost-template-townhouse-standard",
+      "cost_code": "TH-ASM-FACADE",
+      "title": "Facade screen assembly",
+      "trade_code": "envelope",
+      "package_id": "PKG-ENVELOPE",
+      "estimate_granularity": "assembly",
+      "costing_method": "rate_per_item",
+      "unit": "assembly",
+      "base_rate": 42000,
+      "default_quantity": 1,
+      "quantity_basis": "assembly_member_count",
+      "low_factor": 0.9,
+      "mid_factor": 1,
+      "high_factor": 1.18,
+      "contingency_percent": 10,
+      "notes": "Can link to BuildSync facade assembly task metadata.",
+      "sort_order": 30
+    },
+    {
+      "id": "mct-townhouse-fixings",
+      "project_id": "11111111-1111-1111-1111-111111111111",
+      "master_cost_template_id": "cost-template-townhouse-standard",
+      "parent_item_id": "mct-townhouse-facade-assembly",
+      "cost_code": "TH-MAT-SCREWS",
+      "title": "Facade stainless screws and fixings",
+      "trade_code": "envelope",
+      "estimate_granularity": "material",
+      "costing_method": "rate_per_item",
+      "unit": "each",
+      "base_rate": 0.42,
+      "default_quantity": 3200,
+      "quantity_basis": "manual_count",
+      "low_factor": 0.95,
+      "mid_factor": 1,
+      "high_factor": 1.15,
+      "contingency_percent": 5,
+      "notes": "Fine-grained takeoff item under the facade assembly.",
+      "sort_order": 40
+    },
+    {
+      "id": "mct-duplex-gfa-allowance",
+      "project_id": "11111111-1111-1111-1111-111111111111",
+      "master_cost_template_id": "cost-template-duplex-base",
+      "cost_code": "DX-ALLOW-GFA",
+      "title": "Duplex building allowance",
+      "trade_code": "build",
+      "estimate_granularity": "allowance",
+      "costing_method": "rate_per_sqm",
+      "unit": "sqm",
+      "base_rate": 2250,
+      "default_quantity": 310,
+      "quantity_basis": "gross_floor_area_sqm",
+      "low_factor": 0.9,
+      "mid_factor": 1,
+      "high_factor": 1.13,
+      "contingency_percent": 8,
+      "notes": "Base cost per sqm for early duplex screening.",
+      "sort_order": 10
+    },
+    {
+      "id": "mct-duplex-flood-ps",
+      "project_id": "11111111-1111-1111-1111-111111111111",
+      "master_cost_template_id": "cost-template-duplex-base",
+      "cost_code": "DX-PS-FLOOD",
+      "title": "Flood and drainage provisional sum",
+      "trade_code": "civils",
+      "estimate_granularity": "provisional_sum",
+      "costing_method": "fixed_sum",
+      "unit": "sum",
+      "base_rate": 65000,
+      "default_quantity": 1,
+      "quantity_basis": "risk_allowance",
+      "low_factor": 0.6,
+      "mid_factor": 1,
+      "high_factor": 1.55,
+      "contingency_percent": 20,
+      "notes": "Risk allowance tied to flood overlay review.",
+      "sort_order": 20
+    }
+  ],
+  "master_cost_item_links": [
+    {
+      "id": "mci-link-facade-screen",
+      "project_id": "11111111-1111-1111-1111-111111111111",
+      "master_cost_template_item_id": "mct-townhouse-facade-assembly",
+      "target_type": "archicad_assembly_task",
+      "target_ref": "envelope-task-facade",
+      "link_basis": "assembly_task_id",
+      "notes": "Links facade assembly allowance to BuildSync/Archicad task metadata."
+    },
+    {
+      "id": "mci-link-services-risk",
+      "project_id": "11111111-1111-1111-1111-111111111111",
+      "master_cost_template_item_id": "mct-townhouse-services-ps",
+      "target_type": "site_constraint",
+      "target_ref": "constraint-mews-services-easement",
+      "link_basis": "risk_allowance",
+      "notes": "Services provisional sum tracks the rear drainage easement constraint."
+    }
+  ],
+  "scenario_cost_plan_items": [
+    {
+      "id": "scp-mews-3-gfa",
+      "project_id": "11111111-1111-1111-1111-111111111111",
+      "scenario_option_id": "option-mews-3-townhouse",
+      "master_cost_template_item_id": "mct-townhouse-gfa-allowance",
+      "cost_code": "TH-ALLOW-GFA",
+      "title": "Townhouse building allowance",
+      "estimate_granularity": "allowance",
+      "costing_method": "rate_per_sqm",
+      "unit": "sqm",
+      "quantity": 480,
+      "rate": 2450,
+      "range_key": "mid",
+      "confidence": "concept",
+      "inclusion_status": "included",
+      "linked_target_type": "scenario_option",
+      "linked_target_ref": "option-mews-3-townhouse",
+      "notes": "Gross floor area allowance for 3 townhouse option."
+    },
+    {
+      "id": "scp-mews-3-facade",
+      "project_id": "11111111-1111-1111-1111-111111111111",
+      "scenario_option_id": "option-mews-3-townhouse",
+      "master_cost_template_item_id": "mct-townhouse-facade-assembly",
+      "cost_code": "TH-ASM-FACADE",
+      "title": "Facade screen assembly",
+      "estimate_granularity": "assembly",
+      "costing_method": "rate_per_item",
+      "unit": "assembly",
+      "quantity": 1,
+      "rate": 42000,
+      "range_key": "mid",
+      "confidence": "model-linked",
+      "inclusion_status": "included",
+      "linked_target_type": "archicad_guid",
+      "linked_target_ref": "FACADE-SCREEN-01",
+      "notes": "Linked to current Archicad facade screen object."
+    },
+    {
+      "id": "scp-river-duplex-gfa",
+      "project_id": "11111111-1111-1111-1111-111111111111",
+      "scenario_option_id": "option-river-duplex",
+      "master_cost_template_item_id": "mct-duplex-gfa-allowance",
+      "cost_code": "DX-ALLOW-GFA",
+      "title": "Duplex building allowance",
+      "estimate_granularity": "allowance",
+      "costing_method": "rate_per_sqm",
+      "unit": "sqm",
+      "quantity": 310,
+      "rate": 2250,
+      "range_key": "mid",
+      "confidence": "screening",
+      "inclusion_status": "included",
+      "linked_target_type": "scenario_option",
+      "linked_target_ref": "option-river-duplex",
+      "notes": "Loose per sqm cost before Archicad model authoring."
+    }
+  ],
   "work_packages": [
     {
       "id": "33333333-3333-3333-3333-333333333331",
@@ -84,6 +777,7 @@
       "project_id": "11111111-1111-1111-1111-111111111111",
       "name": "Baseline",
       "status": "baseline",
+      "scenario_kind": "legacy",
       "created_by": "system"
     },
     {
@@ -91,7 +785,35 @@
       "project_id": "11111111-1111-1111-1111-111111111111",
       "name": "Recovery Plan",
       "status": "draft",
+      "scenario_kind": "legacy",
       "created_by": "planner@example.com"
+    },
+    {
+      "id": "22222222-2222-2222-2222-222222222224",
+      "project_id": "11111111-1111-1111-1111-111111111111",
+      "name": "Template - Duplex Base",
+      "status": "template",
+      "scenario_kind": "template",
+      "parent_scenario_id": "22222222-2222-2222-2222-222222222222",
+      "created_by": "system"
+    },
+    {
+      "id": "22222222-2222-2222-2222-222222222225",
+      "project_id": "11111111-1111-1111-1111-111111111111",
+      "name": "Template - 3 Townhouse Standard",
+      "status": "template",
+      "scenario_kind": "template",
+      "parent_scenario_id": "22222222-2222-2222-2222-222222222222",
+      "created_by": "system"
+    },
+    {
+      "id": "22222222-2222-2222-2222-222222222226",
+      "project_id": "11111111-1111-1111-1111-111111111111",
+      "name": "Template - 4 Townhouse Yield",
+      "status": "template",
+      "scenario_kind": "template",
+      "parent_scenario_id": "22222222-2222-2222-2222-222222222223",
+      "created_by": "system"
     }
   ],
   "zones": [

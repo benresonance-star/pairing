@@ -149,10 +149,25 @@ def build_snapshot_rows(snapshot: dict[str, Any], max_rows: int = SNAPSHOT_ROWS_
                 "layer": e.get("layer"),
                 "storey": e.get("storey"),
                 "ifc_type": e.get("ifc_type"),
+                "assembly_uuid": (e.get("buildsync_assembly") or {}).get("assembly_uuid")
+                if isinstance(e.get("buildsync_assembly"), dict)
+                else None,
                 "assembly_id": (e.get("buildsync_assembly") or {}).get("assembly_id")
                 if isinstance(e.get("buildsync_assembly"), dict)
                 else None,
                 "assembly_name": (e.get("buildsync_assembly") or {}).get("name")
+                if isinstance(e.get("buildsync_assembly"), dict)
+                else None,
+                "assembly_type": (e.get("buildsync_assembly") or {}).get("type")
+                if isinstance(e.get("buildsync_assembly"), dict)
+                else None,
+                "assembly_trade": (e.get("buildsync_assembly") or {}).get("trade")
+                if isinstance(e.get("buildsync_assembly"), dict)
+                else None,
+                "assembly_status": (e.get("buildsync_assembly") or {}).get("status")
+                if isinstance(e.get("buildsync_assembly"), dict)
+                else None,
+                "assembly_task_id": (e.get("buildsync_assembly") or {}).get("task_id")
                 if isinstance(e.get("buildsync_assembly"), dict)
                 else None,
                 "area": _display_area(e),

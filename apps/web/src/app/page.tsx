@@ -24,6 +24,14 @@ export default async function HomePage() {
           <div>{summary.projectName}</div>
         </div>
         <div className="card">
+          <strong>Selected Sites</strong>
+          <div>{summary.siteCount}</div>
+        </div>
+        <div className="card">
+          <strong>Scenario Options</strong>
+          <div>{summary.scenarioOptionCount}</div>
+        </div>
+        <div className="card">
           <strong>Zones</strong>
           <div>{summary.zoneCount}</div>
         </div>
@@ -54,14 +62,14 @@ export default async function HomePage() {
       </section>
 
       <section className="panel">
-        <h2>Scenario Management</h2>
+        <h2>Feasibility Workflow</h2>
         <p className="muted">
-          Manage baseline and draft scenarios, then switch workflow pages to operate against the
-          intended scenario rather than always assuming baseline.
+          Review selected sites, compare planning constraints and scenario options, then connect
+          feasible options to detailed schedules, package state, and Archicad model data.
         </p>
         <p>
-          Open the <Link href="/scenarios">Scenarios</Link> page to create a draft clone and inspect
-          scenario-specific change-set and operational counts.
+          Start at <Link href="/sites">Sites</Link> for the site list or open{" "}
+          <Link href="/feasibility">Feasibility</Link> to compare low, mid, high, and other cost bands.
         </p>
       </section>
 
@@ -76,12 +84,12 @@ export default async function HomePage() {
       </section>
 
       <section className="panel">
-        <h2>First Slice Workflow</h2>
+        <h2>Construction Control Workflow</h2>
         <ol>
-          <li>Run the connector inbound command to populate zones and selected elements.</li>
-          <li>Open the <Link href="/objects">Objects</Link> page and draft package assignments.</li>
-          <li>Use the <Link href="/change-sets">Change Sets</Link> page to submit, approve, and queue them.</li>
-          <li>Run the connector outbound command to record the Archicad write-back payloads.</li>
+          <li>Select a site and compare its scenario options.</li>
+          <li>Open the linked scenario editor or <Link href="/linear-schedule">Linear Schedule</Link> for Gantt timing.</li>
+          <li>Use <Link href="/objects">Objects</Link> and <Link href="/change-sets">Change Sets</Link> for governed construction updates.</li>
+          <li>Use <Link href="/integrations/archicad">Integrations</Link> to refresh Archicad GUID, element, and assembly context.</li>
         </ol>
       </section>
 

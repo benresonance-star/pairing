@@ -14,7 +14,8 @@ import {
 import { CompanionOfflineHelp } from "./companion-offline-help";
 import { CompanionActionButton } from "./companion-action-button";
 import { COMPANION_OFFLINE_QUERY } from "../../../lib/companion-start-script";
-import type { CompanionSnapshotFilterState } from "../../../lib/companion-client";
+import { getFeasibilityPortfolio } from "../../../lib/demo-store";
+import type { CompanionSnapshotFilterState, CompanionSnapshotPreviewRow } from "../../../lib/companion-client";
 import { resetSnapshotFilterAction, submitSnapshotFilterAction } from "./snapshot-actions";
 
 const SNAPSHOT_ELEMENT_TYPES = ["wall", "slab", "roof", "window", "door", "column", "beam", "object"] as const;
@@ -43,6 +44,59 @@ function defaultSnapshotFilter(): CompanionSnapshotFilterState {
     element_types: [...SNAPSHOT_ELEMENT_TYPES],
     include_zones: true
   };
+}
+
+type AssemblyPreviewSummary = {
+  key: string;
+  assembly_id: string;
+  assembly_name?: string | null;
+  assembly_type?: string | null;
+  assembly_trade?: string | null;
+  assembly_status?: string | null;
+  assembly_task_id?: string | null;
+  member_count: number;
+  types: string[];
+  storeys: string[];
+  layers: string[];
+};
+
+function buildAssemblyPreview(rows: CompanionSnapshotPreviewRow[]): AssemblyPreviewSummary[] {
+  const byAssembly = new Map<string, AssemblyPreviewSummary>();
+  for (const row of rows) {
+    if (row.kind !== "element" || !row.assembly_id) {
+      continue;
+    }
+    const key = row.assembly_uuid || row.assembly_id;
+    const existing =
+      byAssembly.get(key) ??
+      {
+        key,
+        assembly_id: row.assembly_id,
+        assembly_name: row.assembly_name,
+        assembly_type: row.assembly_type,
+        assembly_trade: row.assembly_trade,
+        assembly_status: row.assembly_status,
+        assembly_task_id: row.assembly_task_id,
+        member_count: 0,
+        types: [],
+        storeys: [],
+        layers: []
+      };
+
+    existing.member_count += 1;
+    if (row.type && !existing.types.includes(row.type)) {
+      existing.types.push(row.type);
+    }
+    if (row.storey && !existing.storeys.includes(row.storey)) {
+      existing.storeys.push(row.storey);
+    }
+    if (row.layer && !existing.layers.includes(row.layer)) {
+      existing.layers.push(row.layer);
+    }
+    byAssembly.set(key, existing);
+  }
+
+  return Array.from(byAssembly.values()).sort((a, b) => a.assembly_id.localeCompare(b.assembly_id));
 }
 
 async function runCompanionAction(formData: FormData) {
@@ -111,6 +165,7 @@ type PageProps = {
 
 export default async function ArchicadIntegrationPage({ searchParams }: PageProps) {
   const params = (await searchParams) ?? {};
+  const portfolio = await getFeasibilityPortfolio();
   const statusMessage = typeof params.status === "string" ? params.status : null;
   const errorMessage = typeof params.error === "string" ? params.error : null;
   const companionOfflineFromAction = errorMessage === COMPANION_OFFLINE_QUERY;
@@ -129,6 +184,12 @@ export default async function ArchicadIntegrationPage({ searchParams }: PageProp
   const snapshotFilter = status?.bridge.snapshot_filter ?? defaultSnapshotFilter();
   const availableLayers = status?.bridge.available_layers ?? [];
   const snapshotPreview = status?.bridge.snapshot_preview ?? null;
+  const assemblyPreview = buildAssemblyPreview(snapshotPreview?.snapshot_rows ?? []);
+  const linkedOptions = portfolio.sites.flatMap((site) =>
+    site.scenarioOptions
+      .filter((option) => option.archicadLink)
+      .map((option) => ({ site, option }))
+  );
 
   return (
     <section className="panel">
@@ -349,6 +410,111 @@ export default async function ArchicadIntegrationPage({ searchParams }: PageProp
         ) : status?.bridge.reachable ? (
           <p className="muted">No preview rows yet. Apply the filter or connect the bridge.</p>
         ) : null}
+      </section>
+
+      <section className="panel panel-subtle">
+        <h3>BuildSync Assembly Preview</h3>
+        <p className="muted">
+          Read-only view of assemblies found in the current Archicad snapshot filter. This uses stamped `BS_*`
+          metadata and does not write back to Archicad.
+        </p>
+        {assemblyPreview.length > 0 ? (
+          <div className="snapshot-rows-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Assembly</th>
+                  <th>Type</th>
+                  <th>Trade</th>
+                  <th>Status</th>
+                  <th>Members</th>
+                  <th>Storeys</th>
+                  <th>Layers</th>
+                  <th>Task</th>
+                </tr>
+              </thead>
+              <tbody>
+                {assemblyPreview.map((assembly) => (
+                  <tr key={assembly.key}>
+                    <td>
+                      <strong>{assembly.assembly_id}</strong>
+                      {assembly.assembly_name ? <div className="muted">{assembly.assembly_name}</div> : null}
+                    </td>
+                    <td>{assembly.assembly_type ?? "—"}</td>
+                    <td>{assembly.assembly_trade ?? "—"}</td>
+                    <td>
+                      <span className={`assembly-status assembly-status--${assembly.assembly_status ?? "unknown"}`}>
+                        {assembly.assembly_status ?? "unknown"}
+                      </span>
+                    </td>
+                    <td>
+                      {assembly.member_count}
+                      {assembly.types.length > 0 ? <div className="muted">{assembly.types.join(", ")}</div> : null}
+                    </td>
+                    <td>{assembly.storeys.length > 0 ? assembly.storeys.join(", ") : "—"}</td>
+                    <td>{assembly.layers.length > 0 ? assembly.layers.join(", ") : "—"}</td>
+                    <td>{assembly.assembly_task_id ?? "Unlinked"}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <p className="muted">
+            No BuildSync assemblies found in the current snapshot. Create/stamp assemblies in Archicad or use the demo
+            snapshot fixture to preview this panel.
+          </p>
+        )}
+      </section>
+
+      <section className="panel panel-subtle">
+        <h3>Feasibility Scenario Links</h3>
+        <p className="muted">
+          Site scenario options can point at Archicad files and assembly task IDs, then continue into the linked
+          scenario editor and linear schedule.
+        </p>
+        {linkedOptions.length > 0 ? (
+          <table>
+            <thead>
+              <tr>
+                <th>Site Option</th>
+                <th>Archicad File</th>
+                <th>GUIDs</th>
+                <th>Assembly Tasks</th>
+                <th>Schedule Link</th>
+              </tr>
+            </thead>
+            <tbody>
+              {linkedOptions.map(({ site, option }) => (
+                <tr key={option.id}>
+                  <td>
+                    <Link href={`/sites/${site.id}`}>{option.name}</Link>
+                    <div className="muted">{site.name}</div>
+                  </td>
+                  <td>
+                    {option.archicadLink?.file_label}
+                    <div className="muted">{option.archicadLink?.model_scope ?? "Model scope not set"}</div>
+                  </td>
+                  <td>{option.archicadLink?.linked_guid_count ?? 0}</td>
+                  <td>
+                    {option.assemblyTaskIds.length > 0 ? option.assemblyTaskIds.join(", ") : "No task IDs linked"}
+                  </td>
+                  <td>
+                    {option.scenario_id ? (
+                      <Link href={`/linear-schedule?scenarioId=${option.scenario_id}`}>
+                        {option.scheduleSummary.activityCount} activities
+                      </Link>
+                    ) : (
+                      <span className="muted">No scenario schedule</span>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        ) : (
+          <p className="muted">No feasibility scenario options are linked to Archicad yet.</p>
+        )}
       </section>
 
       <section className="panel panel-subtle">

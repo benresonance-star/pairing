@@ -9,6 +9,7 @@ import {
   createScenarioOperationalChangeSet,
   deleteScenario,
   deleteScheduleActivity,
+  getFeasibilityPortfolio,
   getScenarioEditorData,
   updateScenario,
   updateScheduleActivity,
@@ -741,7 +742,11 @@ export default async function ScenarioEditorPage({ params, searchParams }: PageP
   const selectedActivityIdParam = typeof query.activityId === "string" ? query.activityId : null;
   const selectedOperationalIdParam = typeof query.operationalId === "string" ? query.operationalId : null;
 
-  const data = await getScenarioEditorData(scenarioId);
+  const [data, portfolio] = await Promise.all([getScenarioEditorData(scenarioId), getFeasibilityPortfolio()]);
+  const siteScenarioLink =
+    portfolio.sites
+      .flatMap((site) => site.scenarioOptions.map((option) => ({ site, option })))
+      .find((item) => item.option.scenario_id === scenarioId) ?? null;
   const selectedActivity =
     data.linearScheduleData.activities.find((activity) => activity.id === selectedActivityIdParam) ??
     data.linearScheduleData.activities[0] ??
@@ -792,6 +797,12 @@ export default async function ScenarioEditorPage({ params, searchParams }: PageP
               Parent: {data.scenario.parentScenarioId ?? "none"} | Operational rows: {data.scenario.operationalStateCount} |
               Change sets: {data.scenario.changeSetCount}
             </p>
+            {siteScenarioLink ? (
+              <p className="muted">
+                Site option: <Link href={`/sites/${siteScenarioLink.site.id}`}>{siteScenarioLink.option.name}</Link> on{" "}
+                {siteScenarioLink.site.name}
+              </p>
+            ) : null}
           </div>
           <span className="tag">{data.scenario.status}</span>
         </div>

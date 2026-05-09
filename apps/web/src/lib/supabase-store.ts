@@ -2,10 +2,13 @@ import { randomUUID } from "node:crypto";
 
 import { vocab } from "../../../../shared/contracts/api/index";
 import { projectIdFromEnv } from "./data-source";
+import { buildFeasibilityPortfolio, type FeasibilityPortfolio } from "./feasibility";
 import { buildLinearScheduleData, type LinearScheduleData, type LinearScheduleFilters } from "./linear-schedule";
 import {
   actionsForStatus,
+  archiveDevelopmentSite,
   assertValidPackageAssignment,
+  createDevelopmentSite,
   createGovernedOperationalChangeSet,
   findObjectRef,
   getScenarioById,
@@ -13,9 +16,11 @@ import {
   operationalFor,
   requireActiveScenario,
   transitionChangeSet as applyChangeSetTransition,
+  updateDevelopmentSite,
   type ChangeSetAction,
   type GovernedOperationalPatch,
-  type RuntimeState
+  type RuntimeState,
+  type SitePatch
 } from "./runtime-state";
 import { createServerSupabaseClient } from "./supabase-server";
 
@@ -56,9 +61,177 @@ export type ScenarioRow = {
   id: string;
   name: string;
   status: string;
+  scenarioKind: string;
   parentScenarioId: string | null;
+  templateScenarioId: string | null;
   operationalStateCount: number;
   changeSetCount: number;
+};
+
+export type CreateSiteScenarioOptionInput = {
+  siteId: string;
+  name: string;
+  configuration: string;
+  templateScenarioId?: string | null;
+  masterCostTemplateId?: string | null;
+  createDetailedScenario?: boolean;
+  dwellings?: number | null;
+  grossFloorAreaSqm?: number | null;
+  planningFit?: string | null;
+  summary?: string | null;
+  targetMarginPercent?: number | null;
+  grossRealisation?: number | null;
+};
+
+export type UpdateScenarioOptionInput = {
+  optionId: string;
+  name: string;
+  configuration: string;
+  status: string;
+  dwellings?: number | null;
+  grossFloorAreaSqm?: number | null;
+  planningFit?: string | null;
+  summary?: string | null;
+  targetMarginPercent?: number | null;
+};
+
+export type CreateSiteInput = Omit<SitePatch, "status"> & {
+  status?: string;
+};
+
+export type UpdateSiteInput = SitePatch & {
+  siteId: string;
+};
+
+export type CreateMasterCostTemplateInput = {
+  name: string;
+  description?: string | null;
+  status?: string;
+  templateType?: string | null;
+};
+
+export type UpdateMasterCostTemplateInput = CreateMasterCostTemplateInput & {
+  templateId: string;
+};
+
+export type CreateMasterCostItemInput = {
+  masterCostTemplateId: string;
+  masterCostItemId?: string | null;
+  masterCodeItemId?: string | null;
+  parentItemId?: string | null;
+  costCode: string;
+  title: string;
+  tradeCode?: string | null;
+  packageId?: string | null;
+  estimateGranularity: string;
+  costingMethod: string;
+  unit: string;
+  baseRate: number;
+  defaultQuantity?: number | null;
+  quantityBasis?: string | null;
+  lowFactor?: number | null;
+  midFactor?: number | null;
+  highFactor?: number | null;
+  contingencyPercent?: number | null;
+  notes?: string | null;
+  sortOrder?: number | null;
+};
+
+export type UpdateMasterCostItemInput = CreateMasterCostItemInput & {
+  itemId: string;
+};
+
+export type CreateMasterCostItemLinkInput = {
+  masterCostTemplateItemId: string;
+  targetType: string;
+  targetRef: string;
+  linkBasis?: string | null;
+  notes?: string | null;
+};
+
+export type UpdateMasterCostItemLinkInput = CreateMasterCostItemLinkInput & {
+  linkId: string;
+};
+
+export type CreateMasterDatabaseItemInput = {
+  masterCodeItemId?: string | null;
+  costCode: string;
+  title: string;
+  tradeCode?: string | null;
+  packageId?: string | null;
+  estimateGranularity: string;
+  costingMethod: string;
+  unit: string;
+  baseRate: number;
+  sourceLabel?: string | null;
+  sourceUrl?: string | null;
+  sourceNotes?: string | null;
+  notes?: string | null;
+  status?: string | null;
+};
+
+export type UpdateMasterDatabaseItemInput = CreateMasterDatabaseItemInput & {
+  itemId: string;
+};
+
+export type CreateMasterDatabaseItemSourceInput = {
+  masterCostItemId: string;
+  sourceType?: string | null;
+  sourceLabel: string;
+  sourceUrl?: string | null;
+  sourceDate?: string | null;
+  confidence?: string | null;
+  notes?: string | null;
+};
+
+export type UpdateMasterDatabaseItemSourceInput = CreateMasterDatabaseItemSourceInput & {
+  sourceId: string;
+};
+
+export type CreateMasterDatabaseTargetLinkInput = {
+  masterCostItemId: string;
+  targetType: string;
+  targetRef: string;
+  linkBasis?: string | null;
+  notes?: string | null;
+};
+
+export type UpdateMasterDatabaseTargetLinkInput = CreateMasterDatabaseTargetLinkInput & {
+  linkId: string;
+};
+
+export type AddMasterDatabaseItemToTemplateInput = {
+  masterCostItemId: string;
+  masterCostTemplateId: string;
+  parentItemId?: string | null;
+  defaultQuantity?: number | null;
+  quantityBasis?: string | null;
+  lowFactor?: number | null;
+  midFactor?: number | null;
+  highFactor?: number | null;
+  contingencyPercent?: number | null;
+  sortOrder?: number | null;
+  notes?: string | null;
+};
+
+export type CreateMasterCodeItemInput = {
+  catalogId: string;
+  parentItemId?: string | null;
+  code: string;
+  title: string;
+  codeType: string;
+  tradeCode?: string | null;
+  packageId?: string | null;
+  defaultUnit?: string | null;
+  defaultEstimateGranularity?: string | null;
+  defaultCostingMethod?: string | null;
+  notes?: string | null;
+  status?: string | null;
+  sortOrder?: number | null;
+};
+
+export type UpdateMasterCodeItemInput = CreateMasterCodeItemInput & {
+  itemId: string;
 };
 
 export type ScenarioEditorOperationalRow = {
@@ -94,6 +267,24 @@ const SCENARIO_STATUS_ORDER: Record<string, number> = {
   archived: 3
 };
 
+const OPTIONAL_FEASIBILITY_TABLES = new Set([
+  "sites",
+  "site_constraints",
+  "scenario_options",
+  "scenario_cost_ranges",
+  "sales_assumptions",
+  "archicad_links",
+  "master_cost_templates",
+  "master_code_catalogs",
+  "master_code_items",
+  "master_cost_items",
+  "master_cost_item_sources",
+  "master_cost_item_target_links",
+  "master_cost_template_items",
+  "master_cost_item_links",
+  "scenario_cost_plan_items"
+]);
+
 function toRuntimeRecordArray(data: unknown): RuntimeRecord[] {
   return Array.isArray(data)
     ? data.filter((item): item is RuntimeRecord => typeof item === "object" && item !== null)
@@ -106,7 +297,9 @@ function scenarioRowsForState(state: RuntimeState): ScenarioRow[] {
       id: String(scenario.id),
       name: String(scenario.name),
       status: String(scenario.status),
+      scenarioKind: String(scenario.scenario_kind ?? (scenario.status === "template" ? "template" : "legacy")),
       parentScenarioId: scenario.parent_scenario_id ? String(scenario.parent_scenario_id) : null,
+      templateScenarioId: scenario.template_scenario_id ? String(scenario.template_scenario_id) : null,
       operationalStateCount: state.operational_state.filter((item) => item.scenario_id === scenario.id).length,
       changeSetCount: state.change_sets.filter((item) => item.scenario_id === scenario.id).length
     }))
@@ -213,6 +406,27 @@ async function readProjectTable(table: string): Promise<RuntimeRecord[]> {
   const projectId = projectIdFromEnv();
   const { data, error } = await client.from(table).select("*").eq("project_id", projectId);
   if (error) {
+    if (
+      OPTIONAL_FEASIBILITY_TABLES.has(table) &&
+      (error.message.includes("Could not find the table") || error.message.includes("does not exist"))
+    ) {
+      return [];
+    }
+    throw new Error(`Unable to load '${table}' from Supabase: ${error.message}`);
+  }
+  return toRuntimeRecordArray(data);
+}
+
+async function readGlobalTable(table: string): Promise<RuntimeRecord[]> {
+  const client = createServerSupabaseClient();
+  const { data, error } = await client.from(table).select("*");
+  if (error) {
+    if (
+      OPTIONAL_FEASIBILITY_TABLES.has(table) &&
+      (error.message.includes("Could not find the table") || error.message.includes("does not exist"))
+    ) {
+      return [];
+    }
     throw new Error(`Unable to load '${table}' from Supabase: ${error.message}`);
   }
   return toRuntimeRecordArray(data);
@@ -245,6 +459,21 @@ async function readChangeSetChildren(changeSetIds: string[]) {
 async function readSupabaseState(): Promise<RuntimeState> {
   const [
     project,
+    sites,
+    site_constraints,
+    scenario_options,
+    scenario_cost_ranges,
+    sales_assumptions,
+    archicad_links,
+    master_code_catalogs,
+    master_code_items,
+    master_cost_templates,
+    master_cost_items,
+    master_cost_item_sources,
+    master_cost_item_target_links,
+    master_cost_template_items,
+    master_cost_item_links,
+    scenario_cost_plan_items,
     work_packages,
     scenarios,
     zones,
@@ -261,6 +490,21 @@ async function readSupabaseState(): Promise<RuntimeState> {
     linear_progress_points
   ] = await Promise.all([
     readProjectRow(),
+    readProjectTable("sites"),
+    readProjectTable("site_constraints"),
+    readProjectTable("scenario_options"),
+    readProjectTable("scenario_cost_ranges"),
+    readProjectTable("sales_assumptions"),
+    readProjectTable("archicad_links"),
+    readGlobalTable("master_code_catalogs"),
+    readGlobalTable("master_code_items"),
+    readProjectTable("master_cost_templates"),
+    readProjectTable("master_cost_items"),
+    readProjectTable("master_cost_item_sources"),
+    readProjectTable("master_cost_item_target_links"),
+    readProjectTable("master_cost_template_items"),
+    readProjectTable("master_cost_item_links"),
+    readProjectTable("scenario_cost_plan_items"),
     readProjectTable("work_packages"),
     readProjectTable("scenarios"),
     readProjectTable("zones"),
@@ -282,6 +526,21 @@ async function readSupabaseState(): Promise<RuntimeState> {
 
   return normalizeRuntimeState({
     project,
+    sites,
+    site_constraints,
+    scenario_options,
+    scenario_cost_ranges,
+    sales_assumptions,
+    archicad_links,
+    master_code_catalogs,
+    master_code_items,
+    master_cost_templates,
+    master_cost_items,
+    master_cost_item_sources,
+    master_cost_item_target_links,
+    master_cost_template_items,
+    master_cost_item_links,
+    scenario_cost_plan_items,
     work_packages,
     scenarios,
     zones,
@@ -315,6 +574,8 @@ export async function getDashboardSummary() {
   const state = await readSupabaseState();
   return {
     projectName: state.project.name,
+    siteCount: state.sites.length,
+    scenarioOptionCount: state.scenario_options.length,
     zoneCount: state.zones.length,
     modelObjectCount: state.model_objects.length,
     scenarioCount: state.scenarios.length,
@@ -342,11 +603,563 @@ export async function getScenarios(): Promise<ScenarioRow[]> {
       id: String(scenario.id),
       name: String(scenario.name),
       status: String(scenario.status),
+      scenarioKind: String(scenario.scenario_kind ?? (scenario.status === "template" ? "template" : "legacy")),
       parentScenarioId: scenario.parent_scenario_id ? String(scenario.parent_scenario_id) : null,
+      templateScenarioId: scenario.template_scenario_id ? String(scenario.template_scenario_id) : null,
       operationalStateCount: operational_state.filter((item) => item.scenario_id === scenario.id).length,
       changeSetCount: change_sets.filter((item) => item.scenario_id === scenario.id).length
     }))
   );
+}
+
+export async function getFeasibilityPortfolio(): Promise<FeasibilityPortfolio> {
+  const state = await readSupabaseState();
+  return buildFeasibilityPortfolio(state);
+}
+
+export async function createSite(input: CreateSiteInput): Promise<{ siteId: string }> {
+  const state = await readSupabaseState();
+  const siteId = randomUUID();
+  const site = createDevelopmentSite(state, {
+    ...input,
+    id: siteId
+  });
+  const client = createServerSupabaseClient();
+  const { error } = await client.from("sites").insert({
+    id: site.id,
+    project_id: site.project_id,
+    name: site.name,
+    address: site.address,
+    locality: site.locality,
+    status: site.status,
+    current_stage: site.current_stage,
+    acquisition_status: site.acquisition_status,
+    priority: site.priority,
+    site_area_sqm: site.site_area_sqm,
+    summary: site.summary
+  });
+  if (error) {
+    throw new Error(`Unable to create site: ${error.message}`);
+  }
+  return { siteId };
+}
+
+export async function updateSite(input: UpdateSiteInput): Promise<void> {
+  const state = await readSupabaseState();
+  const site = updateDevelopmentSite(state, input.siteId, input);
+  const client = createServerSupabaseClient();
+  const { error } = await client
+    .from("sites")
+    .update({
+      name: site.name,
+      address: site.address,
+      locality: site.locality,
+      status: site.status,
+      current_stage: site.current_stage,
+      acquisition_status: site.acquisition_status,
+      priority: site.priority,
+      site_area_sqm: site.site_area_sqm,
+      summary: site.summary
+    })
+    .eq("id", input.siteId);
+  if (error) {
+    throw new Error(`Unable to update site: ${error.message}`);
+  }
+}
+
+export async function archiveSite(siteId: string): Promise<void> {
+  const state = await readSupabaseState();
+  const site = archiveDevelopmentSite(state, siteId);
+  const client = createServerSupabaseClient();
+  const { error } = await client.from("sites").update({ status: site.status }).eq("id", siteId);
+  if (error) {
+    throw new Error(`Unable to archive site: ${error.message}`);
+  }
+}
+
+export async function createMasterCostTemplate(
+  input: CreateMasterCostTemplateInput
+): Promise<{ templateId: string }> {
+  const client = createServerSupabaseClient();
+  const templateId = randomUUID();
+  const { error } = await client.from("master_cost_templates").insert({
+    id: templateId,
+    project_id: projectIdFromEnv(),
+    name: input.name.trim(),
+    description: input.description ?? null,
+    status: input.status ?? "active",
+    template_type: input.templateType ?? null
+  });
+  if (error) {
+    throw new Error(`Unable to create master cost template: ${error.message}`);
+  }
+  return { templateId };
+}
+
+export async function updateMasterCostTemplate(input: UpdateMasterCostTemplateInput): Promise<void> {
+  const client = createServerSupabaseClient();
+  const { error } = await client
+    .from("master_cost_templates")
+    .update({
+      name: input.name.trim(),
+      description: input.description ?? null,
+      status: input.status ?? "active",
+      template_type: input.templateType ?? null
+    })
+    .eq("id", input.templateId)
+    .eq("project_id", projectIdFromEnv());
+  if (error) {
+    throw new Error(`Unable to update master cost template: ${error.message}`);
+  }
+}
+
+export async function archiveMasterCostTemplate(templateId: string): Promise<void> {
+  const client = createServerSupabaseClient();
+  const { error } = await client
+    .from("master_cost_templates")
+    .update({ status: "archived" })
+    .eq("id", templateId)
+    .eq("project_id", projectIdFromEnv());
+  if (error) {
+    throw new Error(`Unable to archive master cost template: ${error.message}`);
+  }
+}
+
+function masterDatabaseItemDbPayload(input: CreateMasterDatabaseItemInput, itemId: string) {
+  if (!input.costCode.trim()) throw new Error("Cost code is required");
+  if (!input.title.trim()) throw new Error("Cost item title is required");
+  if (!input.unit.trim()) throw new Error("Unit is required");
+  if (!Number.isFinite(input.baseRate)) throw new Error("Base rate must be numeric");
+  return {
+    id: itemId,
+    project_id: projectIdFromEnv(),
+    master_code_item_id: input.masterCodeItemId ?? null,
+    cost_code: input.costCode.trim(),
+    title: input.title.trim(),
+    trade_code: input.tradeCode ?? null,
+    package_id: input.packageId ?? null,
+    estimate_granularity: input.estimateGranularity,
+    costing_method: input.costingMethod,
+    unit: input.unit.trim(),
+    base_rate: input.baseRate,
+    source_label: input.sourceLabel ?? null,
+    source_url: input.sourceUrl ?? null,
+    source_notes: input.sourceNotes ?? null,
+    notes: input.notes ?? null,
+    status: input.status ?? "active"
+  };
+}
+
+function masterCodeItemDbPayload(input: CreateMasterCodeItemInput, itemId: string) {
+  if (!input.catalogId.trim()) throw new Error("Catalog is required");
+  if (!input.code.trim()) throw new Error("Code is required");
+  if (!input.title.trim()) throw new Error("Title is required");
+  if (!input.codeType.trim()) throw new Error("Code type is required");
+  return {
+    id: itemId,
+    catalog_id: input.catalogId,
+    parent_item_id: input.parentItemId ?? null,
+    code: input.code.trim(),
+    title: input.title.trim(),
+    code_type: input.codeType.trim(),
+    trade_code: input.tradeCode ?? null,
+    package_id: input.packageId ?? null,
+    default_unit: input.defaultUnit ?? null,
+    default_estimate_granularity: input.defaultEstimateGranularity ?? null,
+    default_costing_method: input.defaultCostingMethod ?? null,
+    notes: input.notes ?? null,
+    status: input.status ?? "active",
+    sort_order: input.sortOrder ?? null
+  };
+}
+
+export async function createMasterCodeItem(input: CreateMasterCodeItemInput): Promise<{ itemId: string }> {
+  const client = createServerSupabaseClient();
+  const itemId = randomUUID();
+  const { error } = await client.from("master_code_items").insert(masterCodeItemDbPayload(input, itemId));
+  if (error) {
+    throw new Error(`Unable to create master code item: ${error.message}`);
+  }
+  return { itemId };
+}
+
+export async function updateMasterCodeItem(input: UpdateMasterCodeItemInput): Promise<void> {
+  const client = createServerSupabaseClient();
+  const { id, ...payload } = masterCodeItemDbPayload(input, input.itemId);
+  void id;
+  const { error } = await client.from("master_code_items").update(payload).eq("id", input.itemId);
+  if (error) {
+    throw new Error(`Unable to update master code item: ${error.message}`);
+  }
+}
+
+export async function archiveMasterCodeItem(itemId: string): Promise<void> {
+  const client = createServerSupabaseClient();
+  const { error } = await client.from("master_code_items").update({ status: "archived" }).eq("id", itemId);
+  if (error) {
+    throw new Error(`Unable to archive master code item: ${error.message}`);
+  }
+}
+
+export async function deleteMasterCodeItem(itemId: string): Promise<void> {
+  const client = createServerSupabaseClient();
+  const [masterItemsResult, templateItemsResult] = await Promise.all([
+    client.from("master_cost_items").select("id", { count: "exact", head: true }).eq("master_code_item_id", itemId),
+    client.from("master_cost_template_items").select("id", { count: "exact", head: true }).eq("master_code_item_id", itemId)
+  ]);
+  if (masterItemsResult.error) {
+    throw new Error(`Unable to check master code item usage: ${masterItemsResult.error.message}`);
+  }
+  if (templateItemsResult.error) {
+    throw new Error(`Unable to check master code item template usage: ${templateItemsResult.error.message}`);
+  }
+  const usageCount = (masterItemsResult.count ?? 0) + (templateItemsResult.count ?? 0);
+  if (usageCount > 0) {
+    throw new Error("Master code items used by project costs must be archived instead of deleted");
+  }
+  const { error } = await client.from("master_code_items").delete().eq("id", itemId);
+  if (error) {
+    throw new Error(`Unable to delete master code item: ${error.message}`);
+  }
+}
+
+export async function createMasterDatabaseItem(
+  input: CreateMasterDatabaseItemInput
+): Promise<{ itemId: string }> {
+  const client = createServerSupabaseClient();
+  const itemId = randomUUID();
+  const payload = masterDatabaseItemDbPayload(input, itemId);
+  const { error } = await client.from("master_cost_items").insert(payload);
+  if (error) {
+    throw new Error(`Unable to create master database item: ${error.message}`);
+  }
+  if (input.sourceLabel) {
+    const { error: sourceError } = await client.from("master_cost_item_sources").insert({
+      id: randomUUID(),
+      project_id: projectIdFromEnv(),
+      master_cost_item_id: itemId,
+      source_type: "benchmark",
+      source_label: input.sourceLabel,
+      source_url: input.sourceUrl ?? null,
+      confidence: "normal",
+      notes: input.sourceNotes ?? null
+    });
+    if (sourceError) {
+      throw new Error(`Unable to create master item source: ${sourceError.message}`);
+    }
+  }
+  return { itemId };
+}
+
+export async function updateMasterDatabaseItem(input: UpdateMasterDatabaseItemInput): Promise<void> {
+  const client = createServerSupabaseClient();
+  const { id, project_id, ...payload } = masterDatabaseItemDbPayload(input, input.itemId);
+  void id;
+  void project_id;
+  const { error } = await client
+    .from("master_cost_items")
+    .update(payload)
+    .eq("id", input.itemId)
+    .eq("project_id", projectIdFromEnv());
+  if (error) {
+    throw new Error(`Unable to update master database item: ${error.message}`);
+  }
+}
+
+export async function archiveMasterDatabaseItem(itemId: string): Promise<void> {
+  const client = createServerSupabaseClient();
+  const { error } = await client
+    .from("master_cost_items")
+    .update({ status: "archived" })
+    .eq("id", itemId)
+    .eq("project_id", projectIdFromEnv());
+  if (error) {
+    throw new Error(`Unable to archive master database item: ${error.message}`);
+  }
+}
+
+export async function deleteMasterDatabaseItem(itemId: string): Promise<void> {
+  const state = await readSupabaseState();
+  const item = state.master_cost_items.find((candidate) => candidate.id === itemId);
+  if (!item) {
+    throw new Error(`Master database item '${itemId}' was not found`);
+  }
+  const usageCount = state.master_cost_template_items.filter((templateItem) => templateItem.master_cost_item_id === itemId).length;
+  if (usageCount > 0) {
+    throw new Error("Master database items used by templates must be archived instead of deleted");
+  }
+  if ((item.status ?? "active") !== "draft") {
+    throw new Error("Only unused draft master database items can be deleted");
+  }
+  const client = createServerSupabaseClient();
+  const { error } = await client
+    .from("master_cost_items")
+    .delete()
+    .eq("id", itemId)
+    .eq("project_id", projectIdFromEnv());
+  if (error) {
+    throw new Error(`Unable to delete master database item: ${error.message}`);
+  }
+}
+
+export async function createMasterDatabaseItemSource(
+  input: CreateMasterDatabaseItemSourceInput
+): Promise<{ sourceId: string }> {
+  const client = createServerSupabaseClient();
+  const sourceId = randomUUID();
+  const { error } = await client.from("master_cost_item_sources").insert({
+    id: sourceId,
+    project_id: projectIdFromEnv(),
+    master_cost_item_id: input.masterCostItemId,
+    source_type: input.sourceType ?? "benchmark",
+    source_label: input.sourceLabel.trim(),
+    source_url: input.sourceUrl ?? null,
+    source_date: input.sourceDate ?? null,
+    confidence: input.confidence ?? null,
+    notes: input.notes ?? null
+  });
+  if (error) {
+    throw new Error(`Unable to create master item source: ${error.message}`);
+  }
+  return { sourceId };
+}
+
+export async function updateMasterDatabaseItemSource(input: UpdateMasterDatabaseItemSourceInput): Promise<void> {
+  const client = createServerSupabaseClient();
+  const { error } = await client
+    .from("master_cost_item_sources")
+    .update({
+      master_cost_item_id: input.masterCostItemId,
+      source_type: input.sourceType ?? "benchmark",
+      source_label: input.sourceLabel.trim(),
+      source_url: input.sourceUrl ?? null,
+      source_date: input.sourceDate ?? null,
+      confidence: input.confidence ?? null,
+      notes: input.notes ?? null
+    })
+    .eq("id", input.sourceId)
+    .eq("project_id", projectIdFromEnv());
+  if (error) {
+    throw new Error(`Unable to update master item source: ${error.message}`);
+  }
+}
+
+export async function deleteMasterDatabaseItemSource(sourceId: string): Promise<void> {
+  const client = createServerSupabaseClient();
+  const { error } = await client
+    .from("master_cost_item_sources")
+    .delete()
+    .eq("id", sourceId)
+    .eq("project_id", projectIdFromEnv());
+  if (error) {
+    throw new Error(`Unable to delete master item source: ${error.message}`);
+  }
+}
+
+export async function createMasterDatabaseTargetLink(
+  input: CreateMasterDatabaseTargetLinkInput
+): Promise<{ linkId: string }> {
+  const client = createServerSupabaseClient();
+  const linkId = randomUUID();
+  const { error } = await client.from("master_cost_item_target_links").insert({
+    id: linkId,
+    project_id: projectIdFromEnv(),
+    master_cost_item_id: input.masterCostItemId,
+    target_type: input.targetType.trim(),
+    target_ref: input.targetRef.trim(),
+    link_basis: input.linkBasis ?? null,
+    notes: input.notes ?? null
+  });
+  if (error) {
+    throw new Error(`Unable to create master item target link: ${error.message}`);
+  }
+  return { linkId };
+}
+
+export async function updateMasterDatabaseTargetLink(input: UpdateMasterDatabaseTargetLinkInput): Promise<void> {
+  const client = createServerSupabaseClient();
+  const { error } = await client
+    .from("master_cost_item_target_links")
+    .update({
+      master_cost_item_id: input.masterCostItemId,
+      target_type: input.targetType.trim(),
+      target_ref: input.targetRef.trim(),
+      link_basis: input.linkBasis ?? null,
+      notes: input.notes ?? null
+    })
+    .eq("id", input.linkId)
+    .eq("project_id", projectIdFromEnv());
+  if (error) {
+    throw new Error(`Unable to update master item target link: ${error.message}`);
+  }
+}
+
+export async function deleteMasterDatabaseTargetLink(linkId: string): Promise<void> {
+  const client = createServerSupabaseClient();
+  const { error } = await client
+    .from("master_cost_item_target_links")
+    .delete()
+    .eq("id", linkId)
+    .eq("project_id", projectIdFromEnv());
+  if (error) {
+    throw new Error(`Unable to delete master item target link: ${error.message}`);
+  }
+}
+
+export async function addMasterDatabaseItemToTemplate(
+  input: AddMasterDatabaseItemToTemplateInput
+): Promise<{ itemId: string }> {
+  const state = await readSupabaseState();
+  const sourceItem = state.master_cost_items.find((item) => item.id === input.masterCostItemId);
+  if (!sourceItem) {
+    throw new Error(`Master database item '${input.masterCostItemId}' was not found`);
+  }
+  const itemId = randomUUID();
+  const client = createServerSupabaseClient();
+  const { error } = await client.from("master_cost_template_items").insert({
+    id: itemId,
+    project_id: projectIdFromEnv(),
+    master_cost_template_id: input.masterCostTemplateId,
+    master_cost_item_id: sourceItem.id,
+    master_code_item_id: sourceItem.master_code_item_id ?? null,
+    parent_item_id: input.parentItemId ?? null,
+    cost_code: sourceItem.cost_code,
+    title: sourceItem.title,
+    trade_code: sourceItem.trade_code ?? null,
+    package_id: sourceItem.package_id ?? null,
+    estimate_granularity: sourceItem.estimate_granularity,
+    costing_method: sourceItem.costing_method,
+    unit: sourceItem.unit,
+    base_rate: sourceItem.base_rate,
+    default_quantity: input.defaultQuantity ?? 1,
+    quantity_basis: input.quantityBasis ?? null,
+    low_factor: input.lowFactor ?? null,
+    mid_factor: input.midFactor ?? null,
+    high_factor: input.highFactor ?? null,
+    contingency_percent: input.contingencyPercent ?? null,
+    notes: input.notes ?? sourceItem.notes ?? null,
+    sort_order: input.sortOrder ?? null
+  });
+  if (error) {
+    throw new Error(`Unable to add master database item to template: ${error.message}`);
+  }
+  return { itemId };
+}
+
+function masterCostItemDbPayload(input: CreateMasterCostItemInput, itemId: string) {
+  if (!input.costCode.trim()) throw new Error("Cost code is required");
+  if (!input.title.trim()) throw new Error("Cost item title is required");
+  if (!input.unit.trim()) throw new Error("Unit is required");
+  if (!Number.isFinite(input.baseRate)) throw new Error("Base rate must be numeric");
+  return {
+    id: itemId,
+    project_id: projectIdFromEnv(),
+    master_cost_template_id: input.masterCostTemplateId,
+    master_cost_item_id: input.masterCostItemId ?? null,
+    master_code_item_id: input.masterCodeItemId ?? null,
+    parent_item_id: input.parentItemId ?? null,
+    cost_code: input.costCode.trim(),
+    title: input.title.trim(),
+    trade_code: input.tradeCode ?? null,
+    package_id: input.packageId ?? null,
+    estimate_granularity: input.estimateGranularity,
+    costing_method: input.costingMethod,
+    unit: input.unit.trim(),
+    base_rate: input.baseRate,
+    default_quantity: input.defaultQuantity ?? null,
+    quantity_basis: input.quantityBasis ?? null,
+    low_factor: input.lowFactor ?? null,
+    mid_factor: input.midFactor ?? null,
+    high_factor: input.highFactor ?? null,
+    contingency_percent: input.contingencyPercent ?? null,
+    notes: input.notes ?? null,
+    sort_order: input.sortOrder ?? null
+  };
+}
+
+export async function createMasterCostItem(input: CreateMasterCostItemInput): Promise<{ itemId: string }> {
+  const client = createServerSupabaseClient();
+  const itemId = randomUUID();
+  const { error } = await client.from("master_cost_template_items").insert(masterCostItemDbPayload(input, itemId));
+  if (error) {
+    throw new Error(`Unable to create master cost item: ${error.message}`);
+  }
+  return { itemId };
+}
+
+export async function updateMasterCostItem(input: UpdateMasterCostItemInput): Promise<void> {
+  const client = createServerSupabaseClient();
+  const { id, project_id, ...payload } = masterCostItemDbPayload(input, input.itemId);
+  void id;
+  void project_id;
+  const { error } = await client
+    .from("master_cost_template_items")
+    .update(payload)
+    .eq("id", input.itemId)
+    .eq("project_id", projectIdFromEnv());
+  if (error) {
+    throw new Error(`Unable to update master cost item: ${error.message}`);
+  }
+}
+
+export async function deleteMasterCostItem(itemId: string): Promise<void> {
+  const client = createServerSupabaseClient();
+  const { error } = await client
+    .from("master_cost_template_items")
+    .delete()
+    .eq("id", itemId)
+    .eq("project_id", projectIdFromEnv());
+  if (error) {
+    throw new Error(`Unable to delete master cost item: ${error.message}`);
+  }
+}
+
+export async function createMasterCostItemLink(input: CreateMasterCostItemLinkInput): Promise<{ linkId: string }> {
+  const client = createServerSupabaseClient();
+  const linkId = randomUUID();
+  const { error } = await client.from("master_cost_item_links").insert({
+    id: linkId,
+    project_id: projectIdFromEnv(),
+    master_cost_template_item_id: input.masterCostTemplateItemId,
+    target_type: input.targetType.trim(),
+    target_ref: input.targetRef.trim(),
+    link_basis: input.linkBasis ?? null,
+    notes: input.notes ?? null
+  });
+  if (error) {
+    throw new Error(`Unable to create master cost item link: ${error.message}`);
+  }
+  return { linkId };
+}
+
+export async function updateMasterCostItemLink(input: UpdateMasterCostItemLinkInput): Promise<void> {
+  const client = createServerSupabaseClient();
+  const { error } = await client
+    .from("master_cost_item_links")
+    .update({
+      master_cost_template_item_id: input.masterCostTemplateItemId,
+      target_type: input.targetType.trim(),
+      target_ref: input.targetRef.trim(),
+      link_basis: input.linkBasis ?? null,
+      notes: input.notes ?? null
+    })
+    .eq("id", input.linkId)
+    .eq("project_id", projectIdFromEnv());
+  if (error) {
+    throw new Error(`Unable to update master cost item link: ${error.message}`);
+  }
+}
+
+export async function deleteMasterCostItemLink(linkId: string): Promise<void> {
+  const client = createServerSupabaseClient();
+  const { error } = await client
+    .from("master_cost_item_links")
+    .delete()
+    .eq("id", linkId)
+    .eq("project_id", projectIdFromEnv());
+  if (error) {
+    throw new Error(`Unable to delete master cost item link: ${error.message}`);
+  }
 }
 
 export async function createScenario(input: {
@@ -386,6 +1199,7 @@ export async function createScenario(input: {
       project_id: project.id,
       name,
       status: "baseline",
+      scenario_kind: "legacy",
       created_by: "web.user@example.com"
     });
     if (error) {
@@ -461,6 +1275,222 @@ export async function createScenario(input: {
   }
 
   return { scenarioId: String(clonedScenarioId) };
+}
+
+export async function createScenarioTemplate(input: {
+  name: string;
+  sourceScenarioId?: string | null;
+}): Promise<{ scenarioId: string }> {
+  const state = await readSupabaseState();
+  const sourceScenarioId =
+    input.sourceScenarioId ??
+    state.scenarios.find((scenario) => scenario.scenario_kind === "template" || scenario.status === "template")?.id ??
+    state.scenarios.find((scenario) => scenario.status === "baseline")?.id;
+  if (!sourceScenarioId) {
+    throw new Error("Create a baseline scenario before creating templates");
+  }
+  const result = await createScenario({ name: input.name, sourceScenarioId });
+  const client = createServerSupabaseClient();
+  const { error } = await client
+    .from("scenarios")
+    .update({ status: "template", scenario_kind: "template", template_scenario_id: null })
+    .eq("id", result.scenarioId);
+  if (error) {
+    throw new Error(`Unable to mark scenario as template: ${error.message}`);
+  }
+  return result;
+}
+
+export async function createSiteScenarioOption(
+  input: CreateSiteScenarioOptionInput
+): Promise<{ optionId: string; scenarioId: string | null }> {
+  const state = await readSupabaseState();
+  const site = state.sites.find((item) => item.id === input.siteId);
+  if (!site) {
+    throw new Error(`Site '${input.siteId}' was not found`);
+  }
+  const sourceScenarioId =
+    input.templateScenarioId ??
+    state.scenarios.find((scenario) => scenario.scenario_kind === "template" || scenario.status === "template")?.id ??
+    state.scenarios.find((scenario) => scenario.status === "baseline")?.id;
+  if (!sourceScenarioId) {
+    throw new Error("Create a baseline or template scenario before creating site options");
+  }
+
+  let scenarioId: string | null = null;
+  if (input.createDetailedScenario !== false) {
+    const result = await createScenario({ name: `${site.name} - ${input.name}`, sourceScenarioId });
+    scenarioId = result.scenarioId;
+    const client = createServerSupabaseClient();
+    const { error } = await client
+      .from("scenarios")
+      .update({ status: "active", scenario_kind: "site_active", template_scenario_id: sourceScenarioId })
+      .eq("id", scenarioId);
+    if (error) {
+      throw new Error(`Unable to mark scenario as site active: ${error.message}`);
+    }
+  }
+
+  const client = createServerSupabaseClient();
+  const optionId = randomUUID();
+  const projectId = projectIdFromEnv();
+  const { error: optionError } = await client.from("scenario_options").insert({
+    id: optionId,
+    project_id: projectId,
+    site_id: input.siteId,
+    scenario_id: scenarioId,
+    scenario_template_id: sourceScenarioId,
+    master_cost_template_id: input.masterCostTemplateId ?? null,
+    name: input.name,
+    configuration: input.configuration,
+    dwellings: input.dwellings ?? null,
+    gross_floor_area_sqm: input.grossFloorAreaSqm ?? null,
+    planning_fit: input.planningFit ?? null,
+    status: "testing",
+    summary: input.summary ?? null,
+    target_margin_percent: input.targetMarginPercent ?? null
+  });
+  if (optionError) {
+    throw new Error(`Unable to create scenario option: ${optionError.message}`);
+  }
+
+  const { error: salesError } = await client.from("sales_assumptions").insert({
+    id: randomUUID(),
+    project_id: projectId,
+    scenario_option_id: optionId,
+    gross_realisation: input.grossRealisation ?? 0,
+    average_sale_price: input.dwellings && input.grossRealisation ? Math.round(input.grossRealisation / input.dwellings) : null,
+    notes: "Created from site scenario option form"
+  });
+  if (salesError) {
+    throw new Error(`Unable to create sales assumptions: ${salesError.message}`);
+  }
+
+  if (input.masterCostTemplateId) {
+    const template = state.master_cost_templates.find((item) => item.id === input.masterCostTemplateId);
+    const templateItems = state.master_cost_template_items.filter(
+      (item) => item.master_cost_template_id === input.masterCostTemplateId
+    );
+    const itemIdMap = new Map<string, string>();
+    const planItems = templateItems.map((item) => {
+      const id = randomUUID();
+      itemIdMap.set(String(item.id), id);
+      return {
+        id,
+        project_id: projectId,
+        scenario_option_id: optionId,
+        master_cost_template_item_id: item.id,
+        parent_item_id: item.parent_item_id ? itemIdMap.get(String(item.parent_item_id)) ?? null : null,
+        cost_code: item.cost_code,
+        title: item.title,
+        estimate_granularity: item.estimate_granularity,
+        costing_method: item.costing_method,
+        unit: item.unit,
+        quantity: item.default_quantity ?? 1,
+        rate: item.base_rate,
+        range_key: "mid",
+        confidence: item.estimate_granularity === "allowance" ? "early" : "normal",
+        inclusion_status: "included",
+        notes: item.notes ?? null
+      };
+    });
+    const subtotal = templateItems.reduce(
+      (total, item) => total + (Number(item.default_quantity ?? 1) * Number(item.base_rate ?? 0)),
+      0
+    );
+    const ranges = [
+      ["low", 0.92],
+      ["mid", 1],
+      ["high", 1.12]
+    ].map(([rangeKey, factor]) => ({
+      id: randomUUID(),
+      project_id: projectId,
+      scenario_option_id: optionId,
+      range_key: rangeKey,
+      label: `${String(rangeKey)[0].toUpperCase()}${String(rangeKey).slice(1)}`,
+      construction_cost: Math.round(subtotal * Number(factor)),
+      professional_fees: Math.round(subtotal * Number(factor) * 0.08),
+      contingency: Math.round(subtotal * Number(factor) * (rangeKey === "high" ? 0.12 : rangeKey === "low" ? 0.04 : 0.08)),
+      statutory_fees: Math.round(subtotal * Number(factor) * 0.035),
+      finance_cost: Math.round(subtotal * Number(factor) * 0.07),
+      other_costs: Math.round(subtotal * Number(factor) * 0.025),
+      notes: template ? `Instantiated from ${template.name} master cost template` : "Instantiated from master cost template"
+    }));
+    const [planResult, rangeResult] = await Promise.all([
+      planItems.length > 0 ? client.from("scenario_cost_plan_items").insert(planItems) : Promise.resolve({ error: null }),
+      ranges.length > 0 ? client.from("scenario_cost_ranges").insert(ranges) : Promise.resolve({ error: null })
+    ]);
+    if (planResult.error) {
+      throw new Error(`Unable to instantiate scenario cost plan items: ${planResult.error.message}`);
+    }
+    if (rangeResult.error) {
+      throw new Error(`Unable to instantiate scenario cost ranges: ${rangeResult.error.message}`);
+    }
+  }
+
+  return { optionId, scenarioId };
+}
+
+export async function updateScenarioOption(input: UpdateScenarioOptionInput): Promise<void> {
+  const client = createServerSupabaseClient();
+  const { error } = await client
+    .from("scenario_options")
+    .update({
+      name: input.name,
+      configuration: input.configuration,
+      status: input.status,
+      dwellings: input.dwellings ?? null,
+      gross_floor_area_sqm: input.grossFloorAreaSqm ?? null,
+      planning_fit: input.planningFit ?? null,
+      summary: input.summary ?? null,
+      target_margin_percent: input.targetMarginPercent ?? null
+    })
+    .eq("id", input.optionId);
+  if (error) {
+    throw new Error(`Unable to update scenario option: ${error.message}`);
+  }
+}
+
+export async function archiveScenarioOption(optionId: string): Promise<void> {
+  const state = await readSupabaseState();
+  const option = state.scenario_options.find((item) => item.id === optionId);
+  if (!option) {
+    throw new Error(`Scenario option '${optionId}' was not found`);
+  }
+  const client = createServerSupabaseClient();
+  const updates = [client.from("scenario_options").update({ status: "archived" }).eq("id", optionId)];
+  if (option.scenario_id) {
+    updates.push(
+      client
+        .from("scenarios")
+        .update({ status: "archived", scenario_kind: "site_archived" })
+        .eq("id", option.scenario_id)
+    );
+  }
+  const results = await Promise.all(updates);
+  const error = results.find((result) => result.error)?.error;
+  if (error) {
+    throw new Error(`Unable to archive scenario option: ${error.message}`);
+  }
+}
+
+export async function deleteScenarioOption(optionId: string): Promise<void> {
+  const state = await readSupabaseState();
+  const option = state.scenario_options.find((item) => item.id === optionId);
+  if (!option) {
+    throw new Error(`Scenario option '${optionId}' was not found`);
+  }
+  if (option.scenario_id && state.change_sets.some((item) => String(item.scenario_id ?? "") === option.scenario_id)) {
+    throw new Error("Scenario options with change sets must be archived instead of deleted");
+  }
+  const client = createServerSupabaseClient();
+  const { error } = await client.from("scenario_options").delete().eq("id", optionId);
+  if (error) {
+    throw new Error(`Unable to delete scenario option: ${error.message}`);
+  }
+  if (option.scenario_id) {
+    await deleteScenario(option.scenario_id);
+  }
 }
 
 export async function getScenarioEditorData(scenarioId: string): Promise<ScenarioEditorData> {

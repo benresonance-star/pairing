@@ -47,6 +47,7 @@ npm run supabase:bootstrap
 This script:
 
 - applies all SQL files in `database/migrations/`
+- seeds the global master code catalog used by Base Costs dropdowns
 - removes the current `PROJECT_ID` from the database if it already exists
 - reseeds the project using `shared/examples/demo_state.seed.json`
 
@@ -64,6 +65,7 @@ Expected checks:
 - `/objects` loads objects and packages from Supabase
 - `/change-sets` loads change sets from Supabase
 - `/linear-schedule` loads the townhouse schedule from Supabase
+- `/base-costs` loads the global code catalog, project master costs, and template links from Supabase
 
 ## Connector
 
@@ -103,8 +105,31 @@ To reuse an already bootstrapped project without reseeding:
 npm run supabase:smoke:governed -- --skip-bootstrap
 ```
 
+## Global cost catalog smoke check
+
+After changing the global code catalog, Base Costs, Supabase migrations, or seed bootstrap, run:
+
+```powershell
+npm run supabase:smoke:catalog
+```
+
+This script loads `/.env`, applies the Supabase bootstrap unless `-- --skip-bootstrap` is passed, then validates the global catalog path end to end:
+
+- loads `master_code_catalogs` and `master_code_items`
+- creates and updates a temporary global code item
+- creates a temporary project master cost item linked to that code
+- verifies project cost snapshots keep their own title/rate data when the global code changes
+- verifies used code items cannot be hard-deleted
+- removes the temporary rows
+
+To reuse an already bootstrapped project without reseeding:
+
+```powershell
+npm run supabase:smoke:catalog -- --skip-bootstrap
+```
+
 ## Notes
 
 - Demo mode still works with `CCP_DATA_SOURCE=demo`.
 - The web app uses server-side Supabase access and never exposes the service role key to the browser.
-- All live queries must stay project-scoped through `PROJECT_ID`.
+- Project data queries must stay project-scoped through `PROJECT_ID`; the global master code catalog is intentionally shared across projects.

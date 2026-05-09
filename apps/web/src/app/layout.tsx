@@ -3,8 +3,8 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 
 export const metadata = {
-  title: "Archicad CCP MVP",
-  description: "First-slice control plane for Archicad package assignment workflow."
+  title: "Construction Feasibility Control Plane",
+  description: "Site, scenario, cost, schedule, and Archicad feasibility workflow."
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {
@@ -12,17 +12,20 @@ export default function RootLayout({ children }: { children: ReactNode }) {
     <html lang="en">
       <body>
         <main>
-          <h1>Archicad Construction Control Plane MVP</h1>
+          <h1>Construction Feasibility Control Plane</h1>
           <p className="muted">
-            First vertical slice: inbound sync for zones and selected elements, package assignment
-            change sets, approvals, and recorded Archicad write-back payloads.
+            Selected sites, scenario options, feasibility bands, linked construction schedules,
+            and Archicad model data in one planning workflow.
           </p>
           <nav>
             <Link href="/">Overview</Link>
+            <Link href="/sites">Sites</Link>
             <Link href="/scenarios">Scenarios</Link>
+            <Link href="/feasibility">Feasibility</Link>
+            <Link href="/base-costs">Base Costs</Link>
+            <Link href="/linear-schedule">Linear Schedule</Link>
             <Link href="/objects">Objects</Link>
             <Link href="/change-sets">Change Sets</Link>
-            <Link href="/linear-schedule">Linear Schedule</Link>
             <Link href="/integrations/archicad">Integrations</Link>
           </nav>
           {children}

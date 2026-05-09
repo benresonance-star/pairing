@@ -76,8 +76,13 @@ def test_status_derives_layers_and_rows_from_legacy_snapshot(
             "layer": "A-Wall",
             "storey": "Ground",
             "ifc_type": None,
+            "assembly_uuid": None,
             "assembly_id": None,
             "assembly_name": None,
+            "assembly_type": None,
+            "assembly_trade": None,
+            "assembly_status": None,
+            "assembly_task_id": None,
             "area": None,
         },
     ]

@@ -47,7 +47,15 @@ def test_build_snapshot_rows_order() -> None:
                 "name": "W",
                 "layer": "B",
                 "quantities": {"area": 3.04},
-                "buildsync_assembly": {"assembly_id": "JN-014", "name": "Kitchen Island"},
+                "buildsync_assembly": {
+                    "assembly_uuid": "uuid-jn-014",
+                    "assembly_id": "JN-014",
+                    "name": "Kitchen Island",
+                    "type": "Joinery",
+                    "trade": "Joinery",
+                    "status": "active",
+                    "task_id": "TASK-240",
+                },
             }
         ],
     }
@@ -57,5 +65,10 @@ def test_build_snapshot_rows_order() -> None:
     assert rows[0]["area"] == 42.5
     assert rows[1]["kind"] == "element"
     assert rows[1]["area"] == 3.0
+    assert rows[1]["assembly_uuid"] == "uuid-jn-014"
     assert rows[1]["assembly_id"] == "JN-014"
     assert rows[1]["assembly_name"] == "Kitchen Island"
+    assert rows[1]["assembly_type"] == "Joinery"
+    assert rows[1]["assembly_trade"] == "Joinery"
+    assert rows[1]["assembly_status"] == "active"
+    assert rows[1]["assembly_task_id"] == "TASK-240"
