@@ -190,39 +190,62 @@ export default async function ArchicadIntegrationPage({ searchParams }: PageProp
         <form action={submitSnapshotFilterAction} className="filter-form">
           <div className="form-grid snapshot-filter-grid">
             <label className="filter-field">
-              <span>Layers (multi-select)</span>
-              <select name="layers" multiple size={8} defaultValue={snapshotFilter.layers}>
+              <span>Layers</span>
+              <span className="muted filter-field-hint">Check one or more layers to restrict the snapshot; leave all unchecked for every layer.</span>
+              <div className="layer-checkbox-list" role="group" aria-label="Layers">
                 {availableLayers.length === 0 ? (
-                  <option value="" disabled>
+                  <p className="muted layer-checkbox-empty">
                     {status?.bridge.reachable
                       ? "No layer names yet — refresh the page; if this persists, restart the desktop companion and bridge."
                       : "Connect to bridge to load layers"}
-                  </option>
+                  </p>
                 ) : (
                   availableLayers.map((layer) => (
-                    <option key={layer} value={layer}>
-                      {layer}
-                    </option>
+                    <label key={layer} className="layer-checkbox-row">
+                      <input
+                        type="checkbox"
+                        name="layers"
+                        value={layer}
+                        defaultChecked={snapshotFilter.layers.includes(layer)}
+                      />
+                      <span>{layer}</span>
+                    </label>
                   ))
                 )}
-              </select>
-            </label>
-            <fieldset>
-              <legend>Element types</legend>
-              <div className="checkbox-grid">
-                {SNAPSHOT_ELEMENT_TYPES.map((t) => (
-                  <label key={t} className="inline-check">
-                    <input
-                      type="checkbox"
-                      name="element_types"
-                      value={t}
-                      defaultChecked={snapshotFilter.element_types.includes(t)}
-                    />{" "}
-                    {t}
-                  </label>
-                ))}
               </div>
-            </fieldset>
+            </label>
+            <div className="snapshot-filter-element-column">
+              <fieldset>
+                <legend>Element types</legend>
+                <div className="checkbox-grid">
+                  {SNAPSHOT_ELEMENT_TYPES.map((t) => (
+                    <label key={t} className="inline-check">
+                      <input
+                        type="checkbox"
+                        name="element_types"
+                        value={t}
+                        defaultChecked={snapshotFilter.element_types.includes(t)}
+                      />{" "}
+                      {t}
+                    </label>
+                  ))}
+                </div>
+              </fieldset>
+              <div className="snapshot-filter-active-layers">
+                <strong>Layers in filter</strong>
+                {snapshotFilter.layers.length === 0 ? (
+                  <p className="muted snapshot-filter-active-layers-body">
+                    No restriction — all layers are included when none are ticked above.
+                  </p>
+                ) : (
+                  <ul className="snapshot-filter-active-layers-list">
+                    {snapshotFilter.layers.map((layer) => (
+                      <li key={layer}>{layer}</li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            </div>
             <label className="inline-check snapshot-filter-include-zones">
               <input type="checkbox" name="include_zones" defaultChecked={snapshotFilter.include_zones} /> Include
               zones
