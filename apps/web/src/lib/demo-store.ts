@@ -3,6 +3,7 @@ import { existsSync } from "node:fs";
 import { mkdir, readFile, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
 
+import seedState from "../../../../shared/examples/demo_state.seed.json";
 import { vocab } from "../../../../shared/contracts/api/index";
 import { isSupabaseMode } from "./data-source";
 import { buildFeasibilityPortfolio, type FeasibilityPortfolio, type SiteFeasibility } from "./feasibility";
@@ -297,7 +298,14 @@ function paths() {
   };
 }
 
+function isReadOnlyRuntime(): boolean {
+  return process.env.VERCEL === "1" || process.env.AWS_LAMBDA_FUNCTION_NAME !== undefined;
+}
+
 async function ensureRuntimeState(): Promise<void> {
+  if (isReadOnlyRuntime()) {
+    return;
+  }
   const runtimePaths = paths();
   const hasRuntime = existsSync(runtimePaths.runtime);
   await mkdir(runtimePaths.runtimeDir, { recursive: true });
@@ -320,6 +328,9 @@ async function ensureRuntimeState(): Promise<void> {
 }
 
 async function readState(): Promise<RuntimeState> {
+  if (isReadOnlyRuntime()) {
+    return normalizeRuntimeState(seedState as unknown);
+  }
   await ensureRuntimeState();
   const raw = await readFile(paths().runtime, "utf8");
   return normalizeRuntimeState(JSON.parse(raw) as unknown);
@@ -545,6 +556,9 @@ function recentWritesFromState(state: RuntimeState) {
 }
 
 async function writeState(state: RuntimeState): Promise<void> {
+  if (isReadOnlyRuntime()) {
+    throw new Error("Demo data is read-only in deployed serverless environments. Configure Supabase mode for writes.");
+  }
   await mkdir(paths().runtimeDir, { recursive: true });
   const normalized = normalizeRuntimeState(state);
   await writeFile(paths().runtime, JSON.stringify(normalized, null, 2), "utf8");
