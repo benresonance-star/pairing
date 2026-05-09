@@ -2624,3 +2624,256 @@ Select elements
 That wrapper is the foundation.
 
 Once it works, the sequencer, scheduler, cost engine, procurement module, QA system, and 4D viewer can all use the same assembly graph.
+
+---
+
+## 39. Current Repository Implementation Status
+
+**Last updated:** 2026-05-09  
+**Repository branch:** `master`  
+**Latest pushed commit at handoff:** `460ea55 Add BuildSync SDK setup tooling`
+
+This section records the current implementation state so another coding agent can continue without rediscovering context.
+
+### 39.1 Implemented So Far
+
+The repository now contains a native-side BuildSync foundation under:
+
+```text
+buildsync-archicad-addon/
+```
+
+Implemented native modules:
+
+- `src/core/Assembly.hpp`
+- `src/core/AssemblyMember.hpp`
+- `src/core/NamingRules.hpp/.cpp`
+- `src/core/AssemblyRegistry.hpp/.cpp`
+- `src/core/AssemblyGraph.hpp/.cpp`
+- `src/core/AssemblyValidator.hpp/.cpp`
+- `src/sync/JsonSerializer.hpp/.cpp`
+- `src/sync/SyncQueue.hpp/.cpp`
+- `src/sync/PythonListenerClient.hpp/.cpp`
+- `src/addon/MenuCommands.hpp/.cpp`
+- `src/addon/NativeRuntime.hpp/.cpp`
+- `src/addon/NativeRuntimeFactory.hpp/.cpp`
+- `src/archicad_adapter/FileRegistryStorage.hpp/.cpp`
+- `src/archicad_adapter/ArchicadSdkAdapters.hpp/.cpp`
+
+The core logic is SDK-free and has tests for:
+
+- naming rules,
+- registry create/add/remove/versioning,
+- graph cycle protection,
+- validation,
+- sync serialization and queueing,
+- menu command orchestration,
+- file-backed registry persistence,
+- native runtime command dispatch.
+
+The optional SDK-facing module is scaffolded:
+
+```text
+src/addon/ArchicadAddonMain.cpp
+src/addon/ResourceIds.hpp
+src/addon/NativeRuntimeFactory.cpp
+src/archicad_adapter/ArchicadSdkAdapters.cpp
+```
+
+Menu commands route into `NativeRuntime`. The selection adapter has started using the Archicad C++ API pattern:
+
+```text
+ACAPI_Selection_Get(...)
+ACAPI_Element_GetHeader(...)
+```
+
+The remaining SDK adapters are still placeholders:
+
+- `ArchicadElementPropertyWriter`
+- `ArchicadElementExistenceChecker`
+- `ArchicadHighlightController`
+- `LocalPythonListenerClient`
+
+### 39.2 Python Listener Implemented
+
+The local listener exists under:
+
+```text
+python_listener/
+```
+
+Implemented endpoints:
+
+```text
+GET  /health
+GET  /tasks
+POST /events/assembly-created
+POST /events/assembly-updated
+POST /events/assembly-validated
+GET  /commands/pending
+POST /commands/ack
+```
+
+The listener uses FastAPI, Pydantic, and SQLite-backed storage. Tests are in:
+
+```text
+python_listener/tests/test_events.py
+```
+
+### 39.3 Existing Connector/Web Integration
+
+The existing Archicad bridge and web preview now understand optional BuildSync assembly metadata.
+
+Updated paths:
+
+```text
+scripts/dev/archicad_bridge.py
+services/connector/src/connector/snapshot_filter.py
+apps/web/src/lib/companion-client.ts
+apps/web/src/app/integrations/archicad/page.tsx
+shared/examples/sample_archicad_snapshot.json
+```
+
+The bridge can read `BuildSync/BS_*` properties into element snapshot payloads as:
+
+```json
+{
+  "buildsync_assembly": {
+    "assembly_uuid": "uuid",
+    "assembly_id": "JN-014",
+    "name": "Kitchen Island",
+    "type": "Joinery",
+    "role": "Benchtop",
+    "version": 1,
+    "task_id": "TASK-240",
+    "trade": "Joinery",
+    "status": "active"
+  }
+}
+```
+
+The bridge/client path also supports allowlisted `BS_*` property writes for development validation.
+
+### 39.4 Build and Verification Commands
+
+Use this command for the SDK-free native test suite:
+
+```powershell
+npm run buildsync:native:test
+```
+
+Expected result at handoff:
+
+```text
+4/4 native tests passed
+```
+
+Use this command for Python tests:
+
+```powershell
+python -m pytest services/connector/tests python_listener/tests
+```
+
+Expected result at handoff:
+
+```text
+50 passed
+```
+
+Once the Archicad C++ API Development Kit is installed and `ARCHICAD_SDK_ROOT` is set:
+
+```powershell
+npm run buildsync:native:sdk
+```
+
+The SDK build expects:
+
+```text
+%ARCHICAD_SDK_ROOT%\Support\Inc\ACAPinc.h
+%ARCHICAD_SDK_ROOT%\Support\Inc\APIEnvir.h
+```
+
+More details are in:
+
+```text
+docs/runbooks/buildsync_archicad_sdk_setup.md
+docs/runbooks/buildsync_assembly_manual_validation.md
+```
+
+### 39.5 Current Blocker
+
+Archicad 28 is installed locally, but the Archicad C++ API Development Kit headers were not found in the Graphisoft install folders.
+
+Missing at handoff:
+
+```text
+ACAPinc.h
+APIEnvir.h
+```
+
+The optional `.apx` target cannot be compiled until the API Development Kit is downloaded/extracted and `ARCHICAD_SDK_ROOT` points to it.
+
+### 39.6 Next Agent Tasks
+
+After SDK headers are available:
+
+1. Run:
+
+```powershell
+npm run buildsync:native:sdk
+```
+
+2. Fix any compile errors in:
+
+```text
+buildsync-archicad-addon/src/archicad_adapter/ArchicadSdkAdapters.cpp
+buildsync-archicad-addon/src/addon/ArchicadAddonMain.cpp
+```
+
+3. Add Archicad resource files for:
+
+```text
+Add-on name and description
+BuildSync menu labels
+BuildSync menu prompt strings
+```
+
+4. Implement SDK-backed:
+
+```text
+ElementPropertyWriter
+- ensure BuildSync property group exists or report a clear error
+- write BS_AssemblyID, BS_AssemblyUUID, BS_AssemblyName, BS_AssemblyType, BS_AssemblyRole, BS_AssemblyVersion, BS_TaskID, BS_Trade, BS_Status
+- clear those fields on remove
+
+ElementExistenceChecker
+- check whether stored member GUIDs still exist in the open model
+
+HighlightController
+- select all live member GUIDs in Archicad
+
+LocalPythonListenerClient
+- GET /health
+- POST /events/assembly-created
+- POST /events/assembly-updated
+- POST /events/assembly-validated
+```
+
+5. Replace the temporary `defaultCreateAssemblyRequest()` in:
+
+```text
+buildsync-archicad-addon/src/addon/NativeRuntimeFactory.cpp
+```
+
+with either:
+
+- a small Archicad dialog for name/type/zone/level/trade/task ID, or
+- settings-backed defaults for the next thin vertical slice.
+
+6. Run manual validation:
+
+```text
+docs/runbooks/buildsync_assembly_manual_validation.md
+```
+
+Do not implement mirror detection, component definition inheritance, scheduler UI, procurement, or MCP runtime operations before the basic Archicad create/select/validate/sync workflow is working.
