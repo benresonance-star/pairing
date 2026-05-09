@@ -99,6 +99,80 @@ button {
   flex-wrap: wrap;
 }
 
+.snapshot-filter-panel select[multiple] {
+  min-height: 120px;
+  width: 100%;
+  max-width: 520px;
+}
+
+.snapshot-rows-wrap {
+  overflow-x: auto;
+  margin-top: 12px;
+}
+
+/* Snapshot summary: row tint by element type (dark UI, low-opacity fills) */
+.snapshot-rows-wrap tr.snapshot-row--zone {
+  background: rgba(139, 92, 246, 0.14);
+}
+.snapshot-rows-wrap tr.snapshot-row--wall {
+  background: rgba(59, 130, 246, 0.14);
+}
+.snapshot-rows-wrap tr.snapshot-row--slab {
+  background: rgba(34, 197, 94, 0.14);
+}
+.snapshot-rows-wrap tr.snapshot-row--roof {
+  background: rgba(249, 115, 22, 0.14);
+}
+.snapshot-rows-wrap tr.snapshot-row--window {
+  background: rgba(6, 182, 212, 0.14);
+}
+.snapshot-rows-wrap tr.snapshot-row--door {
+  background: rgba(236, 72, 153, 0.14);
+}
+.snapshot-rows-wrap tr.snapshot-row--column {
+  background: rgba(234, 179, 8, 0.14);
+}
+.snapshot-rows-wrap tr.snapshot-row--beam {
+  background: rgba(180, 83, 9, 0.16);
+}
+.snapshot-rows-wrap tr.snapshot-row--object {
+  background: rgba(168, 85, 247, 0.12);
+}
+.snapshot-rows-wrap tr.snapshot-row--other {
+  background: rgba(148, 163, 184, 0.1);
+}
+.snapshot-rows-wrap tr.snapshot-row:hover {
+  filter: brightness(1.08);
+}
+
+.checkbox-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 16px;
+}
+
+.inline-check {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+}
+
+.snapshot-filter-grid {
+  margin-bottom: 16px;
+  grid-template-columns: minmax(220px, 1fr) minmax(280px, 1.2fr) auto;
+}
+
+@media (max-width: 900px) {
+  .snapshot-filter-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.snapshot-filter-include-zones {
+  align-self: end;
+}
+
 .log-box {
   margin: 0;
   white-space: pre-wrap;

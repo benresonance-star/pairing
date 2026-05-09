@@ -90,6 +90,12 @@ def main() -> None:
     walls = try_command(commands, "GetElementsByType", "Wall")
     zones = try_command(commands, "GetElementsByType", "Zone")
     slabs = try_command(commands, "GetElementsByType", "Slab")
+    roofs = try_command(commands, "GetElementsByType", "Roof")
+    windows = try_command(commands, "GetElementsByType", "Window")
+    doors = try_command(commands, "GetElementsByType", "Door")
+    columns = try_command(commands, "GetElementsByType", "Column")
+    beams = try_command(commands, "GetElementsByType", "Beam")
+    objects = try_command(commands, "GetElementsByType", "Object")
 
     print_json(
         {
@@ -99,6 +105,12 @@ def main() -> None:
                 "walls": count_result(walls),
                 "zones": count_result(zones),
                 "slabs": count_result(slabs),
+                "roofs": count_result(roofs),
+                "windows": count_result(windows),
+                "doors": count_result(doors),
+                "columns": count_result(columns),
+                "beams": count_result(beams),
+                "objects": count_result(objects),
             },
             "raw_errors": {
                 key: value["error"]
@@ -107,6 +119,12 @@ def main() -> None:
                     "walls": walls,
                     "zones": zones,
                     "slabs": slabs,
+                    "roofs": roofs,
+                    "windows": windows,
+                    "doors": doors,
+                    "columns": columns,
+                    "beams": beams,
+                    "objects": objects,
                 }.items()
                 if isinstance(value, dict) and "error" in value
             },

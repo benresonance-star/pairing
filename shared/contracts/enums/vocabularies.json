@@ -107,6 +107,12 @@
   ],
   "firstSliceElementTypes": [
     "wall",
-    "slab"
+    "slab",
+    "roof",
+    "window",
+    "door",
+    "column",
+    "beam",
+    "object"
   ]
 }

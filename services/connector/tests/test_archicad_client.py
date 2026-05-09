@@ -1,10 +1,12 @@
 from __future__ import annotations
 
+import json
+from pathlib import Path
 from typing import Any
 
 import pytest
 
-from connector.archicad_client import ArchicadClientError, LiveArchicadClient
+from connector.archicad_client import ArchicadClientError, DemoArchicadClient, LiveArchicadClient
 
 
 class FakeResponse:
@@ -43,6 +45,18 @@ class FakeSession:
         return self.responses.pop(0)
 
 
+def test_demo_archicad_client_applies_snapshot_filter_from_env(monkeypatch: pytest.MonkeyPatch) -> None:
+    repo_root = Path(__file__).resolve().parents[3]
+    snap = repo_root / "shared" / "examples" / "sample_archicad_snapshot.json"
+    filt = json.dumps({"layers": ["A-Wall-Ext"], "element_types": ["wall"], "include_zones": True})
+    monkeypatch.setenv("ARCHICAD_SNAPSHOT_FILTER", filt)
+    client = DemoArchicadClient(snap)
+    data = client.read_snapshot()
+    assert data["zones"] == []
+    assert len(data["elements"]) == 1
+    assert data["elements"][0]["object_type"] == "wall"
+
+
 def test_live_archicad_client_reads_product_info() -> None:
     session = FakeSession(
         [
@@ -72,8 +86,9 @@ def test_live_archicad_client_reads_snapshot() -> None:
 
     assert snapshot["zones"] == [{"id": "zone-1"}]
     assert snapshot["elements"] == []
-    assert session.requests[0]["method"] == "GET"
+    assert session.requests[0]["method"] == "POST"
     assert session.requests[0]["url"] == "http://127.0.0.1:19723/api/v1/snapshot"
+    assert session.requests[0]["json"] == {}
 
 
 def test_live_archicad_client_writes_property() -> None:

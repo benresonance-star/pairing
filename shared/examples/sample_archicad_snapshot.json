@@ -10,6 +10,7 @@
       "zone_number": "APT-0803",
       "zone_name": "Apartment 0803",
       "storey": "L08",
+      "layer": "A-Zone",
       "area": 68.0,
       "ccp_operational": {
         "package_id": "PKG-ZONE-L08",
@@ -26,6 +27,7 @@
       "zone_number": "APT-0804",
       "zone_name": "Apartment 0804",
       "storey": "L08",
+      "layer": "A-Zone",
       "area": 71.2,
       "ccp_operational": {
         "package_id": null,
@@ -44,8 +46,10 @@
       "object_type": "wall",
       "classification": "external_wall",
       "storey": "L08",
+      "layer": "A-Wall-Ext",
       "zone_number": "APT-0803",
       "name": "Ext Wall Type A",
+      "ifc_type": "IfcWall",
       "quantities": {
         "area": 22.5,
         "length": 7.2
@@ -65,6 +69,7 @@
       "object_type": "slab",
       "classification": "balcony_slab",
       "storey": "L08",
+      "layer": "S-Slab",
       "zone_number": "APT-0804",
       "name": "Balcony Slab B",
       "quantities": {

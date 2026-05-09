@@ -59,6 +59,12 @@ def get_json(url: str) -> Any:
     return response.json()
 
 
+def post_json(url: str, payload: dict[str, Any]) -> Any:
+    response = requests.post(url, json=payload, timeout=30)
+    response.raise_for_status()
+    return response.json()
+
+
 def ensure_live_contract(base_url: str) -> tuple[dict[str, Any], dict[str, Any]]:
     product = get_json(f"{base_url}product-info")
     if not isinstance(product, dict):
@@ -73,6 +79,16 @@ def ensure_live_contract(base_url: str) -> tuple[dict[str, Any], dict[str, Any]]
         raise RuntimeError("snapshot.zones must be an array")
     if not isinstance(snapshot.get("elements"), list):
         raise RuntimeError("snapshot.elements must be an array")
+
+    layers_payload = get_json(f"{base_url}snapshot/layers")
+    if not isinstance(layers_payload.get("layers"), list):
+        raise RuntimeError("snapshot/layers.layers must be an array")
+
+    snapshot_post = post_json(f"{base_url}snapshot", {})
+    if not isinstance(snapshot_post.get("zones"), list) or not isinstance(snapshot_post.get("elements"), list):
+        raise RuntimeError("POST snapshot must return zones and elements arrays")
+    if not isinstance(snapshot_post.get("layer_names"), list):
+        raise RuntimeError("POST snapshot must return layer_names array (possibly empty)")
 
     return product, snapshot
 

@@ -53,9 +53,39 @@ Validation rules:
 
 ### `GET /api/v1/snapshot`
 
-Use this for inbound sync. The response shape must match the normalized sample snapshot contract used by `shared/examples/sample_archicad_snapshot.json`.
+Backward-compatible snapshot with **default filter** (all layers, all element types in the bridge build, zones included). Prefer `POST /api/v1/snapshot` for inbound so the connector can send the same filter as the Live Link UI. The connector no longer uses `GET` for live reads.
 
-Expected response:
+### `POST /api/v1/snapshot`
+
+Primary path for inbound sync. Request body is the **snapshot filter** object (may be `{}` for defaults).
+
+Filter fields:
+
+- `layers` (array of strings): when **empty**, all layers match; when non-empty, only elements/zones whose `layer` field is in this list are returned.
+- `element_types` (array of strings): subset of `firstSliceElementTypes` in [`shared/contracts/enums/vocabularies.json`](../../shared/contracts/enums/vocabularies.json) (e.g. `wall`, `slab`, `roof`, …). When **empty** or omitted, all configured types are queried.
+- `include_zones` (boolean, default `true`): when `false`, the `zones` array is empty.
+
+Response extends the sample snapshot contract with optional diagnostics:
+
+- `snapshot_rows` — capped list of `{ kind, type, element_id, archicad_guid, layer, storey, ifc_type }` for UI tables
+- `counts_by_type` — counts including `zone` plus each `object_type`
+- `snapshot_rows_truncated` — boolean when row cap is hit
+
+`zones` and `elements` remain the canonical arrays the connector ingests.
+
+### `GET /api/v1/snapshot/layers`
+
+Returns `{ "layers": ["Layer A", ...] }` for filter UI. Prefer the attribute API; the bridge may fall back to scanning element layer properties when needed.
+
+### Connector environment: `ARCHICAD_SNAPSHOT_FILTER`
+
+When set to a JSON string of the filter object, the connector’s live client issues `POST /api/v1/snapshot` with that body so **inbound matches the desktop companion filter**. The desktop companion sets this variable when launching `connector_cli.py`.
+
+### Snapshot payload (zones and elements)
+
+Use this for inbound sync. The response shape must match the normalized sample snapshot contract used by `shared/examples/sample_archicad_snapshot.json`, with optional `layer`, `storey`, and `ifc_type` fields on items when the bridge can resolve Graphisoft built-in properties.
+
+Expected response (conceptual):
 
 ```json
 {
@@ -65,6 +95,7 @@ Expected response:
       "zone_key": "TH-01",
       "zone_name": "Townhouse 01",
       "storey": "GF-FF",
+      "layer": "A-Zone",
       "ccp_operational": {
         "package_id": "PKG-INTERIORS",
         "construction_state": "in_progress"
@@ -77,6 +108,7 @@ Expected response:
       "object_type": "wall",
       "name": "Party wall",
       "zone_key": "TH-01",
+      "layer": "A-Wall",
       "ccp_operational": {
         "package_id": "PKG-STRUCTURE",
         "construction_state": "ready"
@@ -154,7 +186,7 @@ npm run archicad:smoke:mock
 This command:
 
 - starts `scripts/dev/mock_archicad_adapter.py` on `127.0.0.1:19724`
-- serves `shared/examples/sample_archicad_snapshot.json` through `GET /api/v1/snapshot`
+- serves `shared/examples/sample_archicad_snapshot.json` through `GET /api/v1/snapshot` and `POST /api/v1/snapshot`
 - resets the demo runtime state
 - runs connector inbound with `CCP_ARCHICAD_ADAPTER=live`
 - queues a construction-state change against the inbound target zone
@@ -199,7 +231,7 @@ By default, both `npm run archicad:mock` and `npm run archicad:bridge` use port 
 The bridge implements the live adapter HTTP contract against the currently open Archicad instance:
 
 - `GET /api/v1/product-info` returns Archicad version/build information
-- `GET /api/v1/snapshot` extracts zones, walls, and slabs into the connector snapshot shape
+- `GET /api/v1/snapshot` and `POST /api/v1/snapshot` return zones and configured element types (walls, slabs, roofs, openings, columns, beams, library parts) into the connector snapshot shape
 - `POST /api/v1/properties` attempts allowlisted `CCP_Operational` property writes
 
 The current bridge can read built-in Archicad identity/name/zone/area properties. CCP operational values are included only when the active model already contains the `CCP_Operational` properties. If those properties are missing, snapshot extraction still works but write-back returns a clear error.
@@ -207,7 +239,7 @@ The current bridge can read built-in Archicad identity/name/zone/area properties
 The first true-connection milestone should use a disposable or backed-up model and prove only:
 
 1. `GET /api/v1/product-info` returns the running Archicad bridge identity.
-2. `GET /api/v1/snapshot` returns zones and first-slice elements in the documented shape.
+2. `POST /api/v1/snapshot` (or `GET` for a quick check) returns zones and filtered element types in the documented shape.
 3. `POST /api/v1/properties` writes one approved `CCP_*` property to one known target.
 4. Connector outbound marks the change set `synced` only after the Archicad-side write succeeds.
 
@@ -217,7 +249,7 @@ For manual live validation:
 
 1. Start the Archicad-side bridge on `ARCHICAD_HOST:ARCHICAD_PORT`.
 2. Set `CCP_ARCHICAD_ADAPTER=live`.
-3. Run inbound sync and confirm `GET /api/v1/snapshot` is called.
+3. Run inbound sync and confirm `POST /api/v1/snapshot` is used (with `ARCHICAD_SNAPSHOT_FILTER` when driven from the companion).
 4. Queue an approved change set.
 5. Run outbound without `--dry-run` only when the target model is disposable or backed up.
 6. Confirm the Archicad property changed and the change set moved to `synced`.

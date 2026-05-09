@@ -11,7 +11,39 @@ import {
   runCompanionInbound,
   runCompanionOutbound
 } from "../../../lib/companion-client";
+import { CompanionOfflineHelp } from "./companion-offline-help";
 import { CompanionActionButton } from "./companion-action-button";
+import { COMPANION_OFFLINE_QUERY } from "../../../lib/companion-start-script";
+import type { CompanionSnapshotFilterState } from "../../../lib/companion-client";
+import { resetSnapshotFilterAction, submitSnapshotFilterAction } from "./snapshot-actions";
+
+const SNAPSHOT_ELEMENT_TYPES = ["wall", "slab", "roof", "window", "door", "column", "beam", "object"] as const;
+
+const SNAPSHOT_ROW_TYPE_CLASSES = new Set([
+  "zone",
+  "wall",
+  "slab",
+  "roof",
+  "window",
+  "door",
+  "column",
+  "beam",
+  "object"
+]);
+
+function snapshotRowClassName(type: string): string {
+  const t = type.trim().toLowerCase();
+  const suffix = SNAPSHOT_ROW_TYPE_CLASSES.has(t) ? t : "other";
+  return `snapshot-row snapshot-row--${suffix}`;
+}
+
+function defaultSnapshotFilter(): CompanionSnapshotFilterState {
+  return {
+    layers: [],
+    element_types: [...SNAPSHOT_ELEMENT_TYPES],
+    include_zones: true
+  };
+}
 
 async function runCompanionAction(formData: FormData) {
   "use server";
@@ -56,7 +88,7 @@ async function runCompanionAction(formData: FormData) {
   } catch (error) {
     if (error instanceof CompanionRequestError) {
       if (error.kind === "connection_refused") {
-        search.set("error", "Desktop companion is offline. Start `npm run archicad:companion` and retry.");
+        search.set("error", COMPANION_OFFLINE_QUERY);
       } else if (error.kind === "timeout") {
         search.set("error", "The action timed out. Retry, and ensure Archicad is open for Connect.");
       } else {
@@ -81,6 +113,7 @@ export default async function ArchicadIntegrationPage({ searchParams }: PageProp
   const params = (await searchParams) ?? {};
   const statusMessage = typeof params.status === "string" ? params.status : null;
   const errorMessage = typeof params.error === "string" ? params.error : null;
+  const companionOfflineFromAction = errorMessage === COMPANION_OFFLINE_QUERY;
   const warningMessage = typeof params.warning === "string" ? params.warning : null;
 
   let status: Awaited<ReturnType<typeof getCompanionStatus>> | null = null;
@@ -92,6 +125,10 @@ export default async function ArchicadIntegrationPage({ searchParams }: PageProp
   } catch {
     companionOffline = true;
   }
+
+  const snapshotFilter = status?.bridge.snapshot_filter ?? defaultSnapshotFilter();
+  const availableLayers = status?.bridge.available_layers ?? [];
+  const snapshotPreview = status?.bridge.snapshot_preview ?? null;
 
   return (
     <section className="panel">
@@ -109,12 +146,12 @@ export default async function ArchicadIntegrationPage({ searchParams }: PageProp
       </div>
 
       {statusMessage ? <div className="notice notice-success">{statusMessage}</div> : null}
-      {errorMessage ? <div className="notice notice-error">{errorMessage}</div> : null}
+      {errorMessage && !companionOfflineFromAction ? (
+        <div className="notice notice-error">{errorMessage}</div>
+      ) : null}
       {warningMessage ? <div className="notice notice-warning">{warningMessage}</div> : null}
-      {companionOffline ? (
-        <div className="notice">
-          Desktop companion is offline. Start <code>npm run archicad:companion</code>, then click Connect.
-        </div>
+      {companionOffline || companionOfflineFromAction ? (
+        <CompanionOfflineHelp lastActionFailed={companionOfflineFromAction} />
       ) : null}
 
       <div className="card-grid">
@@ -139,6 +176,71 @@ export default async function ArchicadIntegrationPage({ searchParams }: PageProp
         </div>
       </div>
 
+      <div className="notice notice-warning">
+        <strong>Inbound and Supabase.</strong> Run Inbound uses the snapshot filter below. Only zones and
+        element types that pass the filter are written to your configured data store (demo runtime or Supabase).
+      </div>
+
+      <section className="panel panel-subtle snapshot-filter-panel">
+        <h3>Snapshot filter</h3>
+        <p className="muted">
+          Empty layer selection means <strong>all layers</strong>. Choose element types to query from Archicad,
+          then Apply. Reset restores defaults (all layers, all types, zones on).
+        </p>
+        <form action={submitSnapshotFilterAction} className="filter-form">
+          <div className="form-grid snapshot-filter-grid">
+            <label className="filter-field">
+              <span>Layers (multi-select)</span>
+              <select name="layers" multiple size={8} defaultValue={snapshotFilter.layers}>
+                {availableLayers.length === 0 ? (
+                  <option value="" disabled>
+                    {status?.bridge.reachable
+                      ? "No layer names yet — refresh the page; if this persists, restart the desktop companion and bridge."
+                      : "Connect to bridge to load layers"}
+                  </option>
+                ) : (
+                  availableLayers.map((layer) => (
+                    <option key={layer} value={layer}>
+                      {layer}
+                    </option>
+                  ))
+                )}
+              </select>
+            </label>
+            <fieldset>
+              <legend>Element types</legend>
+              <div className="checkbox-grid">
+                {SNAPSHOT_ELEMENT_TYPES.map((t) => (
+                  <label key={t} className="inline-check">
+                    <input
+                      type="checkbox"
+                      name="element_types"
+                      value={t}
+                      defaultChecked={snapshotFilter.element_types.includes(t)}
+                    />{" "}
+                    {t}
+                  </label>
+                ))}
+              </div>
+            </fieldset>
+            <label className="inline-check snapshot-filter-include-zones">
+              <input type="checkbox" name="include_zones" defaultChecked={snapshotFilter.include_zones} /> Include
+              zones
+            </label>
+          </div>
+          <div className="actions">
+            <button type="submit" className="secondary-button">
+              Apply filter
+            </button>
+          </div>
+        </form>
+        <form action={resetSnapshotFilterAction} style={{ marginTop: 8 }}>
+          <button type="submit" className="secondary-button">
+            Reset filter
+          </button>
+        </form>
+      </section>
+
       <form action={runCompanionAction} className="actions integrations-actions">
         <CompanionActionButton action="connect" label="Connect" pendingLabel="Connecting..." />
         <CompanionActionButton action="disconnect" label="Disconnect" pendingLabel="Disconnecting..." />
@@ -161,15 +263,58 @@ export default async function ArchicadIntegrationPage({ searchParams }: PageProp
       </section>
 
       <section className="panel panel-subtle">
-        <h3>Snapshot Summary</h3>
+        <h3>Snapshot summary</h3>
         {status?.bridge.snapshot_summary ? (
           <p>
-            Zones: <strong>{status.bridge.snapshot_summary.zones}</strong>, Elements:{" "}
+            Zones in filter: <strong>{status.bridge.snapshot_summary.zones}</strong>, Elements in filter:{" "}
             <strong>{status.bridge.snapshot_summary.elements}</strong>
           </p>
         ) : (
-          <p className="muted">No snapshot summary available.</p>
+          <p className="muted">No snapshot summary available (bridge offline or snapshot request failed).</p>
         )}
+        {snapshotPreview?.counts_by_type ? (
+          <p className="muted">
+            Counts by type:{" "}
+            {Object.entries(snapshotPreview.counts_by_type)
+              .map(([k, v]) => `${k}: ${String(v)}`)
+              .join(" · ")}
+          </p>
+        ) : null}
+        {snapshotPreview && snapshotPreview.snapshot_rows.length > 0 ? (
+          <div className="snapshot-rows-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Type</th>
+                  <th>Element / zone ID</th>
+                  <th>Archicad GUID</th>
+                  <th>Layer</th>
+                  <th>Storey</th>
+                  <th>Area</th>
+                  <th>IFC / classification</th>
+                </tr>
+              </thead>
+              <tbody>
+                {snapshotPreview.snapshot_rows.map((row, idx) => (
+                  <tr key={`${row.archicad_guid ?? row.element_id}-${idx}`} className={snapshotRowClassName(row.type)}>
+                    <td>{row.type}</td>
+                    <td>{row.element_id}</td>
+                    <td className="muted">{row.archicad_guid ?? "—"}</td>
+                    <td>{row.layer ?? "—"}</td>
+                    <td>{row.storey ?? "—"}</td>
+                    <td>{row.area ?? "—"}</td>
+                    <td>{row.ifc_type ?? "—"}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            {snapshotPreview.snapshot_rows_truncated ? (
+              <p className="muted">Table is capped; more rows exist in the model.</p>
+            ) : null}
+          </div>
+        ) : status?.bridge.reachable ? (
+          <p className="muted">No preview rows yet. Apply the filter or connect the bridge.</p>
+        ) : null}
       </section>
 
       <section className="panel panel-subtle">

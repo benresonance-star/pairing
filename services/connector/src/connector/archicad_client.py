@@ -1,11 +1,14 @@
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path
 from typing import Any, Protocol
 from urllib.parse import urljoin
 
 import requests
+
+from .snapshot_filter import apply_snapshot_filter, parse_filter_from_env
 
 
 class ArchicadClientError(RuntimeError):
@@ -29,7 +32,14 @@ class DemoArchicadClient:
         }
 
     def read_snapshot(self) -> dict[str, Any]:
-        return json.loads(self.snapshot_path.read_text(encoding="utf-8"))
+        data = json.loads(self.snapshot_path.read_text(encoding="utf-8"))
+        raw = os.environ.get("ARCHICAD_SNAPSHOT_FILTER", "").strip()
+        if not raw:
+            return data
+        filt = parse_filter_from_env(raw)
+        if filt is None:
+            return data
+        return apply_snapshot_filter(data, filt)
 
     def write_property(self, *, archicad_guid: str, field_name: str, field_value: Any) -> None:
         _ = (archicad_guid, field_name, field_value)
@@ -80,7 +90,13 @@ class LiveArchicadClient:
         }
 
     def read_snapshot(self) -> dict[str, Any]:
-        data = self._request("GET", "snapshot")
+        raw = os.environ.get("ARCHICAD_SNAPSHOT_FILTER", "").strip()
+        body: dict[str, Any] = {}
+        if raw:
+            parsed = parse_filter_from_env(raw)
+            if parsed is not None:
+                body = parsed
+        data = self._request("POST", "snapshot", payload=body)
         if not isinstance(data, dict):
             raise ArchicadClientError("Archicad snapshot response must be an object")
         zones = data.get("zones")

@@ -142,6 +142,39 @@ async function readState(): Promise<RuntimeState> {
   return normalizeRuntimeState(JSON.parse(raw) as unknown);
 }
 
+function isLikelySupabaseTransportError(error: unknown): boolean {
+  const msg = error instanceof Error ? error.message : String(error);
+  if (msg.includes("fetch failed")) return true;
+  if (msg.includes("ENOTFOUND")) return true;
+  if (msg.includes("ECONNREFUSED")) return true;
+  if (msg.includes("ECONNRESET")) return true;
+  if (msg.includes("ETIMEDOUT")) return true;
+  if (msg.includes("getaddrinfo")) return true;
+  if (msg.includes("certificate")) return true;
+  if (msg.includes("network")) return true;
+  return false;
+}
+
+function dashboardSummaryFromState(state: RuntimeState) {
+  return {
+    projectName: state.project.name,
+    zoneCount: state.zones.length,
+    modelObjectCount: state.model_objects.length,
+    scenarioCount: state.scenarios.length,
+    draftCount: state.change_sets.filter((item) => item.status === "draft").length,
+    queuedCount: state.change_sets.filter((item) => item.status === "queued_for_sync").length,
+    syncFailureCount: state.change_sets.filter((item) => item.status === "sync_failed").length,
+    syncRunCount: state.sync_runs.length,
+    writableArchicadField: vocab.archicadWritableFields[0]
+  };
+}
+
+function recentWritesFromState(state: RuntimeState) {
+  return [...state.archicad_writes]
+    .sort((left, right) => String(right.applied_at ?? "").localeCompare(String(left.applied_at ?? "")))
+    .slice(0, 5);
+}
+
 async function writeState(state: RuntimeState): Promise<void> {
   await mkdir(paths().runtimeDir, { recursive: true });
   const normalized = normalizeRuntimeState(state);
@@ -309,20 +342,18 @@ function validateOperationalDates(record: {
 
 export async function getDashboardSummary() {
   if (isSupabaseMode()) {
-    return (await getSupabaseStore()).getDashboardSummary();
+    try {
+      return await (await getSupabaseStore()).getDashboardSummary();
+    } catch (error) {
+      if (isLikelySupabaseTransportError(error)) {
+        const state = await readState();
+        return dashboardSummaryFromState(state);
+      }
+      throw error;
+    }
   }
   const state = await readState();
-  return {
-    projectName: state.project.name,
-    zoneCount: state.zones.length,
-    modelObjectCount: state.model_objects.length,
-    scenarioCount: state.scenarios.length,
-    draftCount: state.change_sets.filter((item) => item.status === "draft").length,
-    queuedCount: state.change_sets.filter((item) => item.status === "queued_for_sync").length,
-    syncFailureCount: state.change_sets.filter((item) => item.status === "sync_failed").length,
-    syncRunCount: state.sync_runs.length,
-    writableArchicadField: vocab.archicadWritableFields[0]
-  };
+  return dashboardSummaryFromState(state);
 }
 
 export async function getPackages(): Promise<PackageRow[]> {
@@ -534,12 +565,18 @@ export async function transitionChangeSet(
 
 export async function getRecentWrites() {
   if (isSupabaseMode()) {
-    return (await getSupabaseStore()).getRecentWrites();
+    try {
+      return await (await getSupabaseStore()).getRecentWrites();
+    } catch (error) {
+      if (isLikelySupabaseTransportError(error)) {
+        const state = await readState();
+        return recentWritesFromState(state);
+      }
+      throw error;
+    }
   }
   const state = await readState();
-  return [...state.archicad_writes]
-    .sort((left, right) => String(right.applied_at ?? "").localeCompare(String(left.applied_at ?? "")))
-    .slice(0, 5);
+  return recentWritesFromState(state);
 }
 
 export async function getLinearScheduleData(filters: LinearScheduleFilters = {}) {
