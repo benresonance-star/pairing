@@ -19,6 +19,7 @@ class ArchicadClientProtocol(Protocol):
     def get_product_info(self) -> dict[str, str]: ...
     def read_snapshot(self) -> dict[str, Any]: ...
     def write_property(self, *, archicad_guid: str, field_name: str, field_value: Any) -> None: ...
+    def write_properties(self, *, archicad_guid: str, fields: dict[str, Any]) -> None: ...
 
 
 class DemoArchicadClient:
@@ -43,6 +44,9 @@ class DemoArchicadClient:
 
     def write_property(self, *, archicad_guid: str, field_name: str, field_value: Any) -> None:
         _ = (archicad_guid, field_name, field_value)
+
+    def write_properties(self, *, archicad_guid: str, fields: dict[str, Any]) -> None:
+        _ = (archicad_guid, fields)
 
 
 class LiveArchicadClient:
@@ -115,3 +119,7 @@ class LiveArchicadClient:
                 "field_value": field_value,
             },
         )
+
+    def write_properties(self, *, archicad_guid: str, fields: dict[str, Any]) -> None:
+        for field_name, field_value in fields.items():
+            self.write_property(archicad_guid=archicad_guid, field_name=field_name, field_value=field_value)

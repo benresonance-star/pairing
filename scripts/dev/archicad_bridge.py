@@ -165,6 +165,14 @@ def resolve_buildsync_property_ids(commands: Any, types: Any) -> dict[str, Any]:
     return property_ids
 
 
+def property_write_group_and_ids(commands: Any, types: Any, field_name: str) -> tuple[str, dict[str, Any]]:
+    if field_name in CCP_PROPERTIES:
+        return CCP_PROPERTY_GROUP, resolve_ccp_property_ids(commands, types)
+    if field_name in BUILDSYNC_PROPERTIES:
+        return BUILDSYNC_PROPERTY_GROUP, resolve_buildsync_property_ids(commands, types)
+    raise ArchicadBridgeError(f"'{field_name}' is not an allowlisted CCP or BuildSync property")
+
+
 def values_for_elements(commands: Any, types: Any, elements: list[Any], property_ids: dict[str, Any]) -> list[dict[str, Any]]:
     if not elements or not property_ids:
         return [{} for _ in elements]
@@ -622,14 +630,12 @@ class ArchicadSnapshotBuilder:
         field_value = payload.get("field_value")
         if not archicad_guid or not field_name:
             raise ArchicadBridgeError("archicad_guid and field_name are required")
-        if field_name not in CCP_PROPERTIES:
-            raise ArchicadBridgeError(f"'{field_name}' is not an allowlisted CCP property")
 
-        ccp_ids = resolve_ccp_property_ids(self.commands, self.types)
-        property_id = ccp_ids.get(field_name)
+        property_group, property_ids = property_write_group_and_ids(self.commands, self.types, field_name)
+        property_id = property_ids.get(field_name)
         if property_id is None:
             raise ArchicadBridgeError(
-                f"Property '{CCP_PROPERTY_GROUP}/{field_name}' does not exist in the active Archicad model"
+                f"Property '{property_group}/{field_name}' does not exist in the active Archicad model"
             )
 
         property_value = self.to_archicad_property_value(field_value)

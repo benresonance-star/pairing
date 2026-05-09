@@ -128,4 +128,10 @@ bool AssemblyRegistry::containsAssembly(const std::string& assemblyUuid) const
     return assembliesByUuid_.count(assemblyUuid) > 0;
 }
 
+void AssemblyRegistry::clear()
+{
+    assembliesByUuid_.clear();
+    assemblyUuidByElementGuid_.clear();
+}
+
 } // namespace buildsync

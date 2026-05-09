@@ -21,6 +21,7 @@ public:
     std::optional<Assembly> getAssemblyByElementGuid(const std::string& elementGuid) const;
     std::vector<Assembly> listAssemblies() const;
     bool containsAssembly(const std::string& assemblyUuid) const;
+    void clear();
 
 private:
     std::unordered_map<std::string, Assembly> assembliesByUuid_;

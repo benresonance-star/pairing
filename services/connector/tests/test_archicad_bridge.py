@@ -5,6 +5,7 @@ from scripts.dev.archicad_bridge import (
     dedupe_zones_for_snapshot,
     element_area,
     layer_name_from_value,
+    property_write_group_and_ids,
     story_display,
 )
 
@@ -81,3 +82,26 @@ def test_buildsync_assembly_maps_bs_properties() -> None:
         "trade": "Joinery",
         "status": "active",
     }
+
+
+class _FakeItem:
+    def __init__(self, property_id: str) -> None:
+        self.propertyId = property_id
+
+
+class _FakeTypes:
+    @staticmethod
+    def PropertyUserId(kind: str, *, localizedName: list[str]) -> tuple[str, tuple[str, ...]]:
+        return (kind, tuple(localizedName))
+
+
+class _FakeCommands:
+    def GetPropertyIds(self, requested: list[tuple[str, tuple[str, ...]]]) -> list[_FakeItem]:
+        return [_FakeItem("/".join(item[1])) for item in requested]
+
+
+def test_property_write_group_supports_buildsync_fields() -> None:
+    group, ids = property_write_group_and_ids(_FakeCommands(), _FakeTypes(), "BS_AssemblyID")
+
+    assert group == "BuildSync"
+    assert ids["BS_AssemblyID"] == "BuildSync/BS_AssemblyID"

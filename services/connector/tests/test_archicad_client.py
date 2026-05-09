@@ -113,6 +113,24 @@ def test_live_archicad_client_writes_property() -> None:
     }
 
 
+def test_live_archicad_client_can_write_buildsync_property_batch() -> None:
+    session = FakeSession([FakeResponse(payload={"status": "ok"}), FakeResponse(payload={"status": "ok"})])
+    client = LiveArchicadClient(host="127.0.0.1", port=19723, session=session)  # type: ignore[arg-type]
+
+    client.write_properties(
+        archicad_guid="ARCHICAD-GUID-1",
+        fields={
+            "BS_AssemblyID": "JN-014",
+            "BS_AssemblyUUID": "uuid-jn-014",
+        },
+    )
+
+    assert [request["json"]["field_name"] for request in session.requests] == [
+        "BS_AssemblyID",
+        "BS_AssemblyUUID",
+    ]
+
+
 def test_live_archicad_client_raises_safe_error_for_non_success_response() -> None:
     session = FakeSession([FakeResponse(status_code=500, text="boom")])
     client = LiveArchicadClient(host="127.0.0.1", port=19723, session=session)  # type: ignore[arg-type]
