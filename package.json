@@ -10,6 +10,8 @@
     "lint:web": "npm run lint --workspace web",
     "test:web": "npm run test --workspace web",
     "connector:test": "python -m pytest services/connector/tests",
+    "buildsync:native:test": "python scripts/dev/buildsync_native_smoke.py",
+    "buildsync:native:sdk": "python scripts/dev/buildsync_native_smoke.py --sdk",
     "supabase:bootstrap": "python scripts/dev/bootstrap_supabase.py",
     "supabase:smoke:governed": "tsx scripts/dev/supabase_governed_smoke.ts",
     "archicad:probe": "python scripts/dev/archicad_probe.py",

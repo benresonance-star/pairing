@@ -1,4 +1,5 @@
 #include "addon/ResourceIds.hpp"
+#include "addon/NativeRuntimeFactory.hpp"
 
 // This file is the SDK-facing shell for the native Archicad module. It is built
 // only when BUILDSYNC_BUILD_ARCHICAD_ADDON=ON and ARCHICAD_SDK_ROOT points at a
@@ -15,28 +16,8 @@ GSErrCode __ACENV_CALL MenuCommandHandler(const API_MenuParams* menuParams)
         return NoError;
     }
 
-    switch (menuParams->menuItemRef.itemIndex) {
-        case buildsync::CreateAssemblyCommandId:
-            ACAPI_WriteReport("BuildSync: Create Assembly command reached SDK shell.", false);
-            break;
-        case buildsync::SelectAssemblyMembersCommandId:
-            ACAPI_WriteReport("BuildSync: Select Assembly Members command reached SDK shell.", false);
-            break;
-        case buildsync::AddSelectionToAssemblyCommandId:
-            ACAPI_WriteReport("BuildSync: Add Selection to Assembly command reached SDK shell.", false);
-            break;
-        case buildsync::RemoveSelectionFromAssemblyCommandId:
-            ACAPI_WriteReport("BuildSync: Remove Selection from Assembly command reached SDK shell.", false);
-            break;
-        case buildsync::ValidateSelectedAssemblyCommandId:
-            ACAPI_WriteReport("BuildSync: Validate Selected Assembly command reached SDK shell.", false);
-            break;
-        case buildsync::SyncWithPythonListenerCommandId:
-            ACAPI_WriteReport("BuildSync: Sync with Python Listener command reached SDK shell.", false);
-            break;
-        default:
-            break;
-    }
+    const auto result = buildsync::buildSyncRuntime().handleMenuCommand(menuParams->menuItemRef.itemIndex);
+    ACAPI_WriteReport(buildsync::commandResultReport(result).c_str(), false);
 
     return NoError;
 }

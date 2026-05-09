@@ -1,0 +1,47 @@
+{
+  "version": 6,
+  "configurePresets": [
+    {
+      "name": "vs2026-x64",
+      "displayName": "Visual Studio 2026 x64",
+      "generator": "Visual Studio 18 2026",
+      "architecture": "x64",
+      "binaryDir": "${sourceDir}/build",
+      "cacheVariables": {
+        "CMAKE_CXX_STANDARD": "17"
+      }
+    },
+    {
+      "name": "vs2026-x64-sdk",
+      "displayName": "Visual Studio 2026 x64 with Archicad SDK",
+      "inherits": "vs2026-x64",
+      "binaryDir": "${sourceDir}/build-sdk",
+      "cacheVariables": {
+        "BUILDSYNC_BUILD_ARCHICAD_ADDON": "ON",
+        "ARCHICAD_SDK_ROOT": "$env{ARCHICAD_SDK_ROOT}"
+      }
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "debug",
+      "configurePreset": "vs2026-x64",
+      "configuration": "Debug"
+    },
+    {
+      "name": "sdk-debug",
+      "configurePreset": "vs2026-x64-sdk",
+      "configuration": "Debug"
+    }
+  ],
+  "testPresets": [
+    {
+      "name": "debug",
+      "configurePreset": "vs2026-x64",
+      "configuration": "Debug",
+      "output": {
+        "outputOnFailure": true
+      }
+    }
+  ]
+}

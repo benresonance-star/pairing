@@ -49,6 +49,8 @@ if(BUILDSYNC_BUILD_ARCHICAD_ADDON)
 
     add_library(buildsync_archicad_addon MODULE
         src/addon/ArchicadAddonMain.cpp
+        src/addon/NativeRuntimeFactory.cpp
+        src/archicad_adapter/ArchicadSdkAdapters.cpp
     )
     target_link_libraries(buildsync_archicad_addon PRIVATE buildsync_core)
     target_include_directories(buildsync_archicad_addon PRIVATE
