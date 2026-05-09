@@ -10,7 +10,9 @@ import type {
   ScenarioCostPlanItemRecord,
   ScenarioCostRangeRecord,
   ScenarioOptionRecord,
-  SiteConstraintRecord
+  SiteConstraintRecord,
+  SitePlanningHighlightRecord,
+  SiteResourceRecord
 } from "./runtime-state";
 
 export type FeasibilityMetrics = {
@@ -48,6 +50,8 @@ export type ScenarioOptionFeasibility = ScenarioOptionRecord & {
 
 export type SiteFeasibility = {
   id: string;
+  siteCode: string | null;
+  siteDate: string | null;
   name: string;
   address: string;
   locality: string | null;
@@ -58,6 +62,12 @@ export type SiteFeasibility = {
   siteAreaSqm: number | null;
   summary: string | null;
   constraints: SiteConstraintRecord[];
+  resources: SiteResourceRecord[];
+  planningHighlights: SitePlanningHighlightRecord[];
+  activePlanningHighlight: SitePlanningHighlightRecord | null;
+  googleMapsUrl: string;
+  googleMapsEmbedUrl: string;
+  manualMapUrl: string | null;
   scenarioOptions: ScenarioOptionFeasibility[];
   archicadLinks: ArchicadLinkRecord[];
 };
@@ -101,6 +111,16 @@ const COST_BAND_ORDER: Record<string, number> = {
 
 function numeric(value: number | null | undefined): number {
   return typeof value === "number" && Number.isFinite(value) ? value : 0;
+}
+
+export function googleMapsSearchUrl(address: string, locality?: string | null): string {
+  const query = [address, locality].filter(Boolean).join(", ");
+  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
+}
+
+export function googleMapsEmbedUrl(address: string, locality?: string | null): string {
+  const query = [address, locality].filter(Boolean).join(", ");
+  return `https://www.google.com/maps?q=${encodeURIComponent(query)}&output=embed`;
 }
 
 export function calculateCostRangeTotal(range: ScenarioCostRangeRecord): number {
@@ -252,6 +272,14 @@ export function buildFeasibilityPortfolio(state: RuntimeState): FeasibilityPortf
         .filter((constraint) => constraint.site_id === site.id)
         .sort((left, right) => left.category.localeCompare(right.category) || left.title.localeCompare(right.title));
       const archicadLinks = state.archicad_links.filter((link) => link.site_id === site.id);
+      const resources = state.site_resources
+        .filter((resource) => resource.site_id === site.id)
+        .sort((left, right) => String(left.created_at ?? "").localeCompare(String(right.created_at ?? "")) || left.title.localeCompare(right.title));
+      const planningHighlights = state.site_planning_highlights
+        .filter((highlight) => highlight.site_id === site.id)
+        .sort((left, right) => String(right.created_at ?? "").localeCompare(String(left.created_at ?? "")));
+      const activePlanningHighlight = planningHighlights.find((highlight) => highlight.status !== "archived") ?? null;
+      const manualMapUrl = resources.find((resource) => resource.status !== "archived" && resource.resource_type === "map" && resource.url)?.url ?? null;
       const scenarioOptions = state.scenario_options
         .filter((option) => option.site_id === site.id)
         .sort((left, right) => left.name.localeCompare(right.name))
@@ -292,6 +320,8 @@ export function buildFeasibilityPortfolio(state: RuntimeState): FeasibilityPortf
 
       return {
         id: site.id,
+        siteCode: site.site_code ?? site.id,
+        siteDate: site.site_date ?? null,
         name: site.name,
         address: site.address,
         locality: site.locality ?? null,
@@ -302,6 +332,12 @@ export function buildFeasibilityPortfolio(state: RuntimeState): FeasibilityPortf
         siteAreaSqm: site.site_area_sqm ?? null,
         summary: site.summary ?? null,
         constraints,
+        resources,
+        planningHighlights,
+        activePlanningHighlight,
+        googleMapsUrl: manualMapUrl ?? googleMapsSearchUrl(site.address, site.locality),
+        googleMapsEmbedUrl: googleMapsEmbedUrl(site.address, site.locality),
+        manualMapUrl,
         scenarioOptions,
         archicadLinks
       };

@@ -21,6 +21,8 @@ export type CostingMethod =
 export type DevelopmentSiteRecord = {
   id: string;
   project_id: string;
+  site_code?: string | null;
+  site_date?: string | null;
   name: string;
   address: string;
   locality?: string | null;
@@ -33,6 +35,8 @@ export type DevelopmentSiteRecord = {
 };
 
 export type SitePatch = {
+  siteCode?: string | null;
+  siteDate?: string | null;
   name?: string;
   address?: string;
   locality?: string | null;
@@ -239,6 +243,216 @@ export type ArchicadLinkRecord = {
   assembly_task_ids?: string[];
   last_snapshot_at?: string | null;
 };
+
+export type SiteResourceRecord = {
+  id: string;
+  project_id: string;
+  site_id: string;
+  resource_type: string;
+  title: string;
+  url?: string | null;
+  storage_path?: string | null;
+  source_label?: string | null;
+  notes?: string | null;
+  status: string;
+  created_at?: string | null;
+};
+
+export type SitePlanningHighlightRecord = {
+  id: string;
+  project_id: string;
+  site_id: string;
+  source_resource_id?: string | null;
+  council?: string | null;
+  planning_scheme?: string | null;
+  zoning?: string | null;
+  overlays_json?: unknown[];
+  site_area_sqm?: number | null;
+  lot_plan?: string | null;
+  heritage_status?: string | null;
+  flood_status?: string | null;
+  bushfire_status?: string | null;
+  vegetation_status?: string | null;
+  easements?: string | null;
+  planning_summary?: string | null;
+  source_date?: string | null;
+  status: string;
+  created_at?: string | null;
+};
+
+export type NetworkOrganisationRecord = {
+  id: string;
+  project_id: string;
+  name: string;
+  organisation_type: string;
+  description?: string | null;
+  status: string;
+};
+
+export type NetworkProfileRecord = {
+  id: string;
+  project_id: string;
+  organisation_id?: string | null;
+  display_name: string;
+  profile_type: string;
+  category: string;
+  domain: string;
+  summary?: string | null;
+  contact_details?: string | null;
+  preferred_llm?: string | null;
+  status: string;
+};
+
+export type NetworkProfileCapabilityRecord = {
+  id: string;
+  project_id: string;
+  profile_id: string;
+  skills_json?: unknown[];
+  base_knowledge?: string | null;
+  scope?: string | null;
+  constraints_json?: unknown[];
+  question_types_json?: unknown[];
+  output_types_json?: unknown[];
+  operating_instructions_md?: string | null;
+  constraints_md?: string | null;
+  review_policy_md?: string | null;
+};
+
+export type NetworkKnowledgePackRecord = {
+  id: string;
+  project_id: string;
+  title: string;
+  domain: string;
+  instructions?: string | null;
+  constraints_json?: unknown[];
+  sources_json?: unknown[];
+  tools_json?: unknown[];
+  output_policy?: string | null;
+  status: string;
+};
+
+export type NetworkProfileKnowledgePackRecord = {
+  id: string;
+  project_id: string;
+  profile_id: string;
+  knowledge_pack_id: string;
+};
+
+export type NetworkInquiryRecord = {
+  id: string;
+  project_id: string;
+  title: string;
+  question: string;
+  status: string;
+  linked_ref_type?: string | null;
+  linked_ref_id?: string | null;
+  created_by?: string | null;
+  created_at?: string | null;
+};
+
+export type NetworkInquiryMessageRecord = {
+  id: string;
+  project_id: string;
+  inquiry_id: string;
+  profile_id?: string | null;
+  author_label: string;
+  author_type: string;
+  message: string;
+  citations_json?: unknown[];
+  created_at?: string | null;
+};
+
+export type NetworkWorkProductRecord = {
+  id: string;
+  project_id: string;
+  inquiry_id?: string | null;
+  profile_id?: string | null;
+  title: string;
+  product_type: string;
+  status: string;
+  summary?: string | null;
+  created_at?: string | null;
+};
+
+export type NetworkWorkProductLinkRecord = {
+  id: string;
+  project_id: string;
+  work_product_id: string;
+  linked_ref_type: string;
+  linked_ref_id: string;
+  notes?: string | null;
+};
+
+export type NetworkAgentCardRecord = {
+  id: string;
+  project_id: string;
+  profile_id: string;
+  model_label?: string | null;
+  system_instructions?: string | null;
+  context_policy?: string | null;
+  persona_md?: string | null;
+  memory_md?: string | null;
+  tool_policy_json?: unknown;
+  skill_policy_json?: unknown[];
+  output_schema_json?: Record<string, unknown>;
+  review_policy_md?: string | null;
+  escalation_policy_md?: string | null;
+  status: string;
+};
+
+export type NetworkAgentSessionRecord = {
+  id: string;
+  project_id: string;
+  inquiry_id?: string | null;
+  title: string;
+  status: string;
+  objective?: string | null;
+  linked_ref_type?: string | null;
+  linked_ref_id?: string | null;
+  created_at?: string | null;
+};
+
+export type NetworkAgentSessionParticipantRecord = {
+  id: string;
+  project_id: string;
+  session_id: string;
+  profile_id: string;
+  session_role: string;
+};
+
+export type NetworkAgentMessageRecord = {
+  id: string;
+  project_id: string;
+  session_id: string;
+  profile_id?: string | null;
+  author_label: string;
+  message_role: string;
+  content: string;
+  created_at?: string | null;
+};
+
+export type NetworkAgentToolCallRecord = {
+  id: string;
+  project_id: string;
+  session_id: string;
+  profile_id?: string | null;
+  tool_name: string;
+  input_summary?: string | null;
+  output_summary?: string | null;
+  evidence_refs_json?: unknown[];
+};
+
+export type NetworkAgentOutputRecord = {
+  id: string;
+  project_id: string;
+  session_id: string;
+  profile_id?: string | null;
+  output_type: string;
+  title: string;
+  summary?: string | null;
+  output_json?: Record<string, unknown>;
+  status: string;
+};
 export type GovernedOperationalPatch = {
   packageId?: string | null;
   constructionState?: string | null;
@@ -266,6 +480,23 @@ export type RuntimeState = {
   scenario_cost_ranges: ScenarioCostRangeRecord[];
   sales_assumptions: SalesAssumptionRecord[];
   archicad_links: ArchicadLinkRecord[];
+  site_resources: SiteResourceRecord[];
+  site_planning_highlights: SitePlanningHighlightRecord[];
+  network_organisations: NetworkOrganisationRecord[];
+  network_profiles: NetworkProfileRecord[];
+  network_profile_capabilities: NetworkProfileCapabilityRecord[];
+  network_knowledge_packs: NetworkKnowledgePackRecord[];
+  network_profile_knowledge_packs: NetworkProfileKnowledgePackRecord[];
+  network_inquiries: NetworkInquiryRecord[];
+  network_inquiry_messages: NetworkInquiryMessageRecord[];
+  network_work_products: NetworkWorkProductRecord[];
+  network_work_product_links: NetworkWorkProductLinkRecord[];
+  network_agent_cards: NetworkAgentCardRecord[];
+  network_agent_sessions: NetworkAgentSessionRecord[];
+  network_agent_session_participants: NetworkAgentSessionParticipantRecord[];
+  network_agent_messages: NetworkAgentMessageRecord[];
+  network_agent_tool_calls: NetworkAgentToolCallRecord[];
+  network_agent_outputs: NetworkAgentOutputRecord[];
   master_code_catalogs: MasterCodeCatalogRecord[];
   master_code_items: MasterCodeItemRecord[];
   master_cost_templates: MasterCostTemplateRecord[];
@@ -307,6 +538,23 @@ const ARRAY_KEYS = [
   "scenario_cost_ranges",
   "sales_assumptions",
   "archicad_links",
+  "site_resources",
+  "site_planning_highlights",
+  "network_organisations",
+  "network_profiles",
+  "network_profile_capabilities",
+  "network_knowledge_packs",
+  "network_profile_knowledge_packs",
+  "network_inquiries",
+  "network_inquiry_messages",
+  "network_work_products",
+  "network_work_product_links",
+  "network_agent_cards",
+  "network_agent_sessions",
+  "network_agent_session_participants",
+  "network_agent_messages",
+  "network_agent_tool_calls",
+  "network_agent_outputs",
   "master_code_catalogs",
   "master_code_items",
   "master_cost_templates",
@@ -341,6 +589,23 @@ const FEASIBILITY_ARRAY_KEYS = new Set<string>([
   "scenario_cost_ranges",
   "sales_assumptions",
   "archicad_links",
+  "site_resources",
+  "site_planning_highlights",
+  "network_organisations",
+  "network_profiles",
+  "network_profile_capabilities",
+  "network_knowledge_packs",
+  "network_profile_knowledge_packs",
+  "network_inquiries",
+  "network_inquiry_messages",
+  "network_work_products",
+  "network_work_product_links",
+  "network_agent_cards",
+  "network_agent_sessions",
+  "network_agent_session_participants",
+  "network_agent_messages",
+  "network_agent_tool_calls",
+  "network_agent_outputs",
   "master_code_catalogs",
   "master_code_items",
   "master_cost_templates",
@@ -417,6 +682,23 @@ export function normalizeRuntimeState(raw: unknown): RuntimeState {
     | "scenario_cost_ranges"
     | "sales_assumptions"
     | "archicad_links"
+    | "site_resources"
+    | "site_planning_highlights"
+    | "network_organisations"
+    | "network_profiles"
+    | "network_profile_capabilities"
+    | "network_knowledge_packs"
+    | "network_profile_knowledge_packs"
+    | "network_inquiries"
+    | "network_inquiry_messages"
+    | "network_work_products"
+    | "network_work_product_links"
+    | "network_agent_cards"
+    | "network_agent_sessions"
+    | "network_agent_session_participants"
+    | "network_agent_messages"
+    | "network_agent_tool_calls"
+    | "network_agent_outputs"
     | "master_code_catalogs"
     | "master_code_items"
     | "master_cost_templates"
@@ -456,6 +738,23 @@ export function normalizeRuntimeState(raw: unknown): RuntimeState {
     scenario_cost_ranges: arrayValues.scenario_cost_ranges as RuntimeState["scenario_cost_ranges"],
     sales_assumptions: arrayValues.sales_assumptions as RuntimeState["sales_assumptions"],
     archicad_links: arrayValues.archicad_links as RuntimeState["archicad_links"],
+    site_resources: arrayValues.site_resources as RuntimeState["site_resources"],
+    site_planning_highlights: arrayValues.site_planning_highlights as RuntimeState["site_planning_highlights"],
+    network_organisations: arrayValues.network_organisations as RuntimeState["network_organisations"],
+    network_profiles: arrayValues.network_profiles as RuntimeState["network_profiles"],
+    network_profile_capabilities: arrayValues.network_profile_capabilities as RuntimeState["network_profile_capabilities"],
+    network_knowledge_packs: arrayValues.network_knowledge_packs as RuntimeState["network_knowledge_packs"],
+    network_profile_knowledge_packs: arrayValues.network_profile_knowledge_packs as RuntimeState["network_profile_knowledge_packs"],
+    network_inquiries: arrayValues.network_inquiries as RuntimeState["network_inquiries"],
+    network_inquiry_messages: arrayValues.network_inquiry_messages as RuntimeState["network_inquiry_messages"],
+    network_work_products: arrayValues.network_work_products as RuntimeState["network_work_products"],
+    network_work_product_links: arrayValues.network_work_product_links as RuntimeState["network_work_product_links"],
+    network_agent_cards: arrayValues.network_agent_cards as RuntimeState["network_agent_cards"],
+    network_agent_sessions: arrayValues.network_agent_sessions as RuntimeState["network_agent_sessions"],
+    network_agent_session_participants: arrayValues.network_agent_session_participants as RuntimeState["network_agent_session_participants"],
+    network_agent_messages: arrayValues.network_agent_messages as RuntimeState["network_agent_messages"],
+    network_agent_tool_calls: arrayValues.network_agent_tool_calls as RuntimeState["network_agent_tool_calls"],
+    network_agent_outputs: arrayValues.network_agent_outputs as RuntimeState["network_agent_outputs"],
     master_code_catalogs: arrayValues.master_code_catalogs as RuntimeState["master_code_catalogs"],
     master_code_items: arrayValues.master_code_items as RuntimeState["master_code_items"],
     master_cost_templates: arrayValues.master_cost_templates as RuntimeState["master_cost_templates"],
@@ -533,6 +832,8 @@ export function createDevelopmentSite(
   const site: DevelopmentSiteRecord = {
     id: input.id,
     project_id: input.projectId ?? state.project.id,
+    site_code: input.siteCode?.trim() || input.id,
+    site_date: input.siteDate?.trim() || null,
     name,
     address,
     locality: input.locality ?? null,
@@ -559,6 +860,8 @@ export function updateDevelopmentSite(
   if (patch.name !== undefined) {
     site.name = validateSiteName(state, siteId, patch.name);
   }
+  if (patch.siteCode !== undefined) site.site_code = patch.siteCode?.trim() || null;
+  if (patch.siteDate !== undefined) site.site_date = patch.siteDate?.trim() || null;
   if (patch.address !== undefined) {
     const address = patch.address.trim();
     if (!address) {

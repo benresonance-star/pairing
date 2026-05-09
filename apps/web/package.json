@@ -6,7 +6,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "test": "tsx --test src/lib/runtime-state.test.ts src/lib/linear-schedule.test.ts src/lib/feasibility.test.ts"
+    "test": "tsx --test src/lib/runtime-state.test.ts src/lib/linear-schedule.test.ts src/lib/feasibility.test.ts src/lib/project-network.test.ts"
   },
   "dependencies": {
     "@supabase/ssr": "^0.10.2",

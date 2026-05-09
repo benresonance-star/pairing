@@ -19,6 +19,19 @@ JSON_COLUMNS = {
     "field_value",
     "quantity_json",
     "archicad_snapshot_json",
+    "skills_json",
+    "constraints_json",
+    "question_types_json",
+    "output_types_json",
+    "sources_json",
+    "tools_json",
+    "citations_json",
+    "tool_policy_json",
+    "skill_policy_json",
+    "output_schema_json",
+    "evidence_refs_json",
+    "output_json",
+    "overlays_json",
 }
 
 GLOBAL_SEED_TABLE_ORDER = [
@@ -39,6 +52,23 @@ PROJECT_SCOPED_SEED_TABLES = {
     "scenario_cost_ranges",
     "sales_assumptions",
     "archicad_links",
+    "site_resources",
+    "site_planning_highlights",
+    "network_organisations",
+    "network_profiles",
+    "network_profile_capabilities",
+    "network_knowledge_packs",
+    "network_profile_knowledge_packs",
+    "network_inquiries",
+    "network_inquiry_messages",
+    "network_work_products",
+    "network_work_product_links",
+    "network_agent_cards",
+    "network_agent_sessions",
+    "network_agent_session_participants",
+    "network_agent_messages",
+    "network_agent_tool_calls",
+    "network_agent_outputs",
     "scenario_cost_plan_items",
     "work_packages",
     "scenarios",
@@ -71,6 +101,23 @@ SEED_TABLE_ORDER = [
     "scenario_cost_ranges",
     "sales_assumptions",
     "archicad_links",
+    "site_resources",
+    "site_planning_highlights",
+    "network_organisations",
+    "network_profiles",
+    "network_profile_capabilities",
+    "network_knowledge_packs",
+    "network_profile_knowledge_packs",
+    "network_inquiries",
+    "network_inquiry_messages",
+    "network_work_products",
+    "network_work_product_links",
+    "network_agent_cards",
+    "network_agent_sessions",
+    "network_agent_session_participants",
+    "network_agent_messages",
+    "network_agent_tool_calls",
+    "network_agent_outputs",
     "scenario_cost_plan_items",
     "zones",
     "model_objects",
@@ -168,6 +215,9 @@ def apply_migrations(connection: psycopg.Connection[object]) -> None:
         with connection.cursor() as cursor:
             cursor.execute(sql_text)
         print(f"Applied migration {migration_path.name}")
+    with connection.cursor() as cursor:
+        cursor.execute("notify pgrst, 'reload schema'")
+    print("Requested Supabase API schema cache reload")
 
 
 def load_seed_state() -> dict[str, object]:

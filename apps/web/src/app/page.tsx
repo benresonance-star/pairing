@@ -69,7 +69,9 @@ export default async function HomePage() {
         </p>
         <p>
           Start at <Link href="/sites">Sites</Link> for the site list or open{" "}
-          <Link href="/feasibility">Feasibility</Link> to compare low, mid, high, and other cost bands.
+          <Link href="/feasibility">Feasibility</Link> to compare low, mid, high, and other cost bands.{" "}
+          Use <Link href="/project-network">Project Network</Link> to route planning, cost, sales,
+          authority, and agentic questions into reviewable inquiries and work products.
         </p>
       </section>
 

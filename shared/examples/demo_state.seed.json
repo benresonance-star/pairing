@@ -307,6 +307,508 @@
       "last_snapshot_at": "2026-05-08T08:15:00.000Z"
     }
   ],
+  "site_resources": [
+    {
+      "id": "resource-mews-google-map",
+      "project_id": "11111111-1111-1111-1111-111111111111",
+      "site_id": "site-mews-lane",
+      "resource_type": "map",
+      "title": "Mews Lane Google Map",
+      "url": "https://www.google.com/maps/search/?api=1&query=12-18%20Mews%20Lane%2C%20Brunswick%20VIC",
+      "storage_path": null,
+      "source_label": "Manual Google Maps review",
+      "notes": "Manual override for the generated site address map.",
+      "status": "active",
+      "created_at": "2026-05-09T06:30:00.000Z"
+    },
+    {
+      "id": "resource-mews-property-report",
+      "project_id": "11111111-1111-1111-1111-111111111111",
+      "site_id": "site-mews-lane",
+      "resource_type": "property_report",
+      "title": "Planning Property Report",
+      "url": "https://example.com/reports/mews-lane-planning-property-report.pdf",
+      "storage_path": "site-reports/site-mews-lane/planning-property-report.pdf",
+      "source_label": "Supabase uploaded property report",
+      "notes": "Source for council, zoning, overlays, site area, and constraints summary.",
+      "status": "active",
+      "created_at": "2026-05-09T06:35:00.000Z"
+    },
+    {
+      "id": "resource-mews-listing",
+      "project_id": "11111111-1111-1111-1111-111111111111",
+      "site_id": "site-mews-lane",
+      "resource_type": "listing",
+      "title": "Comparable Listing Research",
+      "url": "https://www.realestate.com.au/buy/in-brunswick,+vic+3056/list-1",
+      "storage_path": null,
+      "source_label": "realestate.com.au",
+      "notes": "Comparable townhouse and townhouse-site sale research for revenue assumptions.",
+      "status": "active",
+      "created_at": "2026-05-09T06:40:00.000Z"
+    },
+    {
+      "id": "resource-mews-planning-portal",
+      "project_id": "11111111-1111-1111-1111-111111111111",
+      "site_id": "site-mews-lane",
+      "resource_type": "planning_portal",
+      "title": "Council Planning Portal",
+      "url": "https://www.merri-bek.vic.gov.au/building-and-business/planning-and-building/",
+      "storage_path": null,
+      "source_label": "Merri-bek City Council",
+      "notes": "Authority source for planning controls, application pathway, and lodgement guidance.",
+      "status": "active",
+      "created_at": "2026-05-09T06:45:00.000Z"
+    }
+  ],
+  "site_planning_highlights": [
+    {
+      "id": "planning-highlight-mews-lane",
+      "project_id": "11111111-1111-1111-1111-111111111111",
+      "site_id": "site-mews-lane",
+      "source_resource_id": "resource-mews-property-report",
+      "council": "Merri-bek City Council",
+      "planning_scheme": "Merri-bek Planning Scheme",
+      "zoning": "Neighbourhood Residential Zone",
+      "overlays_json": ["Design and Development Overlay", "Development Contributions Plan Overlay"],
+      "site_area_sqm": 812,
+      "lot_plan": "Lots 12-14 LP12345",
+      "heritage_status": "No individual heritage overlay identified in source report",
+      "flood_status": "No flood overlay identified; verify drainage authority comments",
+      "bushfire_status": "Not in Bushfire Management Overlay",
+      "vegetation_status": "Street tree and rear vegetation retention to be confirmed",
+      "easements": "Rear drainage easement noted along south boundary; maintain authority access during design.",
+      "planning_summary": "Townhouse yield appears plausible subject to height, overlooking, neighbourhood character, and drainage easement constraints.",
+      "source_date": "2026-05-08",
+      "status": "active",
+      "created_at": "2026-05-09T06:50:00.000Z"
+    }
+  ],
+  "network_organisations": [
+    {
+      "id": "network-org-developer",
+      "project_id": "11111111-1111-1111-1111-111111111111",
+      "name": "Mews Lane Development Co.",
+      "organisation_type": "developer",
+      "description": "Principal developer and feasibility sponsor for site acquisition, strategy, delivery, and exit decisions.",
+      "status": "active"
+    },
+    {
+      "id": "network-org-authorities",
+      "project_id": "11111111-1111-1111-1111-111111111111",
+      "name": "Authorities and Certifiers",
+      "organisation_type": "authority",
+      "description": "Planning, utilities, building surveyor, and statutory reviewers represented as advisory profiles.",
+      "status": "active"
+    },
+    {
+      "id": "network-org-consultants",
+      "project_id": "11111111-1111-1111-1111-111111111111",
+      "name": "Design and Specialist Consultants",
+      "organisation_type": "consultant",
+      "description": "Architectural, planning, civil, engineering, market, tax, legal, and finance advice network.",
+      "status": "active"
+    },
+    {
+      "id": "network-org-delivery",
+      "project_id": "11111111-1111-1111-1111-111111111111",
+      "name": "Delivery Supply Chain",
+      "organisation_type": "builder",
+      "description": "Builder, subcontractor, fabricator, supplier, and waste management inputs for buildability and pricing.",
+      "status": "active"
+    },
+    {
+      "id": "network-org-agentic",
+      "project_id": "11111111-1111-1111-1111-111111111111",
+      "name": "Agentic Advisory Bench",
+      "organisation_type": "agentic",
+      "description": "LLM-ready specialist agents governed by project scope, evidence, tool policies, and human review.",
+      "status": "active"
+    }
+  ],
+  "network_profiles": [
+    {
+      "id": "network-profile-developer-principal",
+      "project_id": "11111111-1111-1111-1111-111111111111",
+      "organisation_id": "network-org-developer",
+      "display_name": "Developer Principal",
+      "profile_type": "human",
+      "category": "Developer Team",
+      "domain": "Strategy, acquisition, capital allocation",
+      "summary": "Frames the investment thesis, target margin, risk appetite, hold/sell strategy, and go/no-go decisions.",
+      "contact_details": "principal@mewslane.example\nPreferred channel: weekly feasibility review",
+      "status": "active"
+    },
+    {
+      "id": "network-profile-feasibility-lead",
+      "project_id": "11111111-1111-1111-1111-111111111111",
+      "organisation_id": "network-org-developer",
+      "display_name": "Feasibility Lead",
+      "profile_type": "human",
+      "category": "Developer Team",
+      "domain": "Cost, revenue, program, and scenario modelling",
+      "summary": "Owns the feasibility model, scenario assumptions, sensitivity checks, and decision papers.",
+      "status": "active"
+    },
+    {
+      "id": "network-profile-planner",
+      "project_id": "11111111-1111-1111-1111-111111111111",
+      "organisation_id": "network-org-authorities",
+      "display_name": "Planning Authority Reviewer",
+      "profile_type": "human",
+      "category": "Authorities",
+      "domain": "Planning scheme, overlays, neighbourhood character",
+      "summary": "Surfaces likely planning objections, approval pathway risks, information requests, and conditions.",
+      "status": "active"
+    },
+    {
+      "id": "network-profile-architect",
+      "project_id": "11111111-1111-1111-1111-111111111111",
+      "organisation_id": "network-org-consultants",
+      "display_name": "Design Architect",
+      "profile_type": "human",
+      "category": "Consultants",
+      "domain": "Yield, massing, amenity, Archicad model intent",
+      "summary": "Coordinates design scenarios, model assumptions, envelope constraints, and product quality.",
+      "status": "active"
+    },
+    {
+      "id": "network-profile-builder",
+      "project_id": "11111111-1111-1111-1111-111111111111",
+      "organisation_id": "network-org-delivery",
+      "display_name": "Builder / Preconstruction Manager",
+      "profile_type": "human",
+      "category": "Delivery & Construction",
+      "domain": "Buildability, program, procurement, trade packaging",
+      "summary": "Challenges construction methodology, trade sequencing, cost risk, lead times, and site logistics.",
+      "status": "active"
+    },
+    {
+      "id": "network-profile-sales-agent",
+      "project_id": "11111111-1111-1111-1111-111111111111",
+      "organisation_id": "network-org-consultants",
+      "display_name": "Sales and Marketing Agent",
+      "profile_type": "human",
+      "category": "Commercial / Finance / Legal",
+      "domain": "Product mix, buyer demand, pricing, campaign strategy",
+      "summary": "Tests product-market fit, buyer objections, pricing bands, presale strategy, and absorption rate.",
+      "status": "active"
+    },
+    {
+      "id": "network-profile-financier",
+      "project_id": "11111111-1111-1111-1111-111111111111",
+      "organisation_id": "network-org-consultants",
+      "display_name": "Financier / Credit Assessor",
+      "profile_type": "human",
+      "category": "Commercial / Finance / Legal",
+      "domain": "Funding, presales, covenants, drawdown risk",
+      "summary": "Assesses debt appetite, contingency, interest cover, presale hurdles, and credit committee concerns.",
+      "status": "active"
+    },
+    {
+      "id": "network-profile-buyer-persona",
+      "project_id": "11111111-1111-1111-1111-111111111111",
+      "organisation_id": "network-org-consultants",
+      "display_name": "Target Buyer Persona",
+      "profile_type": "synthetic",
+      "category": "Market / Community",
+      "domain": "Buyer needs, objections, willingness to pay",
+      "summary": "Represents purchaser motivations around parking, storage, outdoor space, schools, and price sensitivity.",
+      "status": "active"
+    },
+    {
+      "id": "network-profile-neighbour",
+      "project_id": "11111111-1111-1111-1111-111111111111",
+      "organisation_id": "network-org-authorities",
+      "display_name": "Neighbour / Community Voice",
+      "profile_type": "synthetic",
+      "category": "Market / Community",
+      "domain": "Amenity, overshadowing, privacy, construction disruption",
+      "summary": "Represents adjacent resident concerns that can influence planning response and construction logistics.",
+      "status": "active"
+    },
+    {
+      "id": "network-profile-planning-agent",
+      "project_id": "11111111-1111-1111-1111-111111111111",
+      "organisation_id": "network-org-agentic",
+      "display_name": "Planning Risk Agent",
+      "profile_type": "agentic",
+      "category": "Agentic Assistants",
+      "domain": "Planning constraints and approval strategy",
+      "summary": "LLM-ready agent that reviews site constraints, planning notes, scenarios, and authority questions.",
+      "preferred_llm": "Configurable LLM",
+      "status": "active"
+    },
+    {
+      "id": "network-profile-cost-agent",
+      "project_id": "11111111-1111-1111-1111-111111111111",
+      "organisation_id": "network-org-agentic",
+      "display_name": "Cost Intelligence Agent",
+      "profile_type": "agentic",
+      "category": "Agentic Assistants",
+      "domain": "Master costs, packages, source evidence, scenario ranges",
+      "summary": "LLM-ready agent that compares master database rates, template links, and scenario cost plan deltas.",
+      "preferred_llm": "Configurable LLM",
+      "status": "active"
+    },
+    {
+      "id": "network-profile-orchestration-agent",
+      "project_id": "11111111-1111-1111-1111-111111111111",
+      "organisation_id": "network-org-agentic",
+      "display_name": "Collaboration Orchestrator",
+      "profile_type": "agentic",
+      "category": "Agentic Assistants",
+      "domain": "Multi-agent inquiry routing and review workflow",
+      "summary": "Coordinates participants, asks follow-up questions, and converts inquiry outputs into reviewed work products.",
+      "preferred_llm": "Configurable LLM",
+      "status": "active"
+    }
+  ],
+  "network_profile_capabilities": [
+    {
+      "id": "network-cap-feasibility-lead",
+      "project_id": "11111111-1111-1111-1111-111111111111",
+      "profile_id": "network-profile-feasibility-lead",
+      "skills_json": ["financial feasibility", "scenario comparison", "sensitivity analysis"],
+      "base_knowledge": "Uses current sites, scenarios, cost ranges, sales assumptions, and schedule data.",
+      "scope": "Can propose assumptions and work products; project mutations require human approval.",
+      "constraints_json": ["Separate assumptions from evidence", "Flag stale or missing inputs"],
+      "question_types_json": ["Which scenario is best?", "What is driving margin?", "What needs validation next?"],
+      "output_types_json": ["decision memo", "risk register", "sensitivity table"]
+    },
+    {
+      "id": "network-cap-cost-agent",
+      "project_id": "11111111-1111-1111-1111-111111111111",
+      "profile_id": "network-profile-cost-agent",
+      "skills_json": ["cost benchmarking", "rate source review", "template comparison"],
+      "base_knowledge": "Reads master cost database items, code catalogue links, template items, scenario cost plans, and source notes.",
+      "scope": "Advisory only until a human accepts a cost database or scenario update.",
+      "constraints_json": ["Do not silently update scenario snapshots", "Cite source labels and dates"],
+      "question_types_json": ["Which rates are weak?", "Which package is over allowance?", "What should be repriced?"],
+      "output_types_json": ["cost review", "pricing query", "source gap report"]
+    },
+    {
+      "id": "network-cap-planning-agent",
+      "project_id": "11111111-1111-1111-1111-111111111111",
+      "profile_id": "network-profile-planning-agent",
+      "skills_json": ["planning risk screening", "constraint synthesis", "authority question drafting"],
+      "base_knowledge": "Reads site constraints, scenario summaries, Archicad links, and planning fit notes.",
+      "scope": "Can prepare questions and review notes; cannot represent formal planning advice.",
+      "constraints_json": ["Identify uncertainty", "Avoid legal conclusions without planner review"],
+      "question_types_json": ["What will council ask?", "Which yield has fewer objections?"],
+      "output_types_json": ["planning risk brief", "RFI list", "meeting agenda"]
+    }
+  ],
+  "network_knowledge_packs": [
+    {
+      "id": "network-kp-feasibility-control",
+      "project_id": "11111111-1111-1111-1111-111111111111",
+      "title": "Feasibility Control Pack",
+      "domain": "Financial and scenario feasibility",
+      "instructions": "Compare scenarios using site constraints, cost ranges, sales assumptions, and schedule impacts. Separate facts, assumptions, and decisions.",
+      "constraints_json": ["No automatic changes to approved scenario snapshots", "Always identify source confidence"],
+      "sources_json": ["sites", "scenario_options", "scenario_cost_ranges", "sales_assumptions"],
+      "tools_json": ["portfolio reader", "scenario comparator"],
+      "output_policy": "Decision-ready outputs require human review before becoming project records.",
+      "status": "active"
+    },
+    {
+      "id": "network-kp-planning-risk",
+      "project_id": "11111111-1111-1111-1111-111111111111",
+      "title": "Planning and Authority Pack",
+      "domain": "Planning, utilities, building approvals",
+      "instructions": "Interrogate constraints, likely authority questions, overlays, and neighbour concerns before committing to design yield.",
+      "constraints_json": ["Use plain-language risk labels", "Flag when formal consultant advice is needed"],
+      "sources_json": ["site_constraints", "archicad_links", "scenario_options"],
+      "tools_json": ["constraint summariser", "RFI generator"],
+      "output_policy": "Authority-facing material must be reviewed by the nominated human planner.",
+      "status": "active"
+    },
+    {
+      "id": "network-kp-cost-intelligence",
+      "project_id": "11111111-1111-1111-1111-111111111111",
+      "title": "Cost Intelligence Pack",
+      "domain": "Master cost database, package pricing, source confidence",
+      "instructions": "Use linked master costs and source notes to explain pricing confidence, gaps, and package-level risk.",
+      "constraints_json": ["Preserve scenario snapshot history", "Do not invent source rates"],
+      "sources_json": ["master_cost_items", "master_cost_item_sources", "master_cost_templates", "master_code_items"],
+      "tools_json": ["cost code lookup", "rate variance review"],
+      "output_policy": "Cost outputs are advisory until accepted into the master database or a scenario revision.",
+      "status": "active"
+    }
+  ],
+  "network_profile_knowledge_packs": [
+    { "id": "network-link-kp-feasibility-lead", "project_id": "11111111-1111-1111-1111-111111111111", "profile_id": "network-profile-feasibility-lead", "knowledge_pack_id": "network-kp-feasibility-control" },
+    { "id": "network-link-kp-planning-agent", "project_id": "11111111-1111-1111-1111-111111111111", "profile_id": "network-profile-planning-agent", "knowledge_pack_id": "network-kp-planning-risk" },
+    { "id": "network-link-kp-cost-agent", "project_id": "11111111-1111-1111-1111-111111111111", "profile_id": "network-profile-cost-agent", "knowledge_pack_id": "network-kp-cost-intelligence" },
+    { "id": "network-link-kp-orchestrator", "project_id": "11111111-1111-1111-1111-111111111111", "profile_id": "network-profile-orchestration-agent", "knowledge_pack_id": "network-kp-feasibility-control" }
+  ],
+  "network_inquiries": [
+    {
+      "id": "network-inquiry-yield-risk",
+      "project_id": "11111111-1111-1111-1111-111111111111",
+      "title": "Can the 4 townhouse option survive planning and still hit margin?",
+      "question": "Compare the 3 townhouse premium and 4 townhouse yield options across planning risk, cost confidence, saleability, and program pressure.",
+      "status": "open",
+      "linked_ref_type": "site",
+      "linked_ref_id": "site-mews-lane",
+      "created_by": "Developer Principal",
+      "created_at": "2026-05-09T08:30:00.000Z"
+    },
+    {
+      "id": "network-inquiry-rate-confidence",
+      "project_id": "11111111-1111-1111-1111-111111111111",
+      "title": "Which master cost rates need market validation before acquisition?",
+      "question": "Identify rates in the townhouse template with weak source confidence or high package sensitivity.",
+      "status": "triage",
+      "linked_ref_type": "master_cost_template",
+      "linked_ref_id": "cost-template-townhouse-standard",
+      "created_by": "Feasibility Lead",
+      "created_at": "2026-05-09T09:10:00.000Z"
+    }
+  ],
+  "network_inquiry_messages": [
+    {
+      "id": "network-message-yield-risk-1",
+      "project_id": "11111111-1111-1111-1111-111111111111",
+      "inquiry_id": "network-inquiry-yield-risk",
+      "profile_id": "network-profile-planning-agent",
+      "author_label": "Planning Risk Agent",
+      "author_type": "agentic",
+      "message": "The 4 townhouse option should be tested against rear setback, overlooking, parking, and third-storey bulk before relying on the higher revenue case.",
+      "citations_json": ["constraint-mews-planning-height", "constraint-mews-services-easement"],
+      "created_at": "2026-05-09T09:00:00.000Z"
+    },
+    {
+      "id": "network-message-yield-risk-2",
+      "project_id": "11111111-1111-1111-1111-111111111111",
+      "inquiry_id": "network-inquiry-yield-risk",
+      "profile_id": "network-profile-sales-agent",
+      "author_label": "Sales and Marketing Agent",
+      "author_type": "human",
+      "message": "Four smaller dwellings may broaden the buyer pool, but the loss of private open space and parking certainty needs a buyer objection check.",
+      "citations_json": ["sales-mews-4-townhouse"],
+      "created_at": "2026-05-09T09:18:00.000Z"
+    },
+    {
+      "id": "network-message-rate-confidence-1",
+      "project_id": "11111111-1111-1111-1111-111111111111",
+      "inquiry_id": "network-inquiry-rate-confidence",
+      "profile_id": "network-profile-cost-agent",
+      "author_label": "Cost Intelligence Agent",
+      "author_type": "agentic",
+      "message": "Facade, drainage, and preliminaries should be repriced first because they touch both package risk and planning-response scope.",
+      "citations_json": ["cost-item-facade-screen", "cost-item-drainage"],
+      "created_at": "2026-05-09T09:24:00.000Z"
+    }
+  ],
+  "network_work_products": [
+    {
+      "id": "network-product-planning-risk-brief",
+      "project_id": "11111111-1111-1111-1111-111111111111",
+      "inquiry_id": "network-inquiry-yield-risk",
+      "profile_id": "network-profile-planning-agent",
+      "title": "Planning risk brief for 4 townhouse yield case",
+      "product_type": "planning brief",
+      "status": "draft",
+      "summary": "Draft brief listing likely RFI items, design mitigations, and authority-facing questions before the next concept model revision.",
+      "created_at": "2026-05-09T09:35:00.000Z"
+    },
+    {
+      "id": "network-product-cost-source-gap",
+      "project_id": "11111111-1111-1111-1111-111111111111",
+      "inquiry_id": "network-inquiry-rate-confidence",
+      "profile_id": "network-profile-cost-agent",
+      "title": "Cost source gap report",
+      "product_type": "cost review",
+      "status": "review",
+      "summary": "Identifies master database items requiring live subcontractor checks before acquisition pricing is locked.",
+      "created_at": "2026-05-09T09:40:00.000Z"
+    }
+  ],
+  "network_work_product_links": [
+    { "id": "network-product-link-planning-brief", "project_id": "11111111-1111-1111-1111-111111111111", "work_product_id": "network-product-planning-risk-brief", "linked_ref_type": "scenario_option", "linked_ref_id": "option-mews-4-townhouse", "notes": "Use with the yield scenario planning review." },
+    { "id": "network-product-link-cost-gap", "project_id": "11111111-1111-1111-1111-111111111111", "work_product_id": "network-product-cost-source-gap", "linked_ref_type": "master_cost_template", "linked_ref_id": "cost-template-townhouse-standard", "notes": "Supports template pricing review." }
+  ],
+  "network_agent_cards": [
+    {
+      "id": "network-agent-card-planning",
+      "project_id": "11111111-1111-1111-1111-111111111111",
+      "profile_id": "network-profile-planning-agent",
+      "model_label": "Configurable LLM",
+      "system_instructions": "Act as an advisory planning-risk analyst. Use project evidence and mark uncertainty clearly.",
+      "context_policy": "May read site, scenario, constraint, Archicad-link, and inquiry records. Writes require human review.",
+      "tool_policy_json": ["read_project_network", "read_feasibility", "draft_work_product"],
+      "output_schema_json": { "required": ["risk_summary", "evidence", "open_questions"] },
+      "status": "active"
+    },
+    {
+      "id": "network-agent-card-cost",
+      "project_id": "11111111-1111-1111-1111-111111111111",
+      "profile_id": "network-profile-cost-agent",
+      "model_label": "Configurable LLM",
+      "system_instructions": "Act as an advisory cost-intelligence analyst. Never mutate scenario snapshots without approval.",
+      "context_policy": "May read master cost, code catalogue, source, template, and scenario cost plan records.",
+      "tool_policy_json": ["read_cost_database", "compare_templates", "draft_work_product"],
+      "output_schema_json": { "required": ["cost_risks", "source_gaps", "recommended_checks"] },
+      "status": "active"
+    }
+  ],
+  "network_agent_sessions": [
+    {
+      "id": "network-agent-session-yield-risk",
+      "project_id": "11111111-1111-1111-1111-111111111111",
+      "inquiry_id": "network-inquiry-yield-risk",
+      "title": "Yield risk roundtable",
+      "status": "draft",
+      "objective": "Coordinate planning, cost, sales, and developer perspectives before choosing a preferred scenario.",
+      "linked_ref_type": "scenario_option",
+      "linked_ref_id": "option-mews-4-townhouse",
+      "created_at": "2026-05-09T09:45:00.000Z"
+    }
+  ],
+  "network_agent_session_participants": [
+    { "id": "network-agent-participant-planning", "project_id": "11111111-1111-1111-1111-111111111111", "session_id": "network-agent-session-yield-risk", "profile_id": "network-profile-planning-agent", "session_role": "planning critic" },
+    { "id": "network-agent-participant-cost", "project_id": "11111111-1111-1111-1111-111111111111", "session_id": "network-agent-session-yield-risk", "profile_id": "network-profile-cost-agent", "session_role": "cost critic" },
+    { "id": "network-agent-participant-orchestrator", "project_id": "11111111-1111-1111-1111-111111111111", "session_id": "network-agent-session-yield-risk", "profile_id": "network-profile-orchestration-agent", "session_role": "facilitator" }
+  ],
+  "network_agent_messages": [
+    {
+      "id": "network-agent-message-yield-opening",
+      "project_id": "11111111-1111-1111-1111-111111111111",
+      "session_id": "network-agent-session-yield-risk",
+      "profile_id": "network-profile-orchestration-agent",
+      "author_label": "Collaboration Orchestrator",
+      "message_role": "facilitator",
+      "content": "Frame the comparison as approval probability, revenue upside, cost confidence, and decision reversibility.",
+      "created_at": "2026-05-09T09:46:00.000Z"
+    }
+  ],
+  "network_agent_tool_calls": [
+    {
+      "id": "network-agent-tool-yield-feasibility-read",
+      "project_id": "11111111-1111-1111-1111-111111111111",
+      "session_id": "network-agent-session-yield-risk",
+      "profile_id": "network-profile-cost-agent",
+      "tool_name": "read_feasibility_portfolio",
+      "input_summary": "Compare Mews Lane 3TH and 4TH options.",
+      "output_summary": "Returned cost ranges, GFA, dwellings, sales assumptions, and linked template data.",
+      "evidence_refs_json": ["option-mews-3-townhouse", "option-mews-4-townhouse"]
+    }
+  ],
+  "network_agent_outputs": [
+    {
+      "id": "network-agent-output-yield-risk",
+      "project_id": "11111111-1111-1111-1111-111111111111",
+      "session_id": "network-agent-session-yield-risk",
+      "profile_id": "network-profile-orchestration-agent",
+      "output_type": "roundtable synthesis",
+      "title": "Initial yield-risk synthesis",
+      "summary": "Proceed with the 4 townhouse option only after planning massing tests and targeted subcontractor repricing.",
+      "output_json": { "confidence": "medium", "requires_human_review": true },
+      "status": "draft"
+    }
+  ],
   "master_code_catalogs": [
     {
       "id": "global-residential-code-catalog",

@@ -8,6 +8,7 @@ import { vocab } from "../../../../shared/contracts/api/index";
 import { isSupabaseMode } from "./data-source";
 import { buildFeasibilityPortfolio, type FeasibilityPortfolio, type SiteFeasibility } from "./feasibility";
 import { buildLinearScheduleData, type LinearScheduleData, type LinearScheduleFilters } from "./linear-schedule";
+import { buildProjectNetworkData, type ProjectNetworkData } from "./project-network";
 import {
   actionsForStatus,
   archiveDevelopmentSite,
@@ -110,6 +111,47 @@ export type CreateSiteInput = Omit<SitePatch, "status"> & {
 
 export type UpdateSiteInput = SitePatch & {
   siteId: string;
+};
+
+export type CreateSiteResourceInput = {
+  siteId: string;
+  resourceType: string;
+  title: string;
+  url?: string | null;
+  storagePath?: string | null;
+  sourceLabel?: string | null;
+  notes?: string | null;
+  status?: string | null;
+};
+
+export type UploadedSiteResourceFile = {
+  storagePath: string;
+  publicUrl: string;
+  fileName: string;
+};
+
+export type UpdateSiteResourceInput = CreateSiteResourceInput & {
+  resourceId: string;
+};
+
+export type UpsertSitePlanningHighlightInput = {
+  siteId: string;
+  highlightId?: string | null;
+  sourceResourceId?: string | null;
+  council?: string | null;
+  planningScheme?: string | null;
+  zoning?: string | null;
+  overlays: string[];
+  siteAreaSqm?: number | null;
+  lotPlan?: string | null;
+  heritageStatus?: string | null;
+  floodStatus?: string | null;
+  bushfireStatus?: string | null;
+  vegetationStatus?: string | null;
+  easements?: string | null;
+  planningSummary?: string | null;
+  sourceDate?: string | null;
+  status?: string | null;
 };
 
 export type CreateMasterCostTemplateInput = {
@@ -241,6 +283,103 @@ export type CreateMasterCodeItemInput = {
 
 export type UpdateMasterCodeItemInput = CreateMasterCodeItemInput & {
   itemId: string;
+};
+
+export type CreateNetworkInquiryInput = {
+  title: string;
+  question: string;
+  linkedRefType?: string | null;
+  linkedRefId?: string | null;
+  createdBy?: string | null;
+};
+
+export type CreateNetworkInquiryMessageInput = {
+  inquiryId: string;
+  profileId?: string | null;
+  authorLabel: string;
+  authorType: string;
+  message: string;
+};
+
+export type CreateNetworkWorkProductInput = {
+  inquiryId?: string | null;
+  profileId?: string | null;
+  title: string;
+  productType: string;
+  summary?: string | null;
+  linkedRefType?: string | null;
+  linkedRefId?: string | null;
+  linkNotes?: string | null;
+};
+
+export type CreateNetworkOrganisationInput = {
+  name: string;
+  organisationType: string;
+  description?: string | null;
+  status?: string | null;
+};
+
+export type UpdateNetworkOrganisationInput = CreateNetworkOrganisationInput & {
+  organisationId: string;
+};
+
+export type CreateNetworkProfileInput = {
+  organisationId?: string | null;
+  displayName: string;
+  profileType: string;
+  category: string;
+  domain: string;
+  summary?: string | null;
+  contactDetails?: string | null;
+  preferredLlm?: string | null;
+  status?: string | null;
+};
+
+export type UpdateNetworkProfileInput = CreateNetworkProfileInput & {
+  profileId: string;
+};
+
+export type UpsertNetworkProfileCapabilityInput = {
+  profileId: string;
+  skills: string[];
+  baseKnowledge?: string | null;
+  scope?: string | null;
+  constraints: string[];
+  questionTypes: string[];
+  outputTypes: string[];
+  operatingInstructionsMd?: string | null;
+  constraintsMd?: string | null;
+  reviewPolicyMd?: string | null;
+};
+
+export type CreateNetworkKnowledgePackInput = {
+  title: string;
+  domain: string;
+  instructions?: string | null;
+  constraints: string[];
+  sources: string[];
+  tools: string[];
+  outputPolicy?: string | null;
+  status?: string | null;
+};
+
+export type UpdateNetworkKnowledgePackInput = CreateNetworkKnowledgePackInput & {
+  knowledgePackId: string;
+};
+
+export type UpsertNetworkAgentCardInput = {
+  profileId: string;
+  modelLabel?: string | null;
+  systemInstructions?: string | null;
+  contextPolicy?: string | null;
+  personaMd?: string | null;
+  memoryMd?: string | null;
+  toolPolicy: unknown;
+  skillPolicy: unknown[];
+  outputSchema: Record<string, unknown>;
+  reviewPolicyMd?: string | null;
+  escalationPolicyMd?: string | null;
+  status?: string | null;
 };
 
 export type ScenarioEditorOperationalRow = {
@@ -885,6 +1024,457 @@ export async function getFeasibilityPortfolio(): Promise<FeasibilityPortfolio> {
   return buildFeasibilityPortfolio(state);
 }
 
+export async function getProjectNetworkData(): Promise<ProjectNetworkData> {
+  if (isSupabaseMode()) {
+    try {
+      const supabaseData = await (await getSupabaseStore()).getProjectNetworkData();
+      if (supabaseData.profiles.length > 0) {
+        return supabaseData;
+      }
+    } catch (error) {
+      if (!isLikelySupabaseTransportError(error)) {
+        throw error;
+      }
+    }
+  }
+  const state = await readState();
+  return buildProjectNetworkData(state);
+}
+
+function requireNetworkProfile(state: RuntimeState, profileId: string) {
+  const profile = state.network_profiles.find((item) => item.id === profileId);
+  if (!profile) {
+    throw new Error(`Network profile '${profileId}' was not found`);
+  }
+  return profile;
+}
+
+function requireNetworkKnowledgePack(state: RuntimeState, knowledgePackId: string) {
+  const pack = state.network_knowledge_packs.find((item) => item.id === knowledgePackId);
+  if (!pack) {
+    throw new Error(`Knowledge pack '${knowledgePackId}' was not found`);
+  }
+  return pack;
+}
+
+function assertUnusedNetworkOrganisation(state: RuntimeState, organisationId: string) {
+  if (state.network_profiles.some((item) => item.organisation_id === organisationId)) {
+    throw new Error("Organisations assigned to profiles must be archived instead of deleted");
+  }
+}
+
+function assertUnusedNetworkProfile(state: RuntimeState, profileId: string) {
+  const isUsed =
+    state.network_inquiry_messages.some((item) => item.profile_id === profileId) ||
+    state.network_work_products.some((item) => item.profile_id === profileId) ||
+    state.network_agent_cards.some((item) => item.profile_id === profileId) ||
+    state.network_agent_session_participants.some((item) => item.profile_id === profileId) ||
+    state.network_agent_messages.some((item) => item.profile_id === profileId) ||
+    state.network_agent_tool_calls.some((item) => item.profile_id === profileId) ||
+    state.network_agent_outputs.some((item) => item.profile_id === profileId);
+  if (isUsed) {
+    throw new Error("Profiles with inquiries, work products, or agent runtime records must be archived instead of deleted");
+  }
+}
+
+function assertUnusedKnowledgePack(state: RuntimeState, knowledgePackId: string) {
+  if (state.network_profile_knowledge_packs.some((item) => item.knowledge_pack_id === knowledgePackId)) {
+    throw new Error("Knowledge packs assigned to profiles must be archived instead of deleted");
+  }
+}
+
+export async function createNetworkOrganisation(input: CreateNetworkOrganisationInput): Promise<{ organisationId: string }> {
+  if (isSupabaseMode()) {
+    return (await getSupabaseStore()).createNetworkOrganisation(input);
+  }
+  const name = input.name.trim();
+  const organisationType = input.organisationType.trim();
+  if (!name) throw new Error("Organisation name is required");
+  if (!organisationType) throw new Error("Organisation type is required");
+
+  const state = await readState();
+  const organisationId = randomUUID();
+  state.network_organisations.push({
+    id: organisationId,
+    project_id: state.project.id,
+    name,
+    organisation_type: organisationType,
+    description: input.description?.trim() || null,
+    status: input.status?.trim() || "active"
+  });
+  await writeState(state);
+  return { organisationId };
+}
+
+export async function updateNetworkOrganisation(input: UpdateNetworkOrganisationInput): Promise<void> {
+  if (isSupabaseMode()) {
+    return (await getSupabaseStore()).updateNetworkOrganisation(input);
+  }
+  const state = await readState();
+  const organisation = state.network_organisations.find((item) => item.id === input.organisationId);
+  if (!organisation) throw new Error(`Network organisation '${input.organisationId}' was not found`);
+  organisation.name = input.name.trim();
+  organisation.organisation_type = input.organisationType.trim();
+  organisation.description = input.description?.trim() || null;
+  organisation.status = input.status?.trim() || "active";
+  await writeState(state);
+}
+
+export async function archiveNetworkOrganisation(organisationId: string): Promise<void> {
+  if (isSupabaseMode()) {
+    return (await getSupabaseStore()).archiveNetworkOrganisation(organisationId);
+  }
+  const state = await readState();
+  const organisation = state.network_organisations.find((item) => item.id === organisationId);
+  if (!organisation) throw new Error(`Network organisation '${organisationId}' was not found`);
+  organisation.status = "archived";
+  await writeState(state);
+}
+
+export async function deleteNetworkOrganisation(organisationId: string): Promise<void> {
+  if (isSupabaseMode()) {
+    return (await getSupabaseStore()).deleteNetworkOrganisation(organisationId);
+  }
+  const state = await readState();
+  assertUnusedNetworkOrganisation(state, organisationId);
+  state.network_organisations = state.network_organisations.filter((item) => item.id !== organisationId);
+  await writeState(state);
+}
+
+export async function createNetworkProfile(input: CreateNetworkProfileInput): Promise<{ profileId: string }> {
+  if (isSupabaseMode()) {
+    return (await getSupabaseStore()).createNetworkProfile(input);
+  }
+  const displayName = input.displayName.trim();
+  if (!displayName) throw new Error("Profile display name is required");
+  const state = await readState();
+  if (input.organisationId && !state.network_organisations.some((item) => item.id === input.organisationId)) {
+    throw new Error(`Network organisation '${input.organisationId}' was not found`);
+  }
+  const profileId = randomUUID();
+  state.network_profiles.push({
+    id: profileId,
+    project_id: state.project.id,
+    organisation_id: input.organisationId ?? null,
+    display_name: displayName,
+    profile_type: input.profileType.trim() || "human",
+    category: input.category.trim() || "Developer Team",
+    domain: input.domain.trim() || "General",
+    summary: input.summary?.trim() || null,
+    contact_details: input.contactDetails?.trim() || null,
+    preferred_llm: input.preferredLlm?.trim() || null,
+    status: input.status?.trim() || "active"
+  });
+  await writeState(state);
+  return { profileId };
+}
+
+export async function updateNetworkProfile(input: UpdateNetworkProfileInput): Promise<void> {
+  if (isSupabaseMode()) {
+    return (await getSupabaseStore()).updateNetworkProfile(input);
+  }
+  const state = await readState();
+  const profile = requireNetworkProfile(state, input.profileId);
+  if (input.organisationId && !state.network_organisations.some((item) => item.id === input.organisationId)) {
+    throw new Error(`Network organisation '${input.organisationId}' was not found`);
+  }
+  profile.organisation_id = input.organisationId ?? null;
+  profile.display_name = input.displayName.trim();
+  profile.profile_type = input.profileType.trim() || "human";
+  profile.category = input.category.trim() || "Developer Team";
+  profile.domain = input.domain.trim() || "General";
+  profile.summary = input.summary?.trim() || null;
+  profile.contact_details = input.contactDetails?.trim() || null;
+  profile.preferred_llm = input.preferredLlm?.trim() || null;
+  profile.status = input.status?.trim() || "active";
+  await writeState(state);
+}
+
+export async function archiveNetworkProfile(profileId: string): Promise<void> {
+  if (isSupabaseMode()) {
+    return (await getSupabaseStore()).archiveNetworkProfile(profileId);
+  }
+  const state = await readState();
+  requireNetworkProfile(state, profileId).status = "archived";
+  await writeState(state);
+}
+
+export async function deleteNetworkProfile(profileId: string): Promise<void> {
+  if (isSupabaseMode()) {
+    return (await getSupabaseStore()).deleteNetworkProfile(profileId);
+  }
+  const state = await readState();
+  assertUnusedNetworkProfile(state, profileId);
+  state.network_profiles = state.network_profiles.filter((item) => item.id !== profileId);
+  state.network_profile_capabilities = state.network_profile_capabilities.filter((item) => item.profile_id !== profileId);
+  state.network_profile_knowledge_packs = state.network_profile_knowledge_packs.filter((item) => item.profile_id !== profileId);
+  await writeState(state);
+}
+
+export async function upsertNetworkProfileCapability(input: UpsertNetworkProfileCapabilityInput): Promise<{ capabilityId: string }> {
+  if (isSupabaseMode()) {
+    return (await getSupabaseStore()).upsertNetworkProfileCapability(input);
+  }
+  const state = await readState();
+  requireNetworkProfile(state, input.profileId);
+  let capability = state.network_profile_capabilities.find((item) => item.profile_id === input.profileId);
+  if (!capability) {
+    capability = {
+      id: randomUUID(),
+      project_id: state.project.id,
+      profile_id: input.profileId
+    };
+    state.network_profile_capabilities.push(capability);
+  }
+  capability.skills_json = input.skills;
+  capability.base_knowledge = input.baseKnowledge?.trim() || null;
+  capability.scope = input.scope?.trim() || null;
+  capability.constraints_json = input.constraints;
+  capability.question_types_json = input.questionTypes;
+  capability.output_types_json = input.outputTypes;
+  capability.operating_instructions_md = input.operatingInstructionsMd?.trim() || null;
+  capability.constraints_md = input.constraintsMd?.trim() || null;
+  capability.review_policy_md = input.reviewPolicyMd?.trim() || null;
+  await writeState(state);
+  return { capabilityId: capability.id };
+}
+
+export async function deleteNetworkProfileCapability(profileId: string): Promise<void> {
+  if (isSupabaseMode()) {
+    return (await getSupabaseStore()).deleteNetworkProfileCapability(profileId);
+  }
+  const state = await readState();
+  state.network_profile_capabilities = state.network_profile_capabilities.filter((item) => item.profile_id !== profileId);
+  await writeState(state);
+}
+
+export async function createNetworkKnowledgePack(input: CreateNetworkKnowledgePackInput): Promise<{ knowledgePackId: string }> {
+  if (isSupabaseMode()) {
+    return (await getSupabaseStore()).createNetworkKnowledgePack(input);
+  }
+  const title = input.title.trim();
+  const domain = input.domain.trim();
+  if (!title) throw new Error("Knowledge pack title is required");
+  if (!domain) throw new Error("Knowledge pack domain is required");
+  const state = await readState();
+  const knowledgePackId = randomUUID();
+  state.network_knowledge_packs.push({
+    id: knowledgePackId,
+    project_id: state.project.id,
+    title,
+    domain,
+    instructions: input.instructions?.trim() || null,
+    constraints_json: input.constraints,
+    sources_json: input.sources,
+    tools_json: input.tools,
+    output_policy: input.outputPolicy?.trim() || null,
+    status: input.status?.trim() || "active"
+  });
+  await writeState(state);
+  return { knowledgePackId };
+}
+
+export async function updateNetworkKnowledgePack(input: UpdateNetworkKnowledgePackInput): Promise<void> {
+  if (isSupabaseMode()) {
+    return (await getSupabaseStore()).updateNetworkKnowledgePack(input);
+  }
+  const state = await readState();
+  const pack = requireNetworkKnowledgePack(state, input.knowledgePackId);
+  pack.title = input.title.trim();
+  pack.domain = input.domain.trim();
+  pack.instructions = input.instructions?.trim() || null;
+  pack.constraints_json = input.constraints;
+  pack.sources_json = input.sources;
+  pack.tools_json = input.tools;
+  pack.output_policy = input.outputPolicy?.trim() || null;
+  pack.status = input.status?.trim() || "active";
+  await writeState(state);
+}
+
+export async function archiveNetworkKnowledgePack(knowledgePackId: string): Promise<void> {
+  if (isSupabaseMode()) {
+    return (await getSupabaseStore()).archiveNetworkKnowledgePack(knowledgePackId);
+  }
+  const state = await readState();
+  requireNetworkKnowledgePack(state, knowledgePackId).status = "archived";
+  await writeState(state);
+}
+
+export async function deleteNetworkKnowledgePack(knowledgePackId: string): Promise<void> {
+  if (isSupabaseMode()) {
+    return (await getSupabaseStore()).deleteNetworkKnowledgePack(knowledgePackId);
+  }
+  const state = await readState();
+  assertUnusedKnowledgePack(state, knowledgePackId);
+  state.network_knowledge_packs = state.network_knowledge_packs.filter((item) => item.id !== knowledgePackId);
+  await writeState(state);
+}
+
+export async function assignKnowledgePackToProfile(profileId: string, knowledgePackId: string): Promise<void> {
+  if (isSupabaseMode()) {
+    return (await getSupabaseStore()).assignKnowledgePackToProfile(profileId, knowledgePackId);
+  }
+  const state = await readState();
+  requireNetworkProfile(state, profileId);
+  requireNetworkKnowledgePack(state, knowledgePackId);
+  if (!state.network_profile_knowledge_packs.some((item) => item.profile_id === profileId && item.knowledge_pack_id === knowledgePackId)) {
+    state.network_profile_knowledge_packs.push({
+      id: randomUUID(),
+      project_id: state.project.id,
+      profile_id: profileId,
+      knowledge_pack_id: knowledgePackId
+    });
+  }
+  await writeState(state);
+}
+
+export async function unassignKnowledgePackFromProfile(profileId: string, knowledgePackId: string): Promise<void> {
+  if (isSupabaseMode()) {
+    return (await getSupabaseStore()).unassignKnowledgePackFromProfile(profileId, knowledgePackId);
+  }
+  const state = await readState();
+  state.network_profile_knowledge_packs = state.network_profile_knowledge_packs.filter(
+    (item) => !(item.profile_id === profileId && item.knowledge_pack_id === knowledgePackId)
+  );
+  await writeState(state);
+}
+
+export async function upsertNetworkAgentCard(input: UpsertNetworkAgentCardInput): Promise<{ agentCardId: string }> {
+  if (isSupabaseMode()) {
+    return (await getSupabaseStore()).upsertNetworkAgentCard(input);
+  }
+  const state = await readState();
+  requireNetworkProfile(state, input.profileId);
+  let card = state.network_agent_cards.find((item) => item.profile_id === input.profileId);
+  if (!card) {
+    card = {
+      id: randomUUID(),
+      project_id: state.project.id,
+      profile_id: input.profileId,
+      status: "active"
+    };
+    state.network_agent_cards.push(card);
+  }
+  card.model_label = input.modelLabel?.trim() || null;
+  card.system_instructions = input.systemInstructions?.trim() || null;
+  card.context_policy = input.contextPolicy?.trim() || null;
+  card.persona_md = input.personaMd?.trim() || null;
+  card.memory_md = input.memoryMd?.trim() || null;
+  card.tool_policy_json = input.toolPolicy;
+  card.skill_policy_json = input.skillPolicy;
+  card.output_schema_json = input.outputSchema;
+  card.review_policy_md = input.reviewPolicyMd?.trim() || null;
+  card.escalation_policy_md = input.escalationPolicyMd?.trim() || null;
+  card.status = input.status?.trim() || "active";
+  await writeState(state);
+  return { agentCardId: card.id };
+}
+
+export async function createNetworkInquiry(input: CreateNetworkInquiryInput): Promise<{ inquiryId: string }> {
+  if (isSupabaseMode()) {
+    return (await getSupabaseStore()).createNetworkInquiry(input);
+  }
+  const title = input.title.trim();
+  const question = input.question.trim();
+  if (!title) {
+    throw new Error("Inquiry title is required");
+  }
+  if (!question) {
+    throw new Error("Inquiry question is required");
+  }
+
+  const state = await readState();
+  const inquiryId = randomUUID();
+  state.network_inquiries.push({
+    id: inquiryId,
+    project_id: state.project.id,
+    title,
+    question,
+    status: "open",
+    linked_ref_type: input.linkedRefType ?? null,
+    linked_ref_id: input.linkedRefId ?? null,
+    created_by: input.createdBy ?? "Project team",
+    created_at: new Date().toISOString()
+  });
+  await writeState(state);
+  return { inquiryId };
+}
+
+export async function createNetworkInquiryMessage(input: CreateNetworkInquiryMessageInput): Promise<{ messageId: string }> {
+  if (isSupabaseMode()) {
+    return (await getSupabaseStore()).createNetworkInquiryMessage(input);
+  }
+  const message = input.message.trim();
+  if (!message) {
+    throw new Error("Message is required");
+  }
+  const state = await readState();
+  const inquiry = state.network_inquiries.find((item) => item.id === input.inquiryId);
+  if (!inquiry) {
+    throw new Error(`Inquiry '${input.inquiryId}' was not found`);
+  }
+  if (input.profileId && !state.network_profiles.some((item) => item.id === input.profileId)) {
+    throw new Error(`Network profile '${input.profileId}' was not found`);
+  }
+
+  const messageId = randomUUID();
+  state.network_inquiry_messages.push({
+    id: messageId,
+    project_id: state.project.id,
+    inquiry_id: inquiry.id,
+    profile_id: input.profileId ?? null,
+    author_label: input.authorLabel.trim() || "Project team",
+    author_type: input.authorType.trim() || "human",
+    message,
+    citations_json: [],
+    created_at: new Date().toISOString()
+  });
+  await writeState(state);
+  return { messageId };
+}
+
+export async function createNetworkWorkProduct(input: CreateNetworkWorkProductInput): Promise<{ workProductId: string }> {
+  if (isSupabaseMode()) {
+    return (await getSupabaseStore()).createNetworkWorkProduct(input);
+  }
+  const title = input.title.trim();
+  if (!title) {
+    throw new Error("Work product title is required");
+  }
+  const state = await readState();
+  if (input.inquiryId && !state.network_inquiries.some((item) => item.id === input.inquiryId)) {
+    throw new Error(`Inquiry '${input.inquiryId}' was not found`);
+  }
+  if (input.profileId && !state.network_profiles.some((item) => item.id === input.profileId)) {
+    throw new Error(`Network profile '${input.profileId}' was not found`);
+  }
+
+  const workProductId = randomUUID();
+  state.network_work_products.push({
+    id: workProductId,
+    project_id: state.project.id,
+    inquiry_id: input.inquiryId ?? null,
+    profile_id: input.profileId ?? null,
+    title,
+    product_type: input.productType.trim() || "brief",
+    status: "draft",
+    summary: input.summary?.trim() || null,
+    created_at: new Date().toISOString()
+  });
+  if (input.linkedRefType && input.linkedRefId) {
+    state.network_work_product_links.push({
+      id: randomUUID(),
+      project_id: state.project.id,
+      work_product_id: workProductId,
+      linked_ref_type: input.linkedRefType,
+      linked_ref_id: input.linkedRefId,
+      notes: input.linkNotes ?? null
+    });
+  }
+  await writeState(state);
+  return { workProductId };
+}
+
 export async function getSiteFeasibility(siteId: string): Promise<SiteFeasibility | null> {
   const portfolio = await getFeasibilityPortfolio();
   return portfolio.sites.find((site) => site.id === siteId) ?? null;
@@ -910,6 +1500,137 @@ export async function updateSite(input: UpdateSiteInput): Promise<void> {
   }
   const state = await readState();
   updateDevelopmentSite(state, input.siteId, input);
+  await writeState(state);
+}
+
+export async function createSiteResource(input: CreateSiteResourceInput): Promise<{ resourceId: string }> {
+  if (await shouldUseSupabaseFeasibility(input.siteId)) {
+    return (await getSupabaseStore()).createSiteResource(input);
+  }
+  const state = await readState();
+  if (!state.sites.some((site) => site.id === input.siteId)) {
+    throw new Error(`Site '${input.siteId}' was not found`);
+  }
+  const title = input.title.trim();
+  if (!title) throw new Error("Resource title is required");
+  const resourceId = randomUUID();
+  state.site_resources.push({
+    id: resourceId,
+    project_id: state.project.id,
+    site_id: input.siteId,
+    resource_type: input.resourceType.trim() || "other",
+    title,
+    url: input.url?.trim() || null,
+    storage_path: input.storagePath?.trim() || null,
+    source_label: input.sourceLabel?.trim() || null,
+    notes: input.notes?.trim() || null,
+    status: input.status?.trim() || "active",
+    created_at: new Date().toISOString()
+  });
+  await writeState(state);
+  return { resourceId };
+}
+
+export async function uploadSiteResourceFile(siteId: string, file: File): Promise<UploadedSiteResourceFile> {
+  if (await shouldUseSupabaseFeasibility(siteId)) {
+    return (await getSupabaseStore()).uploadSiteResourceFile(siteId, file);
+  }
+  if (!file || file.size === 0) {
+    throw new Error("No file was selected for upload");
+  }
+  const fileName = file.name.trim() || "upload.bin";
+  return {
+    storagePath: `demo/site-resources/${siteId}/${randomUUID()}-${fileName}`,
+    publicUrl: "",
+    fileName
+  };
+}
+
+export async function updateSiteResource(input: UpdateSiteResourceInput): Promise<void> {
+  if (await shouldUseSupabaseFeasibility(input.siteId)) {
+    return (await getSupabaseStore()).updateSiteResource(input);
+  }
+  const state = await readState();
+  const resource = state.site_resources.find((item) => item.id === input.resourceId);
+  if (!resource) throw new Error(`Site resource '${input.resourceId}' was not found`);
+  resource.resource_type = input.resourceType.trim() || "other";
+  resource.title = input.title.trim();
+  resource.url = input.url?.trim() || null;
+  resource.storage_path = input.storagePath?.trim() || null;
+  resource.source_label = input.sourceLabel?.trim() || null;
+  resource.notes = input.notes?.trim() || null;
+  resource.status = input.status?.trim() || "active";
+  await writeState(state);
+}
+
+export async function archiveSiteResource(siteId: string, resourceId: string): Promise<void> {
+  if (await shouldUseSupabaseFeasibility(siteId)) {
+    return (await getSupabaseStore()).archiveSiteResource(siteId, resourceId);
+  }
+  const state = await readState();
+  const resource = state.site_resources.find((item) => item.id === resourceId);
+  if (!resource) throw new Error(`Site resource '${resourceId}' was not found`);
+  resource.status = "archived";
+  await writeState(state);
+}
+
+export async function deleteSiteResource(siteId: string, resourceId: string): Promise<void> {
+  if (await shouldUseSupabaseFeasibility(siteId)) {
+    return (await getSupabaseStore()).deleteSiteResource(siteId, resourceId);
+  }
+  const state = await readState();
+  state.site_resources = state.site_resources.filter((item) => item.id !== resourceId);
+  await writeState(state);
+}
+
+export async function upsertSitePlanningHighlight(input: UpsertSitePlanningHighlightInput): Promise<{ highlightId: string }> {
+  if (await shouldUseSupabaseFeasibility(input.siteId)) {
+    return (await getSupabaseStore()).upsertSitePlanningHighlight(input);
+  }
+  const state = await readState();
+  if (!state.sites.some((site) => site.id === input.siteId)) {
+    throw new Error(`Site '${input.siteId}' was not found`);
+  }
+  let highlight = input.highlightId
+    ? state.site_planning_highlights.find((item) => item.id === input.highlightId)
+    : state.site_planning_highlights.find((item) => item.site_id === input.siteId && item.status !== "archived");
+  if (!highlight) {
+    highlight = {
+      id: randomUUID(),
+      project_id: state.project.id,
+      site_id: input.siteId,
+      status: "active",
+      created_at: new Date().toISOString()
+    };
+    state.site_planning_highlights.push(highlight);
+  }
+  highlight.source_resource_id = input.sourceResourceId ?? null;
+  highlight.council = input.council?.trim() || null;
+  highlight.planning_scheme = input.planningScheme?.trim() || null;
+  highlight.zoning = input.zoning?.trim() || null;
+  highlight.overlays_json = input.overlays;
+  highlight.site_area_sqm = input.siteAreaSqm ?? null;
+  highlight.lot_plan = input.lotPlan?.trim() || null;
+  highlight.heritage_status = input.heritageStatus?.trim() || null;
+  highlight.flood_status = input.floodStatus?.trim() || null;
+  highlight.bushfire_status = input.bushfireStatus?.trim() || null;
+  highlight.vegetation_status = input.vegetationStatus?.trim() || null;
+  highlight.easements = input.easements?.trim() || null;
+  highlight.planning_summary = input.planningSummary?.trim() || null;
+  highlight.source_date = input.sourceDate?.trim() || null;
+  highlight.status = input.status?.trim() || "active";
+  await writeState(state);
+  return { highlightId: highlight.id };
+}
+
+export async function archiveSitePlanningHighlight(siteId: string, highlightId: string): Promise<void> {
+  if (await shouldUseSupabaseFeasibility(siteId)) {
+    return (await getSupabaseStore()).archiveSitePlanningHighlight(siteId, highlightId);
+  }
+  const state = await readState();
+  const highlight = state.site_planning_highlights.find((item) => item.id === highlightId);
+  if (!highlight) throw new Error(`Planning highlight '${highlightId}' was not found`);
+  highlight.status = "archived";
   await writeState(state);
 }
 

@@ -4,6 +4,7 @@ import { vocab } from "../../../../shared/contracts/api/index";
 import { projectIdFromEnv } from "./data-source";
 import { buildFeasibilityPortfolio, type FeasibilityPortfolio } from "./feasibility";
 import { buildLinearScheduleData, type LinearScheduleData, type LinearScheduleFilters } from "./linear-schedule";
+import { buildProjectNetworkData, type ProjectNetworkData } from "./project-network";
 import {
   actionsForStatus,
   archiveDevelopmentSite,
@@ -101,6 +102,47 @@ export type CreateSiteInput = Omit<SitePatch, "status"> & {
 
 export type UpdateSiteInput = SitePatch & {
   siteId: string;
+};
+
+export type CreateSiteResourceInput = {
+  siteId: string;
+  resourceType: string;
+  title: string;
+  url?: string | null;
+  storagePath?: string | null;
+  sourceLabel?: string | null;
+  notes?: string | null;
+  status?: string | null;
+};
+
+export type UploadedSiteResourceFile = {
+  storagePath: string;
+  publicUrl: string;
+  fileName: string;
+};
+
+export type UpdateSiteResourceInput = CreateSiteResourceInput & {
+  resourceId: string;
+};
+
+export type UpsertSitePlanningHighlightInput = {
+  siteId: string;
+  highlightId?: string | null;
+  sourceResourceId?: string | null;
+  council?: string | null;
+  planningScheme?: string | null;
+  zoning?: string | null;
+  overlays: string[];
+  siteAreaSqm?: number | null;
+  lotPlan?: string | null;
+  heritageStatus?: string | null;
+  floodStatus?: string | null;
+  bushfireStatus?: string | null;
+  vegetationStatus?: string | null;
+  easements?: string | null;
+  planningSummary?: string | null;
+  sourceDate?: string | null;
+  status?: string | null;
 };
 
 export type CreateMasterCostTemplateInput = {
@@ -234,6 +276,103 @@ export type UpdateMasterCodeItemInput = CreateMasterCodeItemInput & {
   itemId: string;
 };
 
+export type CreateNetworkInquiryInput = {
+  title: string;
+  question: string;
+  linkedRefType?: string | null;
+  linkedRefId?: string | null;
+  createdBy?: string | null;
+};
+
+export type CreateNetworkInquiryMessageInput = {
+  inquiryId: string;
+  profileId?: string | null;
+  authorLabel: string;
+  authorType: string;
+  message: string;
+};
+
+export type CreateNetworkWorkProductInput = {
+  inquiryId?: string | null;
+  profileId?: string | null;
+  title: string;
+  productType: string;
+  summary?: string | null;
+  linkedRefType?: string | null;
+  linkedRefId?: string | null;
+  linkNotes?: string | null;
+};
+
+export type CreateNetworkOrganisationInput = {
+  name: string;
+  organisationType: string;
+  description?: string | null;
+  status?: string | null;
+};
+
+export type UpdateNetworkOrganisationInput = CreateNetworkOrganisationInput & {
+  organisationId: string;
+};
+
+export type CreateNetworkProfileInput = {
+  organisationId?: string | null;
+  displayName: string;
+  profileType: string;
+  category: string;
+  domain: string;
+  summary?: string | null;
+  contactDetails?: string | null;
+  preferredLlm?: string | null;
+  status?: string | null;
+};
+
+export type UpdateNetworkProfileInput = CreateNetworkProfileInput & {
+  profileId: string;
+};
+
+export type UpsertNetworkProfileCapabilityInput = {
+  profileId: string;
+  skills: string[];
+  baseKnowledge?: string | null;
+  scope?: string | null;
+  constraints: string[];
+  questionTypes: string[];
+  outputTypes: string[];
+  operatingInstructionsMd?: string | null;
+  constraintsMd?: string | null;
+  reviewPolicyMd?: string | null;
+};
+
+export type CreateNetworkKnowledgePackInput = {
+  title: string;
+  domain: string;
+  instructions?: string | null;
+  constraints: string[];
+  sources: string[];
+  tools: string[];
+  outputPolicy?: string | null;
+  status?: string | null;
+};
+
+export type UpdateNetworkKnowledgePackInput = CreateNetworkKnowledgePackInput & {
+  knowledgePackId: string;
+};
+
+export type UpsertNetworkAgentCardInput = {
+  profileId: string;
+  modelLabel?: string | null;
+  systemInstructions?: string | null;
+  contextPolicy?: string | null;
+  personaMd?: string | null;
+  memoryMd?: string | null;
+  toolPolicy: unknown;
+  skillPolicy: unknown[];
+  outputSchema: Record<string, unknown>;
+  reviewPolicyMd?: string | null;
+  escalationPolicyMd?: string | null;
+  status?: string | null;
+};
+
 export type ScenarioEditorOperationalRow = {
   id: string;
   objectRefType: "zone" | "model_object";
@@ -274,6 +413,23 @@ const OPTIONAL_FEASIBILITY_TABLES = new Set([
   "scenario_cost_ranges",
   "sales_assumptions",
   "archicad_links",
+  "site_resources",
+  "site_planning_highlights",
+  "network_organisations",
+  "network_profiles",
+  "network_profile_capabilities",
+  "network_knowledge_packs",
+  "network_profile_knowledge_packs",
+  "network_inquiries",
+  "network_inquiry_messages",
+  "network_work_products",
+  "network_work_product_links",
+  "network_agent_cards",
+  "network_agent_sessions",
+  "network_agent_session_participants",
+  "network_agent_messages",
+  "network_agent_tool_calls",
+  "network_agent_outputs",
   "master_cost_templates",
   "master_code_catalogs",
   "master_code_items",
@@ -465,6 +621,23 @@ async function readSupabaseState(): Promise<RuntimeState> {
     scenario_cost_ranges,
     sales_assumptions,
     archicad_links,
+    site_resources,
+    site_planning_highlights,
+    network_organisations,
+    network_profiles,
+    network_profile_capabilities,
+    network_knowledge_packs,
+    network_profile_knowledge_packs,
+    network_inquiries,
+    network_inquiry_messages,
+    network_work_products,
+    network_work_product_links,
+    network_agent_cards,
+    network_agent_sessions,
+    network_agent_session_participants,
+    network_agent_messages,
+    network_agent_tool_calls,
+    network_agent_outputs,
     master_code_catalogs,
     master_code_items,
     master_cost_templates,
@@ -496,6 +669,23 @@ async function readSupabaseState(): Promise<RuntimeState> {
     readProjectTable("scenario_cost_ranges"),
     readProjectTable("sales_assumptions"),
     readProjectTable("archicad_links"),
+    readProjectTable("site_resources"),
+    readProjectTable("site_planning_highlights"),
+    readProjectTable("network_organisations"),
+    readProjectTable("network_profiles"),
+    readProjectTable("network_profile_capabilities"),
+    readProjectTable("network_knowledge_packs"),
+    readProjectTable("network_profile_knowledge_packs"),
+    readProjectTable("network_inquiries"),
+    readProjectTable("network_inquiry_messages"),
+    readProjectTable("network_work_products"),
+    readProjectTable("network_work_product_links"),
+    readProjectTable("network_agent_cards"),
+    readProjectTable("network_agent_sessions"),
+    readProjectTable("network_agent_session_participants"),
+    readProjectTable("network_agent_messages"),
+    readProjectTable("network_agent_tool_calls"),
+    readProjectTable("network_agent_outputs"),
     readGlobalTable("master_code_catalogs"),
     readGlobalTable("master_code_items"),
     readProjectTable("master_cost_templates"),
@@ -532,6 +722,23 @@ async function readSupabaseState(): Promise<RuntimeState> {
     scenario_cost_ranges,
     sales_assumptions,
     archicad_links,
+    site_resources,
+    site_planning_highlights,
+    network_organisations,
+    network_profiles,
+    network_profile_capabilities,
+    network_knowledge_packs,
+    network_profile_knowledge_packs,
+    network_inquiries,
+    network_inquiry_messages,
+    network_work_products,
+    network_work_product_links,
+    network_agent_cards,
+    network_agent_sessions,
+    network_agent_session_participants,
+    network_agent_messages,
+    network_agent_tool_calls,
+    network_agent_outputs,
     master_code_catalogs,
     master_code_items,
     master_cost_templates,
@@ -617,6 +824,392 @@ export async function getFeasibilityPortfolio(): Promise<FeasibilityPortfolio> {
   return buildFeasibilityPortfolio(state);
 }
 
+export async function getProjectNetworkData(): Promise<ProjectNetworkData> {
+  const state = await readSupabaseState();
+  return buildProjectNetworkData(state);
+}
+
+function assertUnusedNetworkOrganisation(state: RuntimeState, organisationId: string) {
+  if (state.network_profiles.some((item) => item.organisation_id === organisationId)) {
+    throw new Error("Organisations assigned to profiles must be archived instead of deleted");
+  }
+}
+
+function assertUnusedNetworkProfile(state: RuntimeState, profileId: string) {
+  const isUsed =
+    state.network_inquiry_messages.some((item) => item.profile_id === profileId) ||
+    state.network_work_products.some((item) => item.profile_id === profileId) ||
+    state.network_agent_cards.some((item) => item.profile_id === profileId) ||
+    state.network_agent_session_participants.some((item) => item.profile_id === profileId) ||
+    state.network_agent_messages.some((item) => item.profile_id === profileId) ||
+    state.network_agent_tool_calls.some((item) => item.profile_id === profileId) ||
+    state.network_agent_outputs.some((item) => item.profile_id === profileId);
+  if (isUsed) {
+    throw new Error("Profiles with inquiries, work products, or agent runtime records must be archived instead of deleted");
+  }
+}
+
+function assertUnusedKnowledgePack(state: RuntimeState, knowledgePackId: string) {
+  if (state.network_profile_knowledge_packs.some((item) => item.knowledge_pack_id === knowledgePackId)) {
+    throw new Error("Knowledge packs assigned to profiles must be archived instead of deleted");
+  }
+}
+
+export async function createNetworkOrganisation(input: CreateNetworkOrganisationInput): Promise<{ organisationId: string }> {
+  const name = input.name.trim();
+  const organisationType = input.organisationType.trim();
+  if (!name) throw new Error("Organisation name is required");
+  if (!organisationType) throw new Error("Organisation type is required");
+  const client = createServerSupabaseClient();
+  const organisationId = randomUUID();
+  const { error } = await client.from("network_organisations").insert({
+    id: organisationId,
+    project_id: projectIdFromEnv(),
+    name,
+    organisation_type: organisationType,
+    description: input.description?.trim() || null,
+    status: input.status?.trim() || "active"
+  });
+  if (error) throw new Error(`Unable to create network organisation: ${error.message}`);
+  return { organisationId };
+}
+
+export async function updateNetworkOrganisation(input: UpdateNetworkOrganisationInput): Promise<void> {
+  const client = createServerSupabaseClient();
+  const { error } = await client
+    .from("network_organisations")
+    .update({
+      name: input.name.trim(),
+      organisation_type: input.organisationType.trim(),
+      description: input.description?.trim() || null,
+      status: input.status?.trim() || "active"
+    })
+    .eq("id", input.organisationId)
+    .eq("project_id", projectIdFromEnv());
+  if (error) throw new Error(`Unable to update network organisation: ${error.message}`);
+}
+
+export async function archiveNetworkOrganisation(organisationId: string): Promise<void> {
+  const client = createServerSupabaseClient();
+  const { error } = await client
+    .from("network_organisations")
+    .update({ status: "archived" })
+    .eq("id", organisationId)
+    .eq("project_id", projectIdFromEnv());
+  if (error) throw new Error(`Unable to archive network organisation: ${error.message}`);
+}
+
+export async function deleteNetworkOrganisation(organisationId: string): Promise<void> {
+  const state = await readSupabaseState();
+  assertUnusedNetworkOrganisation(state, organisationId);
+  const client = createServerSupabaseClient();
+  const { error } = await client
+    .from("network_organisations")
+    .delete()
+    .eq("id", organisationId)
+    .eq("project_id", projectIdFromEnv());
+  if (error) throw new Error(`Unable to delete network organisation: ${error.message}`);
+}
+
+export async function createNetworkProfile(input: CreateNetworkProfileInput): Promise<{ profileId: string }> {
+  const displayName = input.displayName.trim();
+  if (!displayName) throw new Error("Profile display name is required");
+  const client = createServerSupabaseClient();
+  const profileId = randomUUID();
+  const { error } = await client.from("network_profiles").insert({
+    id: profileId,
+    project_id: projectIdFromEnv(),
+    organisation_id: input.organisationId ?? null,
+    display_name: displayName,
+    profile_type: input.profileType.trim() || "human",
+    category: input.category.trim() || "Developer Team",
+    domain: input.domain.trim() || "General",
+    summary: input.summary?.trim() || null,
+    contact_details: input.contactDetails?.trim() || null,
+    preferred_llm: input.preferredLlm?.trim() || null,
+    status: input.status?.trim() || "active"
+  });
+  if (error) throw new Error(`Unable to create network profile: ${error.message}`);
+  return { profileId };
+}
+
+export async function updateNetworkProfile(input: UpdateNetworkProfileInput): Promise<void> {
+  const client = createServerSupabaseClient();
+  const { error } = await client
+    .from("network_profiles")
+    .update({
+      organisation_id: input.organisationId ?? null,
+      display_name: input.displayName.trim(),
+      profile_type: input.profileType.trim() || "human",
+      category: input.category.trim() || "Developer Team",
+      domain: input.domain.trim() || "General",
+      summary: input.summary?.trim() || null,
+      contact_details: input.contactDetails?.trim() || null,
+      preferred_llm: input.preferredLlm?.trim() || null,
+      status: input.status?.trim() || "active"
+    })
+    .eq("id", input.profileId)
+    .eq("project_id", projectIdFromEnv());
+  if (error) throw new Error(`Unable to update network profile: ${error.message}`);
+}
+
+export async function archiveNetworkProfile(profileId: string): Promise<void> {
+  const client = createServerSupabaseClient();
+  const { error } = await client
+    .from("network_profiles")
+    .update({ status: "archived" })
+    .eq("id", profileId)
+    .eq("project_id", projectIdFromEnv());
+  if (error) throw new Error(`Unable to archive network profile: ${error.message}`);
+}
+
+export async function deleteNetworkProfile(profileId: string): Promise<void> {
+  const state = await readSupabaseState();
+  assertUnusedNetworkProfile(state, profileId);
+  const client = createServerSupabaseClient();
+  await client.from("network_profile_capabilities").delete().eq("profile_id", profileId).eq("project_id", projectIdFromEnv());
+  await client.from("network_profile_knowledge_packs").delete().eq("profile_id", profileId).eq("project_id", projectIdFromEnv());
+  const { error } = await client.from("network_profiles").delete().eq("id", profileId).eq("project_id", projectIdFromEnv());
+  if (error) throw new Error(`Unable to delete network profile: ${error.message}`);
+}
+
+export async function upsertNetworkProfileCapability(input: UpsertNetworkProfileCapabilityInput): Promise<{ capabilityId: string }> {
+  const state = await readSupabaseState();
+  const existing = state.network_profile_capabilities.find((item) => item.profile_id === input.profileId);
+  const capabilityId = existing?.id ?? randomUUID();
+  const client = createServerSupabaseClient();
+  const { error } = await client.from("network_profile_capabilities").upsert({
+    id: capabilityId,
+    project_id: projectIdFromEnv(),
+    profile_id: input.profileId,
+    skills_json: input.skills,
+    base_knowledge: input.baseKnowledge?.trim() || null,
+    scope: input.scope?.trim() || null,
+    constraints_json: input.constraints,
+    question_types_json: input.questionTypes,
+    output_types_json: input.outputTypes,
+    operating_instructions_md: input.operatingInstructionsMd?.trim() || null,
+    constraints_md: input.constraintsMd?.trim() || null,
+    review_policy_md: input.reviewPolicyMd?.trim() || null
+  });
+  if (error) throw new Error(`Unable to upsert network profile capability: ${error.message}`);
+  return { capabilityId };
+}
+
+export async function deleteNetworkProfileCapability(profileId: string): Promise<void> {
+  const client = createServerSupabaseClient();
+  const { error } = await client
+    .from("network_profile_capabilities")
+    .delete()
+    .eq("profile_id", profileId)
+    .eq("project_id", projectIdFromEnv());
+  if (error) throw new Error(`Unable to delete network profile capability: ${error.message}`);
+}
+
+export async function createNetworkKnowledgePack(input: CreateNetworkKnowledgePackInput): Promise<{ knowledgePackId: string }> {
+  const title = input.title.trim();
+  const domain = input.domain.trim();
+  if (!title) throw new Error("Knowledge pack title is required");
+  if (!domain) throw new Error("Knowledge pack domain is required");
+  const client = createServerSupabaseClient();
+  const knowledgePackId = randomUUID();
+  const { error } = await client.from("network_knowledge_packs").insert({
+    id: knowledgePackId,
+    project_id: projectIdFromEnv(),
+    title,
+    domain,
+    instructions: input.instructions?.trim() || null,
+    constraints_json: input.constraints,
+    sources_json: input.sources,
+    tools_json: input.tools,
+    output_policy: input.outputPolicy?.trim() || null,
+    status: input.status?.trim() || "active"
+  });
+  if (error) throw new Error(`Unable to create network knowledge pack: ${error.message}`);
+  return { knowledgePackId };
+}
+
+export async function updateNetworkKnowledgePack(input: UpdateNetworkKnowledgePackInput): Promise<void> {
+  const client = createServerSupabaseClient();
+  const { error } = await client
+    .from("network_knowledge_packs")
+    .update({
+      title: input.title.trim(),
+      domain: input.domain.trim(),
+      instructions: input.instructions?.trim() || null,
+      constraints_json: input.constraints,
+      sources_json: input.sources,
+      tools_json: input.tools,
+      output_policy: input.outputPolicy?.trim() || null,
+      status: input.status?.trim() || "active"
+    })
+    .eq("id", input.knowledgePackId)
+    .eq("project_id", projectIdFromEnv());
+  if (error) throw new Error(`Unable to update network knowledge pack: ${error.message}`);
+}
+
+export async function archiveNetworkKnowledgePack(knowledgePackId: string): Promise<void> {
+  const client = createServerSupabaseClient();
+  const { error } = await client
+    .from("network_knowledge_packs")
+    .update({ status: "archived" })
+    .eq("id", knowledgePackId)
+    .eq("project_id", projectIdFromEnv());
+  if (error) throw new Error(`Unable to archive network knowledge pack: ${error.message}`);
+}
+
+export async function deleteNetworkKnowledgePack(knowledgePackId: string): Promise<void> {
+  const state = await readSupabaseState();
+  assertUnusedKnowledgePack(state, knowledgePackId);
+  const client = createServerSupabaseClient();
+  const { error } = await client
+    .from("network_knowledge_packs")
+    .delete()
+    .eq("id", knowledgePackId)
+    .eq("project_id", projectIdFromEnv());
+  if (error) throw new Error(`Unable to delete network knowledge pack: ${error.message}`);
+}
+
+export async function assignKnowledgePackToProfile(profileId: string, knowledgePackId: string): Promise<void> {
+  const state = await readSupabaseState();
+  if (state.network_profile_knowledge_packs.some((item) => item.profile_id === profileId && item.knowledge_pack_id === knowledgePackId)) {
+    return;
+  }
+  const client = createServerSupabaseClient();
+  const { error } = await client.from("network_profile_knowledge_packs").insert({
+    id: randomUUID(),
+    project_id: projectIdFromEnv(),
+    profile_id: profileId,
+    knowledge_pack_id: knowledgePackId
+  });
+  if (error) {
+    throw new Error(`Unable to assign knowledge pack: ${error.message}`);
+  }
+}
+
+export async function unassignKnowledgePackFromProfile(profileId: string, knowledgePackId: string): Promise<void> {
+  const client = createServerSupabaseClient();
+  const { error } = await client
+    .from("network_profile_knowledge_packs")
+    .delete()
+    .eq("profile_id", profileId)
+    .eq("knowledge_pack_id", knowledgePackId)
+    .eq("project_id", projectIdFromEnv());
+  if (error) throw new Error(`Unable to unassign knowledge pack: ${error.message}`);
+}
+
+export async function upsertNetworkAgentCard(input: UpsertNetworkAgentCardInput): Promise<{ agentCardId: string }> {
+  const state = await readSupabaseState();
+  const existing = state.network_agent_cards.find((item) => item.profile_id === input.profileId);
+  const agentCardId = existing?.id ?? randomUUID();
+  const client = createServerSupabaseClient();
+  const { error } = await client.from("network_agent_cards").upsert({
+    id: agentCardId,
+    project_id: projectIdFromEnv(),
+    profile_id: input.profileId,
+    model_label: input.modelLabel?.trim() || null,
+    system_instructions: input.systemInstructions?.trim() || null,
+    context_policy: input.contextPolicy?.trim() || null,
+    persona_md: input.personaMd?.trim() || null,
+    memory_md: input.memoryMd?.trim() || null,
+    tool_policy_json: input.toolPolicy,
+    skill_policy_json: input.skillPolicy,
+    output_schema_json: input.outputSchema,
+    review_policy_md: input.reviewPolicyMd?.trim() || null,
+    escalation_policy_md: input.escalationPolicyMd?.trim() || null,
+    status: input.status?.trim() || "active"
+  });
+  if (error) throw new Error(`Unable to upsert network agent card: ${error.message}`);
+  return { agentCardId };
+}
+
+export async function createNetworkInquiry(input: CreateNetworkInquiryInput): Promise<{ inquiryId: string }> {
+  const title = input.title.trim();
+  const question = input.question.trim();
+  if (!title) throw new Error("Inquiry title is required");
+  if (!question) throw new Error("Inquiry question is required");
+
+  const client = createServerSupabaseClient();
+  const inquiryId = randomUUID();
+  const { error } = await client.from("network_inquiries").insert({
+    id: inquiryId,
+    project_id: projectIdFromEnv(),
+    title,
+    question,
+    status: "open",
+    linked_ref_type: input.linkedRefType ?? null,
+    linked_ref_id: input.linkedRefId ?? null,
+    created_by: input.createdBy ?? "Project team",
+    created_at: new Date().toISOString()
+  });
+  if (error) {
+    throw new Error(`Unable to create network inquiry: ${error.message}`);
+  }
+  return { inquiryId };
+}
+
+export async function createNetworkInquiryMessage(input: CreateNetworkInquiryMessageInput): Promise<{ messageId: string }> {
+  const message = input.message.trim();
+  if (!message) throw new Error("Message is required");
+
+  const client = createServerSupabaseClient();
+  const messageId = randomUUID();
+  const { error } = await client.from("network_inquiry_messages").insert({
+    id: messageId,
+    project_id: projectIdFromEnv(),
+    inquiry_id: input.inquiryId,
+    profile_id: input.profileId ?? null,
+    author_label: input.authorLabel.trim() || "Project team",
+    author_type: input.authorType.trim() || "human",
+    message,
+    citations_json: [],
+    created_at: new Date().toISOString()
+  });
+  if (error) {
+    throw new Error(`Unable to create network message: ${error.message}`);
+  }
+  return { messageId };
+}
+
+export async function createNetworkWorkProduct(input: CreateNetworkWorkProductInput): Promise<{ workProductId: string }> {
+  const title = input.title.trim();
+  if (!title) throw new Error("Work product title is required");
+
+  const client = createServerSupabaseClient();
+  const project_id = projectIdFromEnv();
+  const workProductId = randomUUID();
+  const { error } = await client.from("network_work_products").insert({
+    id: workProductId,
+    project_id,
+    inquiry_id: input.inquiryId ?? null,
+    profile_id: input.profileId ?? null,
+    title,
+    product_type: input.productType.trim() || "brief",
+    status: "draft",
+    summary: input.summary?.trim() || null,
+    created_at: new Date().toISOString()
+  });
+  if (error) {
+    throw new Error(`Unable to create work product: ${error.message}`);
+  }
+
+  if (input.linkedRefType && input.linkedRefId) {
+    const { error: linkError } = await client.from("network_work_product_links").insert({
+      id: randomUUID(),
+      project_id,
+      work_product_id: workProductId,
+      linked_ref_type: input.linkedRefType,
+      linked_ref_id: input.linkedRefId,
+      notes: input.linkNotes ?? null
+    });
+    if (linkError) {
+      throw new Error(`Unable to link work product: ${linkError.message}`);
+    }
+  }
+
+  return { workProductId };
+}
+
 export async function createSite(input: CreateSiteInput): Promise<{ siteId: string }> {
   const state = await readSupabaseState();
   const siteId = randomUUID();
@@ -628,6 +1221,8 @@ export async function createSite(input: CreateSiteInput): Promise<{ siteId: stri
   const { error } = await client.from("sites").insert({
     id: site.id,
     project_id: site.project_id,
+    site_code: site.site_code,
+    site_date: site.site_date,
     name: site.name,
     address: site.address,
     locality: site.locality,
@@ -651,6 +1246,8 @@ export async function updateSite(input: UpdateSiteInput): Promise<void> {
   const { error } = await client
     .from("sites")
     .update({
+      site_code: site.site_code,
+      site_date: site.site_date,
       name: site.name,
       address: site.address,
       locality: site.locality,
@@ -664,6 +1261,146 @@ export async function updateSite(input: UpdateSiteInput): Promise<void> {
     .eq("id", input.siteId);
   if (error) {
     throw new Error(`Unable to update site: ${error.message}`);
+  }
+}
+
+export async function createSiteResource(input: CreateSiteResourceInput): Promise<{ resourceId: string }> {
+  const resourceId = randomUUID();
+  const client = createServerSupabaseClient();
+  const { error } = await client.from("site_resources").insert({
+    id: resourceId,
+    project_id: projectIdFromEnv(),
+    site_id: input.siteId,
+    resource_type: input.resourceType.trim() || "other",
+    title: input.title.trim(),
+    url: input.url?.trim() || null,
+    storage_path: input.storagePath?.trim() || null,
+    source_label: input.sourceLabel?.trim() || null,
+    notes: input.notes?.trim() || null,
+    status: input.status?.trim() || "active"
+  });
+  if (error) {
+    throw new Error(`Unable to create site resource: ${error.message}`);
+  }
+  return { resourceId };
+}
+
+function siteResourceBucketName(): string {
+  return process.env.SUPABASE_SITE_RESOURCES_BUCKET || "site-resources";
+}
+
+function safeStorageFileName(fileName: string): string {
+  const normalized = fileName.trim().replace(/[^a-zA-Z0-9.\-_]+/g, "-").replace(/-+/g, "-");
+  return normalized || "upload.bin";
+}
+
+export async function uploadSiteResourceFile(siteId: string, file: File): Promise<UploadedSiteResourceFile> {
+  if (!file || file.size === 0) {
+    throw new Error("No file was selected for upload");
+  }
+
+  const client = createServerSupabaseClient();
+  const bucket = siteResourceBucketName();
+  const bucketResult = await client.storage.getBucket(bucket);
+  if (bucketResult.error) {
+    const createResult = await client.storage.createBucket(bucket, { public: true });
+    if (createResult.error) {
+      throw new Error(`Unable to create site resource bucket: ${createResult.error.message}`);
+    }
+  }
+
+  const fileName = safeStorageFileName(file.name);
+  const storagePath = `${projectIdFromEnv()}/sites/${siteId}/${randomUUID()}-${fileName}`;
+  const uploadResult = await client.storage.from(bucket).upload(storagePath, file, {
+    contentType: file.type || "application/octet-stream",
+    upsert: false
+  });
+  if (uploadResult.error) {
+    throw new Error(`Unable to upload site resource file: ${uploadResult.error.message}`);
+  }
+
+  const publicUrl = client.storage.from(bucket).getPublicUrl(storagePath).data.publicUrl;
+  return { storagePath, publicUrl, fileName };
+}
+
+export async function updateSiteResource(input: UpdateSiteResourceInput): Promise<void> {
+  const client = createServerSupabaseClient();
+  const { error } = await client
+    .from("site_resources")
+    .update({
+      resource_type: input.resourceType.trim() || "other",
+      title: input.title.trim(),
+      url: input.url?.trim() || null,
+      storage_path: input.storagePath?.trim() || null,
+      source_label: input.sourceLabel?.trim() || null,
+      notes: input.notes?.trim() || null,
+      status: input.status?.trim() || "active"
+    })
+    .eq("id", input.resourceId)
+    .eq("site_id", input.siteId);
+  if (error) {
+    throw new Error(`Unable to update site resource: ${error.message}`);
+  }
+}
+
+export async function archiveSiteResource(siteId: string, resourceId: string): Promise<void> {
+  const client = createServerSupabaseClient();
+  const { error } = await client
+    .from("site_resources")
+    .update({ status: "archived" })
+    .eq("id", resourceId)
+    .eq("site_id", siteId);
+  if (error) {
+    throw new Error(`Unable to archive site resource: ${error.message}`);
+  }
+}
+
+export async function deleteSiteResource(siteId: string, resourceId: string): Promise<void> {
+  const client = createServerSupabaseClient();
+  const { error } = await client.from("site_resources").delete().eq("id", resourceId).eq("site_id", siteId);
+  if (error) {
+    throw new Error(`Unable to delete site resource: ${error.message}`);
+  }
+}
+
+export async function upsertSitePlanningHighlight(input: UpsertSitePlanningHighlightInput): Promise<{ highlightId: string }> {
+  const highlightId = input.highlightId ?? randomUUID();
+  const client = createServerSupabaseClient();
+  const { error } = await client.from("site_planning_highlights").upsert({
+    id: highlightId,
+    project_id: projectIdFromEnv(),
+    site_id: input.siteId,
+    source_resource_id: input.sourceResourceId ?? null,
+    council: input.council?.trim() || null,
+    planning_scheme: input.planningScheme?.trim() || null,
+    zoning: input.zoning?.trim() || null,
+    overlays_json: input.overlays,
+    site_area_sqm: input.siteAreaSqm ?? null,
+    lot_plan: input.lotPlan?.trim() || null,
+    heritage_status: input.heritageStatus?.trim() || null,
+    flood_status: input.floodStatus?.trim() || null,
+    bushfire_status: input.bushfireStatus?.trim() || null,
+    vegetation_status: input.vegetationStatus?.trim() || null,
+    easements: input.easements?.trim() || null,
+    planning_summary: input.planningSummary?.trim() || null,
+    source_date: input.sourceDate?.trim() || null,
+    status: input.status?.trim() || "active"
+  });
+  if (error) {
+    throw new Error(`Unable to save planning highlights: ${error.message}`);
+  }
+  return { highlightId };
+}
+
+export async function archiveSitePlanningHighlight(siteId: string, highlightId: string): Promise<void> {
+  const client = createServerSupabaseClient();
+  const { error } = await client
+    .from("site_planning_highlights")
+    .update({ status: "archived" })
+    .eq("id", highlightId)
+    .eq("site_id", siteId);
+  if (error) {
+    throw new Error(`Unable to archive planning highlights: ${error.message}`);
   }
 }
 

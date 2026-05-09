@@ -373,7 +373,7 @@ function CodeCatalogView({
     <section className="master-cost-list">
       <div className="section-heading">
         <div>
-          <h2>Global Code Catalog</h2>
+          <h2>Global Code Catalogue</h2>
           <p className="muted">Shared cost, construction, trade, and package codes used by every project.</p>
         </div>
         <button type="button" onClick={onCreate}>
@@ -892,7 +892,7 @@ function Drawer({
 
       {state.type === "codeItem" && codeItem ? (
         <div className="drawer-form">
-          <form action={actions.updateMasterCodeItemAction} className="drawer-form">
+          <form action={actions.updateMasterCodeItemAction} className="drawer-form" key={codeItem.id}>
             <input type="hidden" name="itemId" value={codeItem.id} />
             <CodeItemFields item={codeItem} portfolio={portfolio} />
             <button type="submit">Save Code Item</button>
@@ -1138,7 +1138,7 @@ function Drawer({
 
 export function BaseCostsWorkspace({ portfolio, actions }: { portfolio: FeasibilityPortfolio; actions: Actions }) {
   const activeTemplates = portfolio.masterCostTemplates.filter((template) => template.status !== "archived");
-  const [mode, setMode] = useState<"master" | "templates" | "catalog">("master");
+  const [mode, setMode] = useState<"master" | "templates" | "catalog">("catalog");
   const [activeTemplateId, setActiveTemplateId] = useState(activeTemplates[0]?.id ?? "");
   const [drawer, setDrawer] = useState<DrawerState | null>(null);
   const masterSummary = useMemo(() => masterItemSummary(portfolio.masterCostItems), [portfolio.masterCostItems]);
@@ -1192,11 +1192,11 @@ export function BaseCostsWorkspace({ portfolio, actions }: { portfolio: Feasibil
         </div>
 
         <div className="base-costs-mode-tabs">
+          <button type="button" className={mode === "catalog" ? "is-active" : ""} onClick={() => setMode("catalog")}>
+            Code Catalogue
+          </button>
           <button type="button" className={mode === "master" ? "is-active" : ""} onClick={() => setMode("master")}>
             Master Database
-          </button>
-          <button type="button" className={mode === "catalog" ? "is-active" : ""} onClick={() => setMode("catalog")}>
-            Code Catalog
           </button>
           <button type="button" className={mode === "templates" ? "is-active" : ""} onClick={() => setMode("templates")}>
             Templates
