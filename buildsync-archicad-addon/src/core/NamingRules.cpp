@@ -28,7 +28,7 @@ std::string upper(std::string value)
 
 NamingRules::NamingRules()
     : prefixesByType_{
-        {"joinery", "JN"},
+        {"joinery", "J"},
         {"kitchen", "KIT"},
         {"bathroom", "BTH"},
         {"facade", "FCD"},
@@ -62,7 +62,11 @@ std::string NamingRules::reserveNextSequence(const std::string& prefix)
     }
 
     std::ostringstream id;
-    id << normalizedPrefix << "-" << std::setw(3) << std::setfill('0') << next;
+    if (normalizedPrefix.size() == 1) {
+        id << normalizedPrefix << std::setw(2) << std::setfill('0') << next;
+    } else {
+        id << normalizedPrefix << "-" << std::setw(3) << std::setfill('0') << next;
+    }
     ++next;
     return id.str();
 }

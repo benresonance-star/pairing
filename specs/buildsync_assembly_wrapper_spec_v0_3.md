@@ -102,6 +102,10 @@ The first version should prove the assembly wrapper concept. It should not attem
 | Stamp assembly properties onto member elements | Yes |
 | Store assembly membership locally | Yes |
 | Select/highlight all members of an assembly | Yes |
+| Manage wrappers in a native Archicad palette | Yes |
+| Inspect wrapper members in a native list | Yes |
+| Sort wrapper member list by type, element ID, and layer | Yes |
+| Select one wrapper member from the palette | Yes |
 | Add selected elements to an existing assembly | Yes |
 | Remove selected elements from an assembly | Yes |
 | Validate missing/deleted members | Yes |
@@ -522,6 +526,40 @@ Suggested actions:
 
 ---
 
+### 6.7 Manage Wrappers Palette
+
+User chooses:
+
+```text
+BuildSync → Manage Wrappers...
+```
+
+Add-on opens a native modeless palette that:
+
+- lists known wrappers,
+- shows editable wrapper details,
+- supports create, delete, refresh, repair, add selection, remove selection, and select members actions,
+- keeps the palette open while selecting members in the Archicad UI.
+
+The palette includes a collapsed-by-default `Members` section. When expanded, this section shows a scrollable member list with:
+
+| Column | Source |
+|---|---|
+| Type | Archicad element header/type, with registry fallback |
+| Element ID | `ACAPI_Element_GetElementInfoString` |
+| Layer | `ACAPI_Element_GetHeader` plus `ACAPI_Attribute_Get` |
+
+Display rules:
+
+- show `Missing` when Element ID or Layer cannot be read,
+- display Archicad's square/default layer glyph as `Archicad Layer`,
+- keep the member list scrollable and resize it with the palette,
+- support sorting by Type, Element ID, and Layer,
+- keep missing sort values at the bottom in ascending order,
+- double-clicking a member row selects only that member element in Archicad.
+
+---
+
 ## 7. Required Archicad Menu Commands
 
 Create a top-level menu:
@@ -551,7 +589,8 @@ BuildSync
 ├─ Add Selection to Assembly
 ├─ Remove Selection from Assembly
 ├─ Validate Selected Assembly
-└─ Sync with Python Listener
+├─ Sync with Python Listener
+└─ Manage Wrappers...
 ```
 
 `Edit Assembly` and `Save Assembly` may initially be implemented as select/highlight + validation/version refresh commands.
@@ -1223,6 +1262,9 @@ The C++ add-on owns Archicad-native behaviour.
 | Assembly creation | Create registry records |
 | Property writing | Stamp BuildSync properties on members |
 | Member selection | Select all elements in assembly |
+| Single member selection | Select exactly one wrapper member from the native palette |
+| Member metadata reading | Read member type, Element ID, layer name, and status for palette display |
+| Wrapper manager palette | Provide native wrapper CRUD, refresh, repair, member inspection, sorting, and selection UX |
 | Registry storage | Persist assembly membership locally |
 | Validation | Detect missing/orphaned members |
 | Sync client | Send JSON events to Python listener |
@@ -1233,7 +1275,6 @@ The C++ add-on owns Archicad-native behaviour.
 
 | Responsibility | Phase |
 |---|---|
-| Native palette | v0.2 |
 | Element event monitoring | v0.2 |
 | Copy/paste duplicate detection | v0.2 |
 | Mirror lineage detection | v0.3 |
@@ -1474,12 +1515,17 @@ buildsync-archicad-addon/
 │  │  ├─ Main.cpp
 │  │  ├─ MenuCommands.cpp
 │  │  ├─ SettingsDialog.cpp
-│  │  └─ ResourceIds.hpp
+│  │  ├─ ResourceIds.hpp
+│  │  └─ ui/
+│  │     ├─ WrapperManagerDialog.cpp
+│  │     └─ WrapperManagerDialog.hpp
 │  ├─ archicad_adapter/
 │  │  ├─ SelectionReader.cpp
 │  │  ├─ SelectionReader.hpp
 │  │  ├─ ElementPropertyWriter.cpp
 │  │  ├─ ElementPropertyWriter.hpp
+│  │  ├─ ElementMetadataReader.cpp
+│  │  ├─ ElementMetadataReader.hpp
 │  │  ├─ ElementExistenceChecker.cpp
 │  │  ├─ ElementExistenceChecker.hpp
 │  │  ├─ HighlightController.cpp
@@ -1650,16 +1696,59 @@ Responsibilities:
 
 - confirm whether stored GUIDs still exist in current model.
 
-### 22.10 `HighlightController`
+### 22.10 `ElementMetadataReader`
+
+Archicad adapter used by the native wrapper manager palette.
+
+Responsibilities:
+
+- read an element GUID's current Archicad element type,
+- read Element ID via `ACAPI_Element_GetElementInfoString`,
+- read layer name via `ACAPI_Element_GetHeader` and `ACAPI_Attribute_Get`,
+- return empty values for unreadable Element ID or Layer so the UI can display `Missing`,
+- expose a status suitable for distinguishing active/missing members.
+
+Expected metadata shape:
+
+```cpp
+struct ElementMetadata {
+    std::string elementGuid;
+    std::string elementType;
+    std::string elementId;
+    std::string layerName;
+    std::string status;
+};
+```
+
+### 22.11 `HighlightController`
 
 Archicad adapter.
 
 Responsibilities:
 
 - select all live member elements,
+- select a single live member element when requested from the wrapper manager palette,
 - later support highlight/temporary display states.
 
-### 22.11 `PythonListenerClient`
+### 22.12 `AssemblyCommandService`
+
+Coordinates palette and menu operations against adapters and the local registry.
+
+Member-list responsibilities:
+
+```cpp
+listWrapperMemberMetadata(assemblyUuid)
+selectWrapperMember(assemblyUuid, elementGuid)
+```
+
+Rules:
+
+- `listWrapperMemberMetadata` preserves wrapper member order before any UI sorting,
+- metadata should use registry element type/status as fallback when live SDK metadata is unavailable,
+- `selectWrapperMember` validates wrapper existence and membership,
+- `selectWrapperMember` must call `HighlightController::selectElements({ elementGuid })` with exactly one GUID.
+
+### 22.13 `PythonListenerClient`
 
 Sends HTTP requests to local listener.
 
@@ -1674,7 +1763,7 @@ getTasks()
 pollCommands()
 ```
 
-### 22.12 `SyncQueue`
+### 22.14 `SyncQueue`
 
 Stores unsent events.
 
@@ -2054,8 +2143,13 @@ The first milestone is complete when:
 12. Assembly-created and assembly-updated events reach the Python listener.
 13. If the listener is offline, events queue without crashing.
 14. Core assembly logic has unit tests independent of Archicad.
-15. Architecture leaves MCP as an optional later agent interface, not a dependency for v0.1 operation.
-16. Coding-agent instructions are present and followed by implementation agents.
+15. User can open the native Wrapper Manager palette and inspect wrapper details.
+16. User can expand a scrollable member list showing Type, Element ID, and Layer.
+17. User can sort the member list by Type, Element ID, and Layer.
+18. User can double-click a member row to select exactly that Archicad element.
+19. Unreadable member values display as `Missing`, and Archicad's square/default layer glyph displays as `Archicad Layer`.
+20. Architecture leaves MCP as an optional later agent interface, not a dependency for v0.1 operation.
+21. Coding-agent instructions are present and followed by implementation agents.
 ```
 
 ---
@@ -2064,7 +2158,7 @@ The first milestone is complete when:
 
 ### v0.2
 
-- native assembly palette,
+- native palette refinements and richer status display,
 - element event monitoring,
 - duplicate assembly repair,
 - better status/highlight display,

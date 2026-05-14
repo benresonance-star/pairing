@@ -30,9 +30,20 @@ CommandResult NativeRuntime::handleMenuCommand(short commandId)
             return commandService_.validateSelectedAssembly();
         case SyncWithPythonListenerCommandId:
             return commandService_.syncWithPythonListener();
+        case DebugSelectionCommandId:
+            return commandService_.debugSelection();
+        case DebugRegistryCommandId:
+            return commandService_.debugRegistry();
+        case DebugBuildSyncPropertiesCommandId:
+            return commandService_.debugBuildSyncProperties();
         default:
             return {false, "Unsupported BuildSync command.", {}};
     }
+}
+
+AssemblyCommandService& NativeRuntime::commandService()
+{
+    return commandService_;
 }
 
 std::string commandResultReport(const CommandResult& result)

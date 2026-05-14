@@ -21,6 +21,7 @@ public:
 private:
     static std::string escape(const std::string& value);
     static std::string memberJson(const AssemblyMember& member);
+    static std::string propertyJson(const AssemblyProperty& property);
     static std::string assemblyJson(const Assembly& assembly);
 };
 

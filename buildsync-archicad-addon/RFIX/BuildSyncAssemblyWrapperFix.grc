@@ -1,0 +1,8 @@
+/* Non-localizable resources for the BuildSync Assembly Wrapper add-on. */
+
+#include "MDIDs_APICD.h"
+
+'MDID' 32500 "Add-On Identifier" {
+    MDID_GSDEV
+    2181796250
+}

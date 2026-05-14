@@ -109,7 +109,16 @@ std::string JsonSerializer::assemblyJson(const Assembly& assembly)
     out << "\"trade\":\"" << escape(assembly.trade) << "\",";
     out << "\"task_id\":\"" << escape(assembly.taskId) << "\",";
     out << "\"version\":" << assembly.version << ",";
-    out << "\"status\":\"" << escape(assembly.status) << "\"}";
+    out << "\"status\":\"" << escape(assembly.status) << "\",";
+    out << "\"custom_properties\":" << arrayJson<AssemblyProperty>(assembly.customProperties, propertyJson) << "}";
+    return out.str();
+}
+
+std::string JsonSerializer::propertyJson(const AssemblyProperty& property)
+{
+    std::ostringstream out;
+    out << "{\"key\":\"" << escape(property.key) << "\",";
+    out << "\"value\":\"" << escape(property.value) << "\"}";
     return out.str();
 }
 

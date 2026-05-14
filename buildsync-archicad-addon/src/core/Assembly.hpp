@@ -7,6 +7,11 @@
 
 namespace buildsync {
 
+struct AssemblyProperty {
+    std::string key;
+    std::string value;
+};
+
 struct Assembly {
     std::string assemblyUuid;
     std::string assemblyId;
@@ -21,6 +26,7 @@ struct Assembly {
     std::string createdAt;
     std::string updatedAt;
     std::vector<AssemblyMember> members;
+    std::vector<AssemblyProperty> customProperties;
 };
 
 } // namespace buildsync

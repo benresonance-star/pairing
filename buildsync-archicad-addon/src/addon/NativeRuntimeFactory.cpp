@@ -27,11 +27,11 @@ std::filesystem::path defaultRegistryPath()
 CreateAssemblyRequest defaultCreateAssemblyRequest()
 {
     return {
-        "Untitled Assembly",
-        "Assembly",
+        "Joinery Wrapper",
+        "Joinery",
         "",
         "",
-        "",
+        "Joinery",
         "",
     };
 }
@@ -43,6 +43,7 @@ NativeRuntime& buildSyncRuntime()
     static ArchicadSelectionReader selectionReader;
     static ArchicadElementPropertyWriter propertyWriter;
     static ArchicadElementExistenceChecker existenceChecker;
+    static ArchicadElementMetadataReader metadataReader;
     static ArchicadHighlightController highlightController;
     static FileRegistryStorage registryStorage(defaultRegistryPath());
     static LocalPythonListenerClient listenerClient;
@@ -55,6 +56,7 @@ NativeRuntime& buildSyncRuntime()
         selectionReader,
         propertyWriter,
         existenceChecker,
+        metadataReader,
         highlightController,
         registryStorage,
         listenerClient,

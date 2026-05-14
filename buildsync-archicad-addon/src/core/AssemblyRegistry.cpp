@@ -1,6 +1,7 @@
 #include "core/AssemblyRegistry.hpp"
 
 #include <algorithm>
+#include <utility>
 
 namespace buildsync {
 
@@ -21,6 +22,49 @@ bool AssemblyRegistry::createAssembly(const Assembly& assembly)
         assemblyUuidByElementGuid_[member.elementGuid] = stored.assemblyUuid;
     }
     assembliesByUuid_[stored.assemblyUuid] = stored;
+    return true;
+}
+
+bool AssemblyRegistry::deleteAssembly(const std::string& assemblyUuid)
+{
+    const auto found = assembliesByUuid_.find(assemblyUuid);
+    if (found == assembliesByUuid_.end()) {
+        return false;
+    }
+    for (const auto& member : found->second.members) {
+        assemblyUuidByElementGuid_.erase(member.elementGuid);
+    }
+    assembliesByUuid_.erase(found);
+    return true;
+}
+
+bool AssemblyRegistry::updateAssembly(const Assembly& assembly)
+{
+    auto found = assembliesByUuid_.find(assembly.assemblyUuid);
+    if (found == assembliesByUuid_.end()) {
+        return false;
+    }
+
+    std::unordered_map<std::string, std::string> rebuiltIndex = assemblyUuidByElementGuid_;
+    for (const auto& member : found->second.members) {
+        rebuiltIndex.erase(member.elementGuid);
+    }
+
+    Assembly stored = assembly;
+    for (auto& member : stored.members) {
+        if (member.elementGuid.empty()) {
+            return false;
+        }
+        const auto existing = rebuiltIndex.find(member.elementGuid);
+        if (existing != rebuiltIndex.end() && existing->second != stored.assemblyUuid) {
+            return false;
+        }
+        member.assemblyUuid = stored.assemblyUuid;
+        rebuiltIndex[member.elementGuid] = stored.assemblyUuid;
+    }
+
+    found->second = stored;
+    assemblyUuidByElementGuid_ = std::move(rebuiltIndex);
     return true;
 }
 

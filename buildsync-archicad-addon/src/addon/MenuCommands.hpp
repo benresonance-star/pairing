@@ -9,7 +9,9 @@
 #include "sync/SyncQueue.hpp"
 
 #include <functional>
+#include <optional>
 #include <string>
+#include <vector>
 
 namespace buildsync {
 
@@ -28,6 +30,17 @@ struct CommandResult {
     ValidationResult validation;
 };
 
+struct AssemblyUpdateRequest {
+    std::string assemblyId;
+    std::string name;
+    std::string type;
+    std::string zone;
+    std::string level;
+    std::string trade;
+    std::string taskId;
+    std::string status;
+};
+
 class AssemblyCommandService {
 public:
     using UuidFactory = std::function<std::string()>;
@@ -36,6 +49,7 @@ public:
         SelectionReader& selectionReader,
         ElementPropertyWriter& propertyWriter,
         ElementExistenceChecker& existenceChecker,
+        ElementMetadataReader& metadataReader,
         HighlightController& highlightController,
         RegistryStorage& registryStorage,
         PythonListenerClient& listenerClient,
@@ -45,12 +59,26 @@ public:
         std::string projectId,
         UuidFactory uuidFactory);
 
+    std::vector<Assembly> listWrappers() const;
+    std::optional<Assembly> getWrapper(const std::string& assemblyUuid) const;
+    std::vector<ElementMetadata> listWrapperMemberMetadata(const std::string& assemblyUuid) const;
+    CommandResult updateWrapper(const std::string& assemblyUuid, const AssemblyUpdateRequest& request);
+    CommandResult deleteWrapper(const std::string& assemblyUuid);
+    CommandResult selectWrapperMembers(const std::string& assemblyUuid);
+    CommandResult selectWrapperMember(const std::string& assemblyUuid, const std::string& elementGuid);
+    CommandResult addSelectionToAssembly(const std::string& assemblyUuid);
     CommandResult createAssemblyFromSelection(const CreateAssemblyRequest& request);
     CommandResult selectAssemblyMembers();
     CommandResult addSelectionToAssembly();
     CommandResult removeSelectionFromAssembly();
+    CommandResult setWrapperCustomProperty(const std::string& assemblyUuid, const std::string& key, const std::string& value);
+    CommandResult removeWrapperCustomProperty(const std::string& assemblyUuid, const std::string& key);
+    CommandResult repairRegistry();
     CommandResult validateSelectedAssembly();
     CommandResult syncWithPythonListener();
+    CommandResult debugSelection();
+    CommandResult debugRegistry();
+    CommandResult debugBuildSyncProperties();
 
 private:
     AssemblyMember memberFromSelection(const SelectedElement& selected, const std::string& assemblyUuid) const;
@@ -61,6 +89,7 @@ private:
     SelectionReader& selectionReader_;
     ElementPropertyWriter& propertyWriter_;
     ElementExistenceChecker& existenceChecker_;
+    ElementMetadataReader& metadataReader_;
     HighlightController& highlightController_;
     RegistryStorage& registryStorage_;
     PythonListenerClient& listenerClient_;

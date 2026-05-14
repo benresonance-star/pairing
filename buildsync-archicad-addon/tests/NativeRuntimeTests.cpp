@@ -18,10 +18,12 @@ public:
 class FakePropertyWriter : public ElementPropertyWriter {
 public:
     std::unordered_map<std::string, BuildSyncProperties> properties;
+    std::string diagnostic{"ok"};
     bool ensureBuildSyncProperties() override { return true; }
     bool writeAssemblyProperties(const std::string& elementGuid, const BuildSyncProperties& props) override
     {
         properties[elementGuid] = props;
+        diagnostic = "wrote";
         return true;
     }
     bool clearAssemblyProperties(const std::string& elementGuid) override
@@ -29,12 +31,29 @@ public:
         properties.erase(elementGuid);
         return true;
     }
+    std::string describeBuildSyncProperties(const std::string& elementGuid) const override
+    {
+        const auto found = properties.find(elementGuid);
+        if (found == properties.end()) {
+            return "BS_* properties=missing";
+        }
+        return "BS_AssemblyID=\"" + found->second.assemblyId + "\"";
+    }
+    std::string lastDiagnostic() const override { return diagnostic; }
 };
 
 class FakeExistenceChecker : public ElementExistenceChecker {
 public:
     std::unordered_set<std::string> live;
     bool exists(const std::string& elementGuid) const override { return live.count(elementGuid) > 0; }
+};
+
+class FakeMetadataReader : public ElementMetadataReader {
+public:
+    ElementMetadata readElementMetadata(const std::string& elementGuid) const override
+    {
+        return {elementGuid, "", "", "", "missing"};
+    }
 };
 
 class FakeHighlightController : public HighlightController {
@@ -70,6 +89,7 @@ int main()
     assembly.taskId = "TASK-240";
     assembly.version = 3;
     assembly.members = {{"uuid-with-special", "GUID-001", "Slab", "Bench|top", "active", "now"}};
+    assembly.customProperties = {{"FireRating", "60|min"}, {"Finish", "Oak"}};
     assert(registry.createAssembly(assembly));
 
     FileRegistryStorage storage(registryPath);
@@ -81,12 +101,25 @@ int main()
     assert(loadedAssembly);
     assert(loadedAssembly->name == "Kitchen | Island");
     assert(loadedAssembly->members.front().role == "Bench|top");
+    assert(loadedAssembly->customProperties.size() == 2);
+    assert(loadedAssembly->customProperties.front().value == "60|min");
+
+    AssemblyRegistry emptyRegistry;
+    Assembly emptyAssembly = assembly;
+    emptyAssembly.assemblyUuid = "uuid-empty";
+    emptyAssembly.members = {};
+    assert(emptyRegistry.createAssembly(emptyAssembly));
+    assert(storage.save(emptyRegistry));
+    AssemblyRegistry loadedEmpty;
+    assert(storage.load(loadedEmpty));
+    assert(loadedEmpty.listAssemblies().empty());
 
     FakeSelectionReader selection;
     selection.selection = {{"GUID-002", "Wall"}};
     FakePropertyWriter properties;
     FakeExistenceChecker existence;
     existence.live = {"GUID-002"};
+    FakeMetadataReader metadata;
     FakeHighlightController highlighter;
     FakeListenerClient listener;
     AssemblyRegistry runtimeRegistry;
@@ -98,6 +131,7 @@ int main()
         selection,
         properties,
         existence,
+        metadata,
         highlighter,
         storage,
         listener,
@@ -112,8 +146,11 @@ int main()
 
     const CommandResult created = runtime.handleMenuCommand(CreateAssemblyCommandId);
     assert(created.ok);
-    assert(properties.properties["GUID-002"].assemblyId == "L02-A204-JN-001");
+    assert(properties.properties["GUID-002"].assemblyId == "L02-A204-J01");
     assert(commandResultReport(created).find("BuildSync:") == 0);
+    assert(runtime.handleMenuCommand(DebugSelectionCommandId).message.find("GUID-002") != std::string::npos);
+    assert(runtime.handleMenuCommand(DebugRegistryCommandId).message.find("L02-A204-J01") != std::string::npos);
+    assert(runtime.handleMenuCommand(DebugBuildSyncPropertiesCommandId).message.find("BS_AssemblyID=\"L02-A204-J01\"") != std::string::npos);
     assert(!runtime.handleMenuCommand(999).ok);
 
     std::filesystem::remove(registryPath);

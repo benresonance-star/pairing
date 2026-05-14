@@ -18,11 +18,21 @@ public:
     bool ensureBuildSyncProperties() override;
     bool writeAssemblyProperties(const std::string& elementGuid, const BuildSyncProperties& properties) override;
     bool clearAssemblyProperties(const std::string& elementGuid) override;
+    std::string describeBuildSyncProperties(const std::string& elementGuid) const override;
+    std::string lastDiagnostic() const override;
+
+private:
+    mutable std::string lastDiagnostic_;
 };
 
 class ArchicadElementExistenceChecker final : public ElementExistenceChecker {
 public:
     bool exists(const std::string& elementGuid) const override;
+};
+
+class ArchicadElementMetadataReader final : public ElementMetadataReader {
+public:
+    ElementMetadata readElementMetadata(const std::string& elementGuid) const override;
 };
 
 class ArchicadHighlightController final : public HighlightController {

@@ -12,6 +12,8 @@ namespace buildsync {
 class AssemblyRegistry {
 public:
     bool createAssembly(const Assembly& assembly);
+    bool deleteAssembly(const std::string& assemblyUuid);
+    bool updateAssembly(const Assembly& assembly);
     bool addMembers(const std::string& assemblyUuid, const std::vector<AssemblyMember>& members);
     bool removeMembers(const std::string& assemblyUuid, const std::vector<std::string>& elementGuids);
     bool renameAssembly(const std::string& assemblyUuid, const std::string& assemblyId, const std::string& name);

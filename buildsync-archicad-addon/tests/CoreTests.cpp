@@ -34,9 +34,9 @@ Assembly sampleAssembly()
 int main()
 {
     NamingRules naming;
-    assert(naming.generateAssemblyId("Joinery") == "JN-001");
+    assert(naming.generateAssemblyId("Joinery") == "J01");
     assert(naming.generateAssemblyId("Unknown") == "ASM-001");
-    assert(naming.generateAssemblyId("Joinery", "L02", "A204") == "L02-A204-JN-002");
+    assert(naming.generateAssemblyId("Joinery", "L02", "A204") == "L02-A204-J02");
 
     AssemblyRegistry registry;
     Assembly assembly = sampleAssembly();
@@ -51,6 +51,10 @@ int main()
     assert(registry.getAssemblyByUuid("uuid-jn-014")->version == 2);
     assert(registry.removeMembers("uuid-jn-014", {"GUID-003"}));
     assert(registry.getAssemblyByUuid("uuid-jn-014")->members.size() == 2);
+    assert(registry.deleteAssembly("uuid-jn-014"));
+    assert(!registry.containsAssembly("uuid-jn-014"));
+    assert(!registry.getAssemblyByElementGuid("GUID-001"));
+    assert(registry.createAssembly(assembly));
 
     AssemblyGraph graph;
     assert(graph.addRelationship("KIT-002", "JN-014"));

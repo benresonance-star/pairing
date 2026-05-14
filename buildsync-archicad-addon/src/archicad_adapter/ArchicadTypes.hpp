@@ -10,6 +10,14 @@ struct SelectedElement {
     std::string elementType;
 };
 
+struct ElementMetadata {
+    std::string elementGuid;
+    std::string elementType;
+    std::string elementId;
+    std::string layerName;
+    std::string status;
+};
+
 struct BuildSyncProperties {
     std::string assemblyId;
     std::string assemblyUuid;
@@ -20,6 +28,7 @@ struct BuildSyncProperties {
     std::string taskId;
     std::string trade;
     std::string status;
+    std::string customProperties;
 };
 
 class SelectionReader {
@@ -34,12 +43,20 @@ public:
     virtual bool ensureBuildSyncProperties() = 0;
     virtual bool writeAssemblyProperties(const std::string& elementGuid, const BuildSyncProperties& properties) = 0;
     virtual bool clearAssemblyProperties(const std::string& elementGuid) = 0;
+    virtual std::string describeBuildSyncProperties(const std::string& elementGuid) const = 0;
+    virtual std::string lastDiagnostic() const = 0;
 };
 
 class ElementExistenceChecker {
 public:
     virtual ~ElementExistenceChecker() = default;
     virtual bool exists(const std::string& elementGuid) const = 0;
+};
+
+class ElementMetadataReader {
+public:
+    virtual ~ElementMetadataReader() = default;
+    virtual ElementMetadata readElementMetadata(const std::string& elementGuid) const = 0;
 };
 
 class HighlightController {

@@ -16,6 +16,7 @@ public:
         CreateAssemblyRequestProvider createAssemblyRequestProvider);
 
     CommandResult handleMenuCommand(short commandId);
+    AssemblyCommandService& commandService();
 
 private:
     AssemblyCommandService& commandService_;

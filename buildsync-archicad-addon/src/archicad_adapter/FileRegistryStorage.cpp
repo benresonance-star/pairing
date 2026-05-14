@@ -144,10 +144,19 @@ bool FileRegistryStorage::load(AssemblyRegistry& registry)
                 continue;
             }
             found->second.members.push_back({fields[1], fields[2], fields[3], fields[4], fields[5], fields[6]});
+        } else if (fields[0] == "P" && fields.size() == 4) {
+            auto found = assembliesByUuid.find(fields[1]);
+            if (found == assembliesByUuid.end() || fields[2].empty()) {
+                continue;
+            }
+            found->second.customProperties.push_back({fields[2], fields[3]});
         }
     }
 
     for (const auto& [_, assembly] : assembliesByUuid) {
+        if (assembly.members.empty()) {
+            continue;
+        }
         if (!registry.createAssembly(assembly)) {
             return false;
         }
@@ -169,6 +178,9 @@ bool FileRegistryStorage::save(const AssemblyRegistry& registry)
 
     output << "BuildSyncRegistry\t1\n";
     for (const auto& assembly : registry.listAssemblies()) {
+        if (assembly.members.empty()) {
+            continue;
+        }
         output << joinRecord({
                       "A",
                       assembly.assemblyUuid,
@@ -185,6 +197,18 @@ bool FileRegistryStorage::save(const AssemblyRegistry& registry)
                       assembly.updatedAt,
                   })
                << "\n";
+        for (const auto& property : assembly.customProperties) {
+            if (property.key.empty()) {
+                continue;
+            }
+            output << joinRecord({
+                          "P",
+                          assembly.assemblyUuid,
+                          property.key,
+                          property.value,
+                      })
+                   << "\n";
+        }
         for (const auto& member : assembly.members) {
             output << joinRecord({
                           "M",
