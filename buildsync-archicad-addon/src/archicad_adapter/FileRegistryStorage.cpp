@@ -106,12 +106,16 @@ bool FileRegistryStorage::load(AssemblyRegistry& registry)
     }
 
     std::string line;
-    if (!std::getline(input, line) || line != "BuildSyncRegistry\t1") {
+    if (!std::getline(input, line) || (line != "BuildSyncRegistry\t1" && line != "BuildSyncRegistry\t2")) {
         return false;
     }
+    const bool isV2 = line == "BuildSyncRegistry\t2";
 
     std::unordered_map<std::string, Assembly> assembliesByUuid;
     std::vector<AssemblyRelationship> relationships;
+    std::vector<WrapperComponent> components;
+    std::vector<WrapperInstance> instances;
+    std::vector<WrapperInstanceMember> instanceMembers;
     while (std::getline(input, line)) {
         if (line.empty()) {
             continue;
@@ -163,6 +167,70 @@ bool FileRegistryStorage::load(AssemblyRegistry& registry)
             }
             relationship.status = fields[5].empty() ? "active" : fields[5];
             relationships.push_back(relationship);
+        } else if (isV2 && fields[0] == "C" && (fields.size() == 9 || fields.size() >= 13)) {
+            WrapperComponent component;
+            component.componentId = fields[1];
+            component.sourceAssemblyUuid = fields[2];
+            component.sourceElementGuid = fields[3];
+            component.elementType = fields[4];
+            component.role = fields[5];
+            try {
+                component.sortOrder = std::stoi(fields[6]);
+            } catch (...) {
+                component.sortOrder = 0;
+            }
+            component.snapshotJson = fields[7];
+            component.status = fields[8].empty() ? "active" : fields[8];
+            if (fields.size() >= 13) {
+                try {
+                    component.localFrame.originX = std::stod(fields[9]);
+                    component.localFrame.originY = std::stod(fields[10]);
+                    component.localFrame.rotationDegrees = std::stod(fields[11]);
+                    component.localFrame.valid = fields[12] == "true";
+                } catch (...) {
+                    component.localFrame = {};
+                }
+            }
+            components.push_back(component);
+        } else if (isV2 && fields[0] == "I" && (fields.size() == 15 || fields.size() >= 23)) {
+            WrapperInstance instance;
+            instance.instanceUuid = fields[1];
+            instance.sourceAssemblyUuid = fields[2];
+            instance.name = fields[3];
+            try {
+                instance.transform.originX = std::stod(fields[4]);
+                instance.transform.originY = std::stod(fields[5]);
+                instance.transform.rotationDegrees = std::stod(fields[6]);
+            } catch (...) {
+                instance.transform = {};
+            }
+            instance.transform.mirrored = fields[7] == "true";
+            instance.isMirrored = fields[7] == "true";
+            instance.sourceIsCountable = fields[8] != "false";
+            instance.localOverridesAllowed = fields[9] == "true";
+            instance.needsRepair = fields[10] == "true";
+            instance.status = fields[11].empty() ? "active" : fields[11];
+            instance.nativeGroupId = fields[12];
+            instance.createdAt = fields[13];
+            instance.updatedAt = fields[14];
+            if (fields.size() >= 23) {
+                try {
+                    instance.sourceFrame.originX = std::stod(fields[15]);
+                    instance.sourceFrame.originY = std::stod(fields[16]);
+                    instance.sourceFrame.rotationDegrees = std::stod(fields[17]);
+                    instance.sourceFrame.valid = fields[18] == "true";
+                    instance.liveFrame.originX = std::stod(fields[19]);
+                    instance.liveFrame.originY = std::stod(fields[20]);
+                    instance.liveFrame.rotationDegrees = std::stod(fields[21]);
+                    instance.liveFrame.valid = fields[22] == "true";
+                } catch (...) {
+                    instance.sourceFrame = {};
+                    instance.liveFrame = {};
+                }
+            }
+            instances.push_back(instance);
+        } else if (isV2 && fields[0] == "IM" && fields.size() == 7) {
+            instanceMembers.push_back({fields[1], fields[2], fields[3], fields[4], fields[5], fields[6].empty() ? "active" : fields[6]});
         }
     }
 
@@ -176,6 +244,22 @@ bool FileRegistryStorage::load(AssemblyRegistry& registry)
             continue;
         }
         if (!registry.addChildWrapper(relationship.parentAssemblyUuid, relationship.childAssemblyUuid, relationship.relationshipType)) {
+            return false;
+        }
+    }
+    for (const auto& component : components) {
+        if (!registry.upsertComponent(component)) {
+            return false;
+        }
+    }
+    for (const auto& instance : instances) {
+        std::vector<WrapperInstanceMember> members;
+        for (const auto& member : instanceMembers) {
+            if (member.instanceUuid == instance.instanceUuid) {
+                members.push_back(member);
+            }
+        }
+        if (!registry.createInstance(instance, members)) {
             return false;
         }
     }
@@ -194,7 +278,7 @@ bool FileRegistryStorage::save(const AssemblyRegistry& registry)
         return false;
     }
 
-    output << "BuildSyncRegistry\t1\n";
+    output << "BuildSyncRegistry\t2\n";
     const auto relationships = registry.listRelationships();
     for (const auto& assembly : registry.listAssemblies()) {
         const bool participatesInTree =
@@ -252,6 +336,64 @@ bool FileRegistryStorage::save(const AssemblyRegistry& registry)
                       relationship.relationshipType,
                       std::to_string(relationship.sortOrder),
                       relationship.status,
+                  })
+               << "\n";
+    }
+    for (const auto& component : registry.listAllComponents()) {
+        output << joinRecord({
+                      "C",
+                      component.componentId,
+                      component.sourceAssemblyUuid,
+                      component.sourceElementGuid,
+                      component.elementType,
+                      component.role,
+                      std::to_string(component.sortOrder),
+                      component.snapshotJson,
+                      component.status,
+                      std::to_string(component.localFrame.originX),
+                      std::to_string(component.localFrame.originY),
+                      std::to_string(component.localFrame.rotationDegrees),
+                      component.localFrame.valid ? "true" : "false",
+                  })
+               << "\n";
+    }
+    for (const auto& instance : registry.listAllInstances()) {
+        output << joinRecord({
+                      "I",
+                      instance.instanceUuid,
+                      instance.sourceAssemblyUuid,
+                      instance.name,
+                      std::to_string(instance.transform.originX),
+                      std::to_string(instance.transform.originY),
+                      std::to_string(instance.transform.rotationDegrees),
+                      instance.isMirrored ? "true" : "false",
+                      instance.sourceIsCountable ? "true" : "false",
+                      instance.localOverridesAllowed ? "true" : "false",
+                      instance.needsRepair ? "true" : "false",
+                      instance.status,
+                      instance.nativeGroupId,
+                      instance.createdAt,
+                      instance.updatedAt,
+                      std::to_string(instance.sourceFrame.originX),
+                      std::to_string(instance.sourceFrame.originY),
+                      std::to_string(instance.sourceFrame.rotationDegrees),
+                      instance.sourceFrame.valid ? "true" : "false",
+                      std::to_string(instance.liveFrame.originX),
+                      std::to_string(instance.liveFrame.originY),
+                      std::to_string(instance.liveFrame.rotationDegrees),
+                      instance.liveFrame.valid ? "true" : "false",
+                  })
+               << "\n";
+    }
+    for (const auto& member : registry.listAllInstanceMembers()) {
+        output << joinRecord({
+                      "IM",
+                      member.instanceUuid,
+                      member.componentId,
+                      member.elementGuid,
+                      member.elementType,
+                      member.role,
+                      member.status,
                   })
                << "\n";
     }

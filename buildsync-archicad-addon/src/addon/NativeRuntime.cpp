@@ -36,6 +36,27 @@ CommandResult NativeRuntime::handleMenuCommand(short commandId)
             return commandService_.debugRegistry();
         case DebugBuildSyncPropertiesCommandId:
             return commandService_.debugBuildSyncProperties();
+        case CreateWrapperInstanceCommandId:
+            return commandService_.createInstanceFromSelectedWrapper({});
+        case CreateMirroredWrapperInstanceCommandId: {
+            PlanPlacement placement;
+            placement.mirrored = true;
+            return commandService_.createInstanceFromSelectedWrapper(placement);
+        }
+        case SelectWrapperInstanceCommandId:
+            return commandService_.selectSelectedElementInstance();
+        case EnterWrapperEditModeCommandId:
+            return commandService_.enterWrapperEditMode();
+        case ApplyWrapperEditCommandId:
+            return commandService_.applyWrapperEdit();
+        case CancelWrapperEditCommandId:
+            return commandService_.cancelWrapperEdit();
+        case ConvertInstanceToStandaloneCommandId:
+            return commandService_.convertSelectedInstanceToStandaloneWrapper("Standalone Wrapper");
+        case BreakApartInstanceCommandId:
+            return commandService_.breakApartSelectedInstance();
+        case RepairWrapperInstanceCommandId:
+            return commandService_.repairSelectedInstance();
         default:
             return {false, "Unsupported BuildSync command.", {}};
     }

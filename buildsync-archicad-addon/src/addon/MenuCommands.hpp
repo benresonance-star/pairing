@@ -11,6 +11,7 @@
 #include <functional>
 #include <optional>
 #include <string>
+#include <unordered_map>
 #include <vector>
 
 namespace buildsync {
@@ -41,6 +42,12 @@ struct AssemblyUpdateRequest {
     std::string status;
 };
 
+struct CreateWrapperInstanceRequest {
+    std::string sourceAssemblyUuid;
+    std::string name;
+    PlanPlacement placement;
+};
+
 class AssemblyCommandService {
 public:
     using UuidFactory = std::function<std::string()>;
@@ -57,10 +64,14 @@ public:
         NamingRules& namingRules,
         SyncQueue& syncQueue,
         std::string projectId,
-        UuidFactory uuidFactory);
+        UuidFactory uuidFactory,
+        InstanceElementOperator* instanceOperator = nullptr);
 
     std::vector<Assembly> listWrappers() const;
+    std::vector<WrapperInstance> listWrapperInstances(const std::string& sourceAssemblyUuid) const;
+    std::vector<WrapperInstanceMember> listWrapperInstanceMembers(const std::string& instanceUuid) const;
     std::optional<Assembly> getWrapper(const std::string& assemblyUuid) const;
+    std::optional<WrapperInstance> getWrapperInstance(const std::string& instanceUuid) const;
     std::vector<ElementMetadata> listWrapperMemberMetadata(const std::string& assemblyUuid) const;
     std::vector<Assembly> listChildWrappers(const std::string& assemblyUuid) const;
     std::vector<AssemblyMember> resolveEffectiveMembers(const std::string& assemblyUuid) const;
@@ -79,6 +90,17 @@ public:
     CommandResult removeSelectionFromAssembly();
     CommandResult setWrapperCustomProperty(const std::string& assemblyUuid, const std::string& key, const std::string& value);
     CommandResult removeWrapperCustomProperty(const std::string& assemblyUuid, const std::string& key);
+    CommandResult createInstanceFromSelectedWrapper(const PlanPlacement& placement);
+    CommandResult placeWrapperInstance(const CreateWrapperInstanceRequest& request);
+    CommandResult placeMirroredWrapperInstance(const CreateWrapperInstanceRequest& request);
+    CommandResult selectWrapperInstance(const std::string& instanceUuid);
+    CommandResult selectSelectedElementInstance();
+    CommandResult enterWrapperEditMode();
+    CommandResult applyWrapperEdit();
+    CommandResult cancelWrapperEdit();
+    CommandResult convertSelectedInstanceToStandaloneWrapper(const std::string& name);
+    CommandResult breakApartSelectedInstance();
+    CommandResult repairSelectedInstance();
     CommandResult repairRegistry();
     CommandResult validateSelectedAssembly();
     CommandResult syncWithPythonListener();
@@ -89,7 +111,17 @@ public:
 private:
     AssemblyMember memberFromSelection(const SelectedElement& selected, const std::string& assemblyUuid) const;
     BuildSyncProperties propertiesFor(const Assembly& assembly, const AssemblyMember& member) const;
+    BuildSyncProperties instancePropertiesFor(
+        const Assembly& source,
+        const WrapperInstance& instance,
+        const WrapperInstanceMember& member) const;
     bool stampAssemblyProperties(const Assembly& assembly);
+    bool stampInstanceProperties(const Assembly& source, const WrapperInstance& instance);
+    CommandResult ensureComponentsForAssembly(const Assembly& assembly);
+    CommandResult pruneMissingSourceMembers(const std::string& assemblyUuid, int* removedCount = nullptr);
+    int countMissingInstanceMembers(const std::string& sourceAssemblyUuid) const;
+    int countInstancesNeedingRepair(const std::string& sourceAssemblyUuid) const;
+    std::optional<WrapperInstance> selectedInstance() const;
     void enqueueEvent(const std::string& eventType, const std::string& payloadJson);
 
     SelectionReader& selectionReader_;
@@ -104,6 +136,10 @@ private:
     SyncQueue& syncQueue_;
     std::string projectId_;
     UuidFactory uuidFactory_;
+    InstanceElementOperator* instanceOperator_;
+    std::optional<WrapperEditSession> activeEditSession_;
+    std::unordered_map<std::string, ElementSnapshot> activeBaselineByElementGuid_;
+    std::unordered_map<std::string, std::string> activeComponentByElementGuid_;
 };
 
 } // namespace buildsync

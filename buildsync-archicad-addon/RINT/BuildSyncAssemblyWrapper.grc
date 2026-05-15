@@ -18,6 +18,15 @@
 /* [  8] */            "Debug Registry^ES^EE^EI^E3^EL"
 /* [  9] */            "Debug BuildSync Properties^ES^EE^EI^E3^EL"
 /* [ 10] */            "Manage Wrappers...^ES^EE^EI^E3^EL"
+/* [ 11] */            "Place Wrapper Instance (Supported: Wall, Slab, Column, Beam, Roof, Object)^ES^EE^EI^E3^EL"
+/* [ 12] */            "Place Mirrored Wrapper Instance^ES^EE^EI^E3^EL"
+/* [ 13] */            "Select Wrapper Instance^ES^EE^EI^E3^EL"
+/* [ 14] */            "Enter Shared Wrapper Edit Mode^ES^EE^EI^E3^EL"
+/* [ 15] */            "Apply Shared Wrapper Edit^ES^EE^EI^E3^EL"
+/* [ 16] */            "Cancel Shared Wrapper Edit^ES^EE^EI^E3^EL"
+/* [ 17] */            "Convert Instance to Standalone Wrapper^ES^EE^EI^E3^EL"
+/* [ 18] */            "Break Apart Wrapper Instance^ES^EE^EI^E3^EL"
+/* [ 19] */            "Repair Wrapper Instance^ES^EE^EI^E3^EL"
 }
 
 'STR#' 32600 "BuildSync Menu Prompt Strings" {
@@ -31,6 +40,15 @@
 /* [  8] */        "Print the local BuildSync wrapper registry to the Session Report."
 /* [  9] */        "Print BuildSync property diagnostics for selected elements."
 /* [ 10] */        "Open the BuildSync wrapper manager dialog."
+/* [ 11] */        "Place a physical/countable wrapper instance. MVP supports only walls, slabs, columns, beams, roofs, and objects."
+/* [ 12] */        "Place a mirrored physical/countable wrapper instance and flag it for scheduling."
+/* [ 13] */        "Select all members of the wrapper instance containing the selected element."
+/* [ 14] */        "Enter shared-master wrapper edit mode. Local overrides are not allowed; convert to standalone first for independent edits."
+/* [ 15] */        "Apply reviewed shared-master edits to the source wrapper and every linked instance."
+/* [ 16] */        "Cancel the active shared-master wrapper edit session."
+/* [ 17] */        "Convert the selected instance into a standalone physical/countable wrapper."
+/* [ 18] */        "Break apart the selected instance into unbound Archicad elements."
+/* [ 19] */        "Repair metadata and grouping for the selected wrapper instance."
 }
 
 'GDLG' 32700 Palette | topCaption | close | grow 40 0 640 760 "BuildSync Wrapper Manager" {

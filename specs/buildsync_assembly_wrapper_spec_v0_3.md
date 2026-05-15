@@ -1448,6 +1448,10 @@ Transform = mirrored
 
 This matters because mirrored joinery may need different handedness, hardware, procurement data, or installation instructions.
 
+### 18.4 Reviewer Handoff Note: Slab Instance Edit Propagation
+
+Current known issue for the next reviewing AI: when applying shared edits to slab-based wrapper instances, the instance updates initially, but new or changed slabs are still being created at the same world location as the source slabs. The next review should focus on Archicad slab memo coordinate semantics and the source-to-instance placement transform used during `ACAPI_Element_ChangeMemo` / replacement creation, because each instance must keep its own relative coordinate space after propagation.
+
 ---
 
 ## 19. Nested Assemblies

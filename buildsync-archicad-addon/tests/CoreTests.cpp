@@ -47,6 +47,21 @@ int main()
 
     assert(registry.addMembers("uuid-jn-014", {{"", "GUID-003", "Object", "Sink", "active", ""}}));
     assert(registry.getAssemblyByUuid("uuid-jn-014")->members.size() == 3);
+    assert(registry.upsertComponent({"component-slab", "uuid-jn-014", "GUID-001", "Slab", "Benchtop", 0, "{\"type\":\"slab\"}", "active"}));
+    WrapperInstance instance;
+    instance.instanceUuid = "instance-001";
+    instance.sourceAssemblyUuid = "uuid-jn-014";
+    instance.name = "Kitchen Island Instance";
+    instance.transform = {10.0, 20.0, 45.0, true};
+    instance.isMirrored = true;
+    instance.sourceIsCountable = true;
+    instance.localOverridesAllowed = false;
+    assert(registry.createInstance(instance, {{"instance-001", "component-slab", "GUID-I-001", "Slab", "Benchtop", "active"}}));
+    assert(registry.getInstanceByMemberElementGuid("GUID-I-001")->isMirrored);
+    assert(registry.listInstances("uuid-jn-014").size() == 1);
+    assert(registry.markInstanceNeedsRepair("instance-001", true));
+    assert(registry.getInstance("instance-001")->needsRepair);
+    assert(registry.deleteInstance("instance-001"));
     assert(registry.incrementVersion("uuid-jn-014"));
     assert(registry.getAssemblyByUuid("uuid-jn-014")->version == 2);
     assert(registry.removeMembers("uuid-jn-014", {"GUID-003"}));

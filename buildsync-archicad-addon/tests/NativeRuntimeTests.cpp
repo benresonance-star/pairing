@@ -72,6 +72,80 @@ public:
     bool postEvent(const SyncEvent&, std::string&) override { return true; }
 };
 
+class FakeInstanceElementOperator : public InstanceElementOperator {
+public:
+    std::unordered_map<std::string, ElementSnapshot> snapshots;
+    std::vector<std::string> deleted;
+    std::vector<std::string> grouped;
+    std::string diagnostic{"ok"};
+    int nextGuid{0};
+
+    bool supportsElementType(const std::string& elementType) const override
+    {
+        return elementType == "Wall" || elementType == "Slab" || elementType == "Column" ||
+               elementType == "Beam" || elementType == "Roof" || elementType == "Object";
+    }
+
+    std::vector<std::string> supportedElementTypes() const override
+    {
+        return {"Wall", "Slab", "Column", "Beam", "Roof", "Object"};
+    }
+
+    std::vector<ElementSnapshot> snapshotElements(const std::vector<SelectedElement>& elements) const override
+    {
+        std::vector<ElementSnapshot> out;
+        for (const auto& element : elements) {
+            out.push_back({
+                element.elementGuid,
+                element.elementType,
+                "{\"guid\":\"" + element.elementGuid + "\"}",
+                0.0,
+                0.0,
+                0.0,
+                true,
+                0.0,
+                0.0,
+                0.0,
+                true,
+                "fake-topology",
+            });
+        }
+        return out;
+    }
+
+    std::vector<ElementDuplicateResult> duplicateElements(
+        const std::vector<ElementDuplicateRequest>& requests,
+        const PlanPlacement&) override
+    {
+        std::vector<ElementDuplicateResult> out;
+        for (const auto& request : requests) {
+            out.push_back({request.sourceElementGuid, request.componentId, "INSTANCE-GUID-" + std::to_string(++nextGuid), request.elementType, request.role});
+        }
+        return out;
+    }
+
+    bool updateElementFromSnapshot(const std::string& elementGuid, const ElementSnapshot& snapshot, const ElementSnapshot&, const ElementSnapshot&, std::string* = nullptr) override
+    {
+        snapshots[elementGuid] = snapshot;
+        return true;
+    }
+
+    bool deleteElements(const std::vector<std::string>& elementGuids) override
+    {
+        deleted.insert(deleted.end(), elementGuids.begin(), elementGuids.end());
+        return true;
+    }
+
+    std::string groupElements(const std::vector<std::string>& elementGuids) override
+    {
+        grouped = elementGuids;
+        return "GROUP-1";
+    }
+
+    bool ungroupElements(const std::string&, const std::vector<std::string>&) override { return true; }
+    std::string lastDiagnostic() const override { return diagnostic; }
+};
+
 int main()
 {
     const auto registryPath = std::filesystem::temp_directory_path() / "buildsync-native-runtime-test.registry";
@@ -140,6 +214,7 @@ int main()
     FakeMetadataReader metadata;
     FakeHighlightController highlighter;
     FakeListenerClient listener;
+    FakeInstanceElementOperator instanceOperator;
     AssemblyRegistry runtimeRegistry;
     NamingRules naming;
     SyncQueue queue;
@@ -157,7 +232,8 @@ int main()
         naming,
         queue,
         "local-project",
-        [&]() { return "runtime-uuid-" + std::to_string(++uuid); });
+        [&]() { return "runtime-uuid-" + std::to_string(++uuid); },
+        &instanceOperator);
     NativeRuntime runtime(commands, [] {
         return CreateAssemblyRequest{"Runtime Assembly", "Joinery", "A204", "L02", "Joinery", "TASK-240"};
     });
@@ -169,6 +245,27 @@ int main()
     assert(runtime.handleMenuCommand(DebugSelectionCommandId).message.find("GUID-002") != std::string::npos);
     assert(runtime.handleMenuCommand(DebugRegistryCommandId).message.find("L02-A204-J01") != std::string::npos);
     assert(runtime.handleMenuCommand(DebugBuildSyncPropertiesCommandId).message.find("BS_AssemblyID=\"L02-A204-J01\"") != std::string::npos);
+
+    const auto sourceAssembly = runtimeRegistry.getAssemblyByElementGuid("GUID-002");
+    assert(sourceAssembly);
+    const CommandResult placed = commands.placeWrapperInstance({sourceAssembly->assemblyUuid, "Runtime Instance", {10.0, 20.0, 90.0, false}});
+    assert(placed.ok);
+    const auto instances = commands.listWrapperInstances(sourceAssembly->assemblyUuid);
+    assert(instances.size() == 1);
+    assert(instances.front().sourceIsCountable);
+    assert(!instances.front().localOverridesAllowed);
+    const auto instanceMembers = commands.listWrapperInstanceMembers(instances.front().instanceUuid);
+    assert(instanceMembers.size() == 1);
+    existence.live.insert(instanceMembers.front().elementGuid);
+    assert(properties.properties[instanceMembers.front().elementGuid].isInstance == "true");
+    assert(properties.properties[instanceMembers.front().elementGuid].localOverridesAllowed == "false");
+
+    selection.selection = {{instanceMembers.front().elementGuid, instanceMembers.front().elementType}};
+    assert(commands.selectSelectedElementInstance().ok);
+    assert(highlighter.selected.size() == 1);
+    assert(commands.convertSelectedInstanceToStandaloneWrapper("Standalone Runtime Instance").ok);
+    assert(runtimeRegistry.getInstance(instances.front().instanceUuid) == std::nullopt);
+
     assert(!runtime.handleMenuCommand(999).ok);
 
     std::filesystem::remove(registryPath);

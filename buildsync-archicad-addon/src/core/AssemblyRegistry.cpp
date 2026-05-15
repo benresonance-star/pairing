@@ -42,6 +42,14 @@ bool AssemblyRegistry::deleteAssembly(const std::string& assemblyUuid)
     }
     for (const auto& member : found->second.members) {
         assemblyUuidByElementGuid_.erase(member.elementGuid);
+        const auto component = componentIdBySourceElementGuid_.find(member.elementGuid);
+        if (component != componentIdBySourceElementGuid_.end()) {
+            componentsById_.erase(component->second);
+            componentIdBySourceElementGuid_.erase(component);
+        }
+    }
+    for (const auto& instance : listInstances(assemblyUuid)) {
+        deleteInstance(instance.instanceUuid);
     }
     assembliesByUuid_.erase(found);
     return true;
@@ -118,6 +126,10 @@ bool AssemblyRegistry::removeMembers(const std::string& assemblyUuid, const std:
     auto& members = found->second.members;
     for (const auto& guid : elementGuids) {
         assemblyUuidByElementGuid_.erase(guid);
+        const auto component = componentIdBySourceElementGuid_.find(guid);
+        if (component != componentIdBySourceElementGuid_.end()) {
+            removeComponent(component->second);
+        }
         members.erase(
             std::remove_if(members.begin(), members.end(), [&](const AssemblyMember& member) {
                 return member.elementGuid == guid;
@@ -167,6 +179,128 @@ bool AssemblyRegistry::removeChildWrapper(const std::string& parentUuid, const s
     return true;
 }
 
+bool AssemblyRegistry::upsertComponent(const WrapperComponent& component)
+{
+    if (component.componentId.empty() || component.sourceAssemblyUuid.empty() || !containsAssembly(component.sourceAssemblyUuid)) {
+        return false;
+    }
+    if (!component.sourceElementGuid.empty()) {
+        const auto existing = componentIdBySourceElementGuid_.find(component.sourceElementGuid);
+        if (existing != componentIdBySourceElementGuid_.end() && existing->second != component.componentId) {
+            return false;
+        }
+    }
+    const auto previous = componentsById_.find(component.componentId);
+    if (previous != componentsById_.end() && previous->second.sourceElementGuid != component.sourceElementGuid) {
+        componentIdBySourceElementGuid_.erase(previous->second.sourceElementGuid);
+    }
+    componentsById_[component.componentId] = component;
+    if (!component.sourceElementGuid.empty()) {
+        componentIdBySourceElementGuid_[component.sourceElementGuid] = component.componentId;
+    }
+    return true;
+}
+
+bool AssemblyRegistry::removeComponent(const std::string& componentId)
+{
+    const auto found = componentsById_.find(componentId);
+    if (found == componentsById_.end()) {
+        return false;
+    }
+    componentIdBySourceElementGuid_.erase(found->second.sourceElementGuid);
+    componentsById_.erase(found);
+    for (auto& item : instanceMembersByInstanceUuid_) {
+        auto& members = item.second;
+        members.erase(
+            std::remove_if(members.begin(), members.end(), [&](const WrapperInstanceMember& member) {
+                if (member.componentId == componentId) {
+                    instanceUuidByMemberElementGuid_.erase(member.elementGuid);
+                    return true;
+                }
+                return false;
+            }),
+            members.end());
+    }
+    return true;
+}
+
+bool AssemblyRegistry::createInstance(const WrapperInstance& instance, const std::vector<WrapperInstanceMember>& members)
+{
+    if (instance.instanceUuid.empty() || instance.sourceAssemblyUuid.empty() || !containsAssembly(instance.sourceAssemblyUuid) ||
+        instancesByUuid_.count(instance.instanceUuid) > 0) {
+        return false;
+    }
+    for (const auto& member : members) {
+        if (member.instanceUuid != instance.instanceUuid || member.componentId.empty() || member.elementGuid.empty() ||
+            componentsById_.count(member.componentId) == 0 || instanceUuidByMemberElementGuid_.count(member.elementGuid) > 0) {
+            return false;
+        }
+    }
+    instancesByUuid_[instance.instanceUuid] = instance;
+    instanceMembersByInstanceUuid_[instance.instanceUuid] = members;
+    for (const auto& member : members) {
+        instanceUuidByMemberElementGuid_[member.elementGuid] = instance.instanceUuid;
+    }
+    return true;
+}
+
+bool AssemblyRegistry::updateInstance(const WrapperInstance& instance)
+{
+    const auto found = instancesByUuid_.find(instance.instanceUuid);
+    if (found == instancesByUuid_.end() || !containsAssembly(instance.sourceAssemblyUuid)) {
+        return false;
+    }
+    found->second = instance;
+    return true;
+}
+
+bool AssemblyRegistry::deleteInstance(const std::string& instanceUuid)
+{
+    const auto found = instancesByUuid_.find(instanceUuid);
+    if (found == instancesByUuid_.end()) {
+        return false;
+    }
+    const auto members = instanceMembersByInstanceUuid_.find(instanceUuid);
+    if (members != instanceMembersByInstanceUuid_.end()) {
+        for (const auto& member : members->second) {
+            instanceUuidByMemberElementGuid_.erase(member.elementGuid);
+        }
+        instanceMembersByInstanceUuid_.erase(members);
+    }
+    instancesByUuid_.erase(found);
+    return true;
+}
+
+bool AssemblyRegistry::markInstanceNeedsRepair(const std::string& instanceUuid, bool needsRepair)
+{
+    auto found = instancesByUuid_.find(instanceUuid);
+    if (found == instancesByUuid_.end()) {
+        return false;
+    }
+    found->second.needsRepair = needsRepair;
+    return true;
+}
+
+bool AssemblyRegistry::replaceInstanceMemberElement(const std::string& instanceUuid, const std::string& componentId, const std::string& elementGuid)
+{
+    auto found = instanceMembersByInstanceUuid_.find(instanceUuid);
+    if (found == instanceMembersByInstanceUuid_.end() || elementGuid.empty()) {
+        return false;
+    }
+    if (instanceUuidByMemberElementGuid_.count(elementGuid) > 0) {
+        return false;
+    }
+    for (auto& member : found->second) {
+        if (member.componentId == componentId) {
+            instanceUuidByMemberElementGuid_.erase(member.elementGuid);
+            member.elementGuid = elementGuid;
+            instanceUuidByMemberElementGuid_[elementGuid] = instanceUuid;
+            return true;
+        }
+    }
+    return false;
+}
+
 std::optional<Assembly> AssemblyRegistry::getAssemblyByUuid(const std::string& assemblyUuid) const
 {
     const auto found = assembliesByUuid_.find(assemblyUuid);
@@ -185,6 +319,42 @@ std::optional<Assembly> AssemblyRegistry::getAssemblyByElementGuid(const std::st
     return getAssemblyByUuid(index->second);
 }
 
+std::optional<WrapperComponent> AssemblyRegistry::getComponent(const std::string& componentId) const
+{
+    const auto found = componentsById_.find(componentId);
+    if (found == componentsById_.end()) {
+        return std::nullopt;
+    }
+    return found->second;
+}
+
+std::optional<WrapperComponent> AssemblyRegistry::getComponentBySourceElementGuid(const std::string& elementGuid) const
+{
+    const auto index = componentIdBySourceElementGuid_.find(elementGuid);
+    if (index == componentIdBySourceElementGuid_.end()) {
+        return std::nullopt;
+    }
+    return getComponent(index->second);
+}
+
+std::optional<WrapperInstance> AssemblyRegistry::getInstance(const std::string& instanceUuid) const
+{
+    const auto found = instancesByUuid_.find(instanceUuid);
+    if (found == instancesByUuid_.end()) {
+        return std::nullopt;
+    }
+    return found->second;
+}
+
+std::optional<WrapperInstance> AssemblyRegistry::getInstanceByMemberElementGuid(const std::string& elementGuid) const
+{
+    const auto index = instanceUuidByMemberElementGuid_.find(elementGuid);
+    if (index == instanceUuidByMemberElementGuid_.end()) {
+        return std::nullopt;
+    }
+    return getInstance(index->second);
+}
+
 std::vector<Assembly> AssemblyRegistry::listAssemblies() const
 {
     std::vector<Assembly> assemblies;
@@ -193,6 +363,66 @@ std::vector<Assembly> AssemblyRegistry::listAssemblies() const
         assemblies.push_back(item.second);
     }
     return assemblies;
+}
+
+std::vector<WrapperComponent> AssemblyRegistry::listComponents(const std::string& sourceAssemblyUuid) const
+{
+    std::vector<WrapperComponent> components;
+    for (const auto& item : componentsById_) {
+        if (item.second.sourceAssemblyUuid == sourceAssemblyUuid) {
+            components.push_back(item.second);
+        }
+    }
+    return components;
+}
+
+std::vector<WrapperInstance> AssemblyRegistry::listInstances(const std::string& sourceAssemblyUuid) const
+{
+    std::vector<WrapperInstance> instances;
+    for (const auto& item : instancesByUuid_) {
+        if (item.second.sourceAssemblyUuid == sourceAssemblyUuid) {
+            instances.push_back(item.second);
+        }
+    }
+    return instances;
+}
+
+std::vector<WrapperInstanceMember> AssemblyRegistry::listInstanceMembers(const std::string& instanceUuid) const
+{
+    const auto found = instanceMembersByInstanceUuid_.find(instanceUuid);
+    if (found == instanceMembersByInstanceUuid_.end()) {
+        return {};
+    }
+    return found->second;
+}
+
+std::vector<WrapperComponent> AssemblyRegistry::listAllComponents() const
+{
+    std::vector<WrapperComponent> components;
+    components.reserve(componentsById_.size());
+    for (const auto& item : componentsById_) {
+        components.push_back(item.second);
+    }
+    return components;
+}
+
+std::vector<WrapperInstance> AssemblyRegistry::listAllInstances() const
+{
+    std::vector<WrapperInstance> instances;
+    instances.reserve(instancesByUuid_.size());
+    for (const auto& item : instancesByUuid_) {
+        instances.push_back(item.second);
+    }
+    return instances;
+}
+
+std::vector<WrapperInstanceMember> AssemblyRegistry::listAllInstanceMembers() const
+{
+    std::vector<WrapperInstanceMember> members;
+    for (const auto& item : instanceMembersByInstanceUuid_) {
+        members.insert(members.end(), item.second.begin(), item.second.end());
+    }
+    return members;
 }
 
 std::optional<std::string> AssemblyRegistry::getParentWrapper(const std::string& childUuid) const
@@ -257,6 +487,11 @@ void AssemblyRegistry::clear()
 {
     assembliesByUuid_.clear();
     assemblyUuidByElementGuid_.clear();
+    componentsById_.clear();
+    componentIdBySourceElementGuid_.clear();
+    instancesByUuid_.clear();
+    instanceMembersByInstanceUuid_.clear();
+    instanceUuidByMemberElementGuid_.clear();
     graph_.clear();
     relationshipsByChildUuid_.clear();
 }

@@ -37,4 +37,73 @@ struct Assembly {
     std::vector<AssemblyProperty> customProperties;
 };
 
+struct PlanTransform {
+    double originX{0.0};
+    double originY{0.0};
+    double rotationDegrees{0.0};
+    bool mirrored{false};
+};
+
+struct CoordinateSpaceFrame {
+    double originX{0.0};
+    double originY{0.0};
+    double rotationDegrees{0.0};
+    bool valid{false};
+};
+
+struct WrapperComponent {
+    std::string componentId;
+    std::string sourceAssemblyUuid;
+    std::string sourceElementGuid;
+    std::string elementType;
+    std::string role;
+    int sortOrder{0};
+    CoordinateSpaceFrame localFrame;
+    std::string snapshotJson;
+    std::string status{"active"};
+};
+
+struct WrapperInstance {
+    std::string instanceUuid;
+    std::string sourceAssemblyUuid;
+    std::string name;
+    PlanTransform transform;
+    CoordinateSpaceFrame sourceFrame;
+    CoordinateSpaceFrame liveFrame;
+    bool isMirrored{false};
+    bool sourceIsCountable{true};
+    bool localOverridesAllowed{false};
+    bool needsRepair{false};
+    std::string status{"active"};
+    std::string nativeGroupId;
+    std::string createdAt;
+    std::string updatedAt;
+};
+
+struct WrapperInstanceMember {
+    std::string instanceUuid;
+    std::string componentId;
+    std::string elementGuid;
+    std::string elementType;
+    std::string role;
+    std::string status{"active"};
+};
+
+struct WrapperEditBaseline {
+    std::string componentId;
+    std::string elementGuid;
+    std::string instanceUuid;
+    CoordinateSpaceFrame liveFrame;
+    std::string snapshotJson;
+};
+
+struct WrapperEditSession {
+    std::string sessionUuid;
+    std::string sourceAssemblyUuid;
+    std::string instanceUuid;
+    int baselineAssemblyVersion{0};
+    std::string status{"active"};
+    std::vector<WrapperEditBaseline> baselines;
+};
+
 } // namespace buildsync

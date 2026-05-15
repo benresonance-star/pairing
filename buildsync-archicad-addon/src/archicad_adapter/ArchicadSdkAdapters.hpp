@@ -40,6 +40,29 @@ public:
     bool selectElements(const std::vector<std::string>& elementGuids) override;
 };
 
+class ArchicadInstanceElementOperator final : public InstanceElementOperator {
+public:
+    bool supportsElementType(const std::string& elementType) const override;
+    std::vector<std::string> supportedElementTypes() const override;
+    std::vector<ElementSnapshot> snapshotElements(const std::vector<SelectedElement>& elements) const override;
+    std::vector<ElementDuplicateResult> duplicateElements(
+        const std::vector<ElementDuplicateRequest>& requests,
+        const PlanPlacement& placement) override;
+    bool updateElementFromSnapshot(
+        const std::string& elementGuid,
+        const ElementSnapshot& snapshot,
+        const ElementSnapshot& editedBaseline,
+        const ElementSnapshot& targetBaseline,
+        std::string* replacementElementGuid = nullptr) override;
+    bool deleteElements(const std::vector<std::string>& elementGuids) override;
+    std::string groupElements(const std::vector<std::string>& elementGuids) override;
+    bool ungroupElements(const std::string& nativeGroupId, const std::vector<std::string>& elementGuids) override;
+    std::string lastDiagnostic() const override;
+
+private:
+    mutable std::string lastDiagnostic_{"Instance element operations require Archicad SDK implementation."};
+};
+
 class LocalPythonListenerClient final : public PythonListenerClient {
 public:
     explicit LocalPythonListenerClient(std::string listenerBaseUrl = "http://127.0.0.1:8765");

@@ -27,6 +27,12 @@ bool RequiresUndoableCommand(short menuItemIndex)
         case buildsync::CreateAssemblyCommandId:
         case buildsync::AddSelectionToAssemblyCommandId:
         case buildsync::RemoveSelectionFromAssemblyCommandId:
+        case buildsync::CreateWrapperInstanceCommandId:
+        case buildsync::CreateMirroredWrapperInstanceCommandId:
+        case buildsync::ApplyWrapperEditCommandId:
+        case buildsync::ConvertInstanceToStandaloneCommandId:
+        case buildsync::BreakApartInstanceCommandId:
+        case buildsync::RepairWrapperInstanceCommandId:
             return true;
         default:
             return false;

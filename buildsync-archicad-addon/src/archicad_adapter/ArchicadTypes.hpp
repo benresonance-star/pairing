@@ -29,6 +29,61 @@ struct BuildSyncProperties {
     std::string trade;
     std::string status;
     std::string customProperties;
+    std::string sourceAssemblyUuid;
+    std::string instanceUuid;
+    std::string componentId;
+    std::string isInstance;
+    std::string isMirror;
+    std::string sourceIsCountable;
+    std::string instanceNeedsRepair;
+    std::string localOverridesAllowed;
+    std::string instanceRole;
+};
+
+struct ElementSnapshot {
+    std::string elementGuid;
+    std::string elementType;
+    std::string snapshotJson;
+    double coordinateOriginX{0.0};
+    double coordinateOriginY{0.0};
+    double coordinateRotationDegrees{0.0};
+    bool coordinateFrameValid{false};
+    double frameOriginX{0.0};
+    double frameOriginY{0.0};
+    double frameRotationDegrees{0.0};
+    bool frameValid{false};
+    std::string topologySignature;
+    std::vector<double> polygonCoords;
+    double polygonFrameOriginX{0.0};
+    double polygonFrameOriginY{0.0};
+    double polygonFrameRotationDegrees{0.0};
+    bool polygonFrameValid{false};
+    double boundsCenterX{0.0};
+    double boundsCenterY{0.0};
+    double boundsCenterZ{0.0};
+    bool boundsValid{false};
+};
+
+struct ElementDuplicateRequest {
+    std::string sourceElementGuid;
+    std::string componentId;
+    std::string elementType;
+    std::string role;
+};
+
+struct ElementDuplicateResult {
+    std::string sourceElementGuid;
+    std::string componentId;
+    std::string elementGuid;
+    std::string elementType;
+    std::string role;
+};
+
+struct PlanPlacement {
+    double originX{0.0};
+    double originY{0.0};
+    double rotationDegrees{0.0};
+    bool mirrored{false};
 };
 
 class SelectionReader {
@@ -63,6 +118,27 @@ class HighlightController {
 public:
     virtual ~HighlightController() = default;
     virtual bool selectElements(const std::vector<std::string>& elementGuids) = 0;
+};
+
+class InstanceElementOperator {
+public:
+    virtual ~InstanceElementOperator() = default;
+    virtual bool supportsElementType(const std::string& elementType) const = 0;
+    virtual std::vector<std::string> supportedElementTypes() const = 0;
+    virtual std::vector<ElementSnapshot> snapshotElements(const std::vector<SelectedElement>& elements) const = 0;
+    virtual std::vector<ElementDuplicateResult> duplicateElements(
+        const std::vector<ElementDuplicateRequest>& requests,
+        const PlanPlacement& placement) = 0;
+    virtual bool updateElementFromSnapshot(
+        const std::string& elementGuid,
+        const ElementSnapshot& snapshot,
+        const ElementSnapshot& editedBaseline,
+        const ElementSnapshot& targetBaseline,
+        std::string* replacementElementGuid = nullptr) = 0;
+    virtual bool deleteElements(const std::vector<std::string>& elementGuids) = 0;
+    virtual std::string groupElements(const std::vector<std::string>& elementGuids) = 0;
+    virtual bool ungroupElements(const std::string& nativeGroupId, const std::vector<std::string>& elementGuids) = 0;
+    virtual std::string lastDiagnostic() const = 0;
 };
 
 } // namespace buildsync
