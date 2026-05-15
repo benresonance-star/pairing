@@ -114,6 +114,24 @@ int main()
     assert(storage.load(loadedEmpty));
     assert(loadedEmpty.listAssemblies().empty());
 
+    AssemblyRegistry treeRegistry;
+    Assembly emptyParent = emptyAssembly;
+    emptyParent.assemblyUuid = "uuid-parent-empty";
+    emptyParent.assemblyId = "KIT-002";
+    Assembly childAssembly = assembly;
+    childAssembly.assemblyUuid = "uuid-child-with-member";
+    childAssembly.assemblyId = "JN-014";
+    childAssembly.members = {{"uuid-child-with-member", "GUID-010", "Object", "Plant", "active", ""}};
+    assert(treeRegistry.createAssembly(emptyParent));
+    assert(treeRegistry.createAssembly(childAssembly));
+    assert(treeRegistry.addChildWrapper("uuid-parent-empty", "uuid-child-with-member"));
+    assert(storage.save(treeRegistry));
+    AssemblyRegistry loadedTree;
+    assert(storage.load(loadedTree));
+    assert(loadedTree.getAssemblyByUuid("uuid-parent-empty"));
+    assert(loadedTree.listChildWrappers("uuid-parent-empty").size() == 1);
+    assert(loadedTree.resolveEffectiveMembers("uuid-parent-empty").size() == 1);
+
     FakeSelectionReader selection;
     selection.selection = {{"GUID-002", "Wall"}};
     FakePropertyWriter properties;

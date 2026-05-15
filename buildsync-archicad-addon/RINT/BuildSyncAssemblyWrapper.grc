@@ -33,8 +33,8 @@
 /* [ 10] */        "Open the BuildSync wrapper manager dialog."
 }
 
-'GDLG' 32700 Palette | topCaption | close | grow 40 0 640 662 "BuildSync Wrapper Manager" {
-/* [  1] */ Button             555  630   70   24     LargePlain  "Close"
+'GDLG' 32700 Palette | topCaption | close | grow 40 0 640 760 "BuildSync Wrapper Manager" {
+/* [  1] */ Button             555  728   70   24     LargePlain  "Close"
 /* [  2] */ SingleSelList       12   32  260  250     SmallPlain  NoPartialItems  16
 /* [  3] */ LeftText            12   10  120   18     SmallPlain  vCenter  "Wrappers"
 /* [  4] */ Button              12  292  120   24     LargePlain  "Create from Selection"
@@ -68,11 +68,16 @@
 /* [ 32] */ Button             490  320   55   24     LargePlain  "Set"
 /* [ 33] */ Button             550  320   70   24     LargePlain  "Remove"
 /* [ 34] */ LeftText            12  398  520   24     SmallPlain  vCenter  ""
-/* [ 35] */ Button             140  382   85   24     LargePlain  "Refresh"
-/* [ 36] */ Button              12  382  120   24     LargePlain  "Select + Behind"
+/* [ 35] */ Button              12  382   85   24     LargePlain  "Refresh"
+/* [ 36] */ Button             638  758    1    1     LargePlain  ""
 /* [ 37] */ LeftText            12  440   80   18     SmallPlain  vCenter  "Members"
 /* [ 38] */ Button             100  436  110   24     LargePlain  "Show Members"
-/* [ 39] */ SingleSelList       12  468  608  154     SmallPlain  NoPartialItems  16  HasHeader  18
+/* [ 39] */ SingleSelList       12  588  608  132     SmallPlain  NoPartialItems  16  HasHeader  18
+/* [ 40] */ LeftText            12  468  100   18     SmallPlain  vCenter  "Sub-Wrappers"
+/* [ 41] */ SingleSelList       12  492  380   72     SmallPlain  NoPartialItems  16
+/* [ 42] */ Button             405  492  105   24     LargePlain  "Add Selected"
+/* [ 43] */ Button             515  492  105   24     LargePlain  "Remove Child"
+/* [ 44] */ Button             405  522  140   24     LargePlain  "Select Branch"
 }
 
 'DLGH' 32700 DLG_32700_BuildSync_Wrapper_Manager {
@@ -115,4 +120,9 @@
 37  ""                          LeftText_13
 38  ""                          Button_12
 39  ""                          SingleSelListBox_1
+40  ""                          LeftText_14
+41  ""                          SingleSelListBox_2
+42  ""                          Button_13
+43  ""                          Button_14
+44  ""                          Button_15
 }

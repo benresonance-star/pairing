@@ -66,10 +66,14 @@ public:
         , removePropertyButton(GetReference(), RemovePropertyButtonId)
         , messageText(GetReference(), MessageTextId)
         , refreshButton(GetReference(), RefreshButtonId)
-        , selectBehindButton(GetReference(), SelectBehindButtonId)
         , membersHeaderText(GetReference(), MembersHeaderTextId)
         , membersToggleButton(GetReference(), MembersToggleButtonId)
         , memberList(GetReference(), MemberListId)
+        , childWrappersHeaderText(GetReference(), ChildWrappersHeaderTextId)
+        , childWrapperList(GetReference(), ChildWrapperListId)
+        , addChildWrapperButton(GetReference(), AddChildWrapperButtonId)
+        , removeChildWrapperButton(GetReference(), RemoveChildWrapperButtonId)
+        , selectBranchMembersButton(GetReference(), SelectBranchMembersButtonId)
         , runtime_(runtime)
     {
         Attach(*this);
@@ -77,6 +81,9 @@ public:
         wrapperList.Attach(*this);
         wrapperList.SetTabFieldCount(1);
         wrapperList.SetTabFieldProperties(1, 0, 250, DG::ListBox::Left, DG::ListBox::EndTruncate, false, true);
+        childWrapperList.Attach(*this);
+        childWrapperList.SetTabFieldCount(1);
+        childWrapperList.SetTabFieldProperties(1, 0, 360, DG::ListBox::Left, DG::ListBox::EndTruncate, false, true);
         memberList.Attach(*this);
         memberList.SetTabFieldCount(3);
         ConfigureMemberListHeader();
@@ -114,7 +121,7 @@ public:
         } else if (event.GetSource() == &deleteButton) {
             DeleteWrapper();
         } else if (event.GetSource() == &selectMembersButton) {
-            SelectMembers(false);
+            SelectMembers();
         } else if (event.GetSource() == &addSelectionButton) {
             AddSelection();
         } else if (event.GetSource() == &removeSelectionButton) {
@@ -134,10 +141,14 @@ public:
         } else if (event.GetSource() == &refreshButton) {
             RefreshWrappers(SelectedUuid());
             messageText.SetText("BuildSync: Wrapper list refreshed.");
-        } else if (event.GetSource() == &selectBehindButton) {
-            SelectMembers(true);
         } else if (event.GetSource() == &membersToggleButton) {
             ToggleMemberSection();
+        } else if (event.GetSource() == &addChildWrapperButton) {
+            AddChildWrapperFromSelection();
+        } else if (event.GetSource() == &removeChildWrapperButton) {
+            RemoveSelectedChildWrapper();
+        } else if (event.GetSource() == &selectBranchMembersButton) {
+            SelectBranchMembers();
         }
     }
 
@@ -152,6 +163,8 @@ public:
     {
         if (event.GetSource() == &memberList) {
             SelectMemberFromList();
+        } else if (event.GetSource() == &childWrapperList) {
+            NavigateToSelectedChildWrapper();
         }
     }
 
@@ -219,20 +232,29 @@ private:
         RemovePropertyButtonId = 33,
         MessageTextId = 34,
         RefreshButtonId = 35,
-        SelectBehindButtonId = 36,
         MembersHeaderTextId = 37,
         MembersToggleButtonId = 38,
         MemberListId = 39,
+        ChildWrappersHeaderTextId = 40,
+        ChildWrapperListId = 41,
+        AddChildWrapperButtonId = 42,
+        RemoveChildWrapperButtonId = 43,
+        SelectBranchMembersButtonId = 44,
     };
 
     static constexpr short CollapsedHeight = 462;
-    static constexpr short ExpandedHeight = 662;
+    static constexpr short ExpandedHeight = 760;
     static constexpr short LeftMargin = 12;
     static constexpr short RightMargin = 15;
     static constexpr short CloseButtonWidth = 70;
     static constexpr short CloseButtonHeight = 24;
     static constexpr short CollapsedCloseTop = 398;
-    static constexpr short MemberListTop = 468;
+    static constexpr short ChildWrapperListTop = 492;
+    static constexpr short ChildWrapperListHeight = 72;
+    static constexpr short ChildActionButtonWidth = 105;
+    static constexpr short ChildActionButtonHeight = 24;
+    static constexpr short ChildActionButtonGap = 5;
+    static constexpr short MemberListTop = 588;
     static constexpr short MemberListBottomGap = 8;
     static constexpr short BottomMargin = 8;
     static constexpr short NoMemberSortColumn = 0;
@@ -263,12 +285,17 @@ private:
     DG::Button removePropertyButton;
     DG::LeftText messageText;
     DG::Button refreshButton;
-    DG::Button selectBehindButton;
     DG::LeftText membersHeaderText;
     DG::Button membersToggleButton;
     DG::SingleSelListBox memberList;
+    DG::LeftText childWrappersHeaderText;
+    DG::SingleSelListBox childWrapperList;
+    DG::Button addChildWrapperButton;
+    DG::Button removeChildWrapperButton;
+    DG::Button selectBranchMembersButton;
     NativeRuntime& runtime_;
     std::vector<Assembly> wrappers_;
+    std::vector<Assembly> childWrappers_;
     std::vector<ElementMetadata> memberRows_;
     bool membersExpanded_{false};
     short expandedClientHeight_{ExpandedHeight};
@@ -389,6 +416,15 @@ private:
             return "";
         }
         return memberRows_[selected - 1].elementGuid;
+    }
+
+    std::string SelectedChildWrapperUuid() const
+    {
+        const short selected = childWrapperList.GetSelectedItem();
+        if (selected <= 0 || static_cast<std::size_t>(selected) > childWrappers_.size()) {
+            return "";
+        }
+        return childWrappers_[selected - 1].assemblyUuid;
     }
 
     static GS::UniString displayValue(const std::string& value)
@@ -540,6 +576,16 @@ private:
         closeButton.SetPosition(closeLeft, closeTop);
 
         const short listWidth = std::max<short>(120, clientWidth - LeftMargin - RightMargin);
+        const short childButtonsLeft = std::max<short>(LeftMargin + 180, clientWidth - RightMargin - (ChildActionButtonWidth * 2) - ChildActionButtonGap);
+        const short childListWidth = std::max<short>(120, childButtonsLeft - LeftMargin - ChildActionButtonGap);
+        childWrapperList.SetSize(childListWidth, ChildWrapperListHeight);
+        addChildWrapperButton.SetPosition(childButtonsLeft, ChildWrapperListTop);
+        addChildWrapperButton.SetSize(ChildActionButtonWidth, ChildActionButtonHeight);
+        removeChildWrapperButton.SetPosition(childButtonsLeft + ChildActionButtonWidth + ChildActionButtonGap, ChildWrapperListTop);
+        removeChildWrapperButton.SetSize(ChildActionButtonWidth, ChildActionButtonHeight);
+        selectBranchMembersButton.SetPosition(childButtonsLeft, ChildWrapperListTop + ChildActionButtonHeight + 6);
+        selectBranchMembersButton.SetSize(140, ChildActionButtonHeight);
+
         const short listBottom = std::max<short>(MemberListTop + 48, closeTop - MemberListBottomGap);
         const short listHeight = std::max<short>(48, listBottom - MemberListTop);
         memberList.SetSize(listWidth, listHeight);
@@ -549,6 +595,7 @@ private:
     void RefreshMemberList(const std::string& assemblyUuid)
     {
         memberRows_.clear();
+        RefreshChildWrapperList(assemblyUuid);
         if (assemblyUuid.empty()) {
             RenderMemberListRows();
             return;
@@ -559,15 +606,42 @@ private:
         RenderMemberListRows();
     }
 
+    void RefreshChildWrapperList(const std::string& assemblyUuid)
+    {
+        childWrappers_.clear();
+        childWrapperList.DeleteItem(DG::ListBox::AllItems);
+        if (assemblyUuid.empty()) {
+            return;
+        }
+
+        childWrappers_ = runtime_.commandService().listChildWrappers(assemblyUuid);
+        for (const auto& child : childWrappers_) {
+            childWrapperList.AppendItem();
+            const short item = childWrapperList.GetItemCount();
+            const std::string label = child.assemblyId + "  " + child.name + "  direct members=" + std::to_string(child.members.size());
+            childWrapperList.SetTabItemText(item, 1, toUniString(label));
+        }
+    }
+
     void UpdateMemberSectionVisibility()
     {
         membersHeaderText.Show();
         membersToggleButton.SetText(membersExpanded_ ? "Hide Members" : "Show Members");
         if (membersExpanded_) {
             SetClientHeight(expandedClientHeight_);
+            childWrappersHeaderText.Show();
+            childWrapperList.Show();
+            addChildWrapperButton.Show();
+            removeChildWrapperButton.Show();
+            selectBranchMembersButton.Show();
             memberList.Show();
         } else {
             SetClientHeight(CollapsedHeight);
+            childWrappersHeaderText.Hide();
+            childWrapperList.Hide();
+            addChildWrapperButton.Hide();
+            removeChildWrapperButton.Hide();
+            selectBranchMembersButton.Hide();
             memberList.Hide();
         }
         LayoutMemberSection();
@@ -590,6 +664,17 @@ private:
         }
         const CommandResult result = runtime_.commandService().selectWrapperMember(uuid, elementGuid);
         messageText.SetText(toUniString(commandResultReport(result)));
+    }
+
+    void NavigateToSelectedChildWrapper()
+    {
+        const std::string childUuid = SelectedChildWrapperUuid();
+        if (childUuid.empty()) {
+            messageText.SetText("Select a child wrapper first.");
+            return;
+        }
+        RefreshWrappers(childUuid);
+        messageText.SetText("BuildSync: Child wrapper selected.");
     }
 
     template <typename Callback>
@@ -630,18 +715,26 @@ private:
         });
     }
 
-    void SelectMembers(bool sendBehind)
+    void SelectMembers()
     {
         const std::string uuid = SelectedUuid();
         if (uuid.empty()) {
             messageText.SetText("Select a wrapper first.");
             return;
         }
-        const CommandResult result = runtime_.commandService().selectWrapperMembers(uuid);
+        const CommandResult result = runtime_.commandService().selectWrapperBranchMembers(uuid);
         messageText.SetText(toUniString(commandResultReport(result)));
-        if (result.ok && sendBehind) {
-            SendToBack();
+    }
+
+    void SelectBranchMembers()
+    {
+        const std::string uuid = SelectedUuid();
+        if (uuid.empty()) {
+            messageText.SetText("Select a wrapper first.");
+            return;
         }
+        const CommandResult result = runtime_.commandService().selectWrapperBranchMembers(uuid);
+        messageText.SetText(toUniString(commandResultReport(result)));
     }
 
     void AddSelection()
@@ -653,6 +746,31 @@ private:
         }
         RunMutation("BuildSync Add Selection", [&]() {
             return runtime_.commandService().addSelectionToAssembly(uuid);
+        });
+    }
+
+    void AddChildWrapperFromSelection()
+    {
+        const std::string uuid = SelectedUuid();
+        if (uuid.empty()) {
+            messageText.SetText("Select a parent wrapper first.");
+            return;
+        }
+        RunMutation("BuildSync Add Child Wrapper", [&]() {
+            return runtime_.commandService().addSelectedWrapperAsChild(uuid);
+        });
+    }
+
+    void RemoveSelectedChildWrapper()
+    {
+        const std::string parentUuid = SelectedUuid();
+        const std::string childUuid = SelectedChildWrapperUuid();
+        if (parentUuid.empty() || childUuid.empty()) {
+            messageText.SetText("Select a child wrapper first.");
+            return;
+        }
+        RunMutation("BuildSync Remove Child Wrapper", [&]() {
+            return runtime_.commandService().removeChildWrapper(parentUuid, childUuid);
         });
     }
 

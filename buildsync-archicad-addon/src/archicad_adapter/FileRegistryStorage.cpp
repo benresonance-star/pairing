@@ -111,6 +111,7 @@ bool FileRegistryStorage::load(AssemblyRegistry& registry)
     }
 
     std::unordered_map<std::string, Assembly> assembliesByUuid;
+    std::vector<AssemblyRelationship> relationships;
     while (std::getline(input, line)) {
         if (line.empty()) {
             continue;
@@ -150,14 +151,31 @@ bool FileRegistryStorage::load(AssemblyRegistry& registry)
                 continue;
             }
             found->second.customProperties.push_back({fields[2], fields[3]});
+        } else if (fields[0] == "R" && fields.size() == 6) {
+            AssemblyRelationship relationship;
+            relationship.parentAssemblyUuid = fields[1];
+            relationship.childAssemblyUuid = fields[2];
+            relationship.relationshipType = fields[3].empty() ? "contains" : fields[3];
+            try {
+                relationship.sortOrder = std::stoi(fields[4]);
+            } catch (...) {
+                relationship.sortOrder = 0;
+            }
+            relationship.status = fields[5].empty() ? "active" : fields[5];
+            relationships.push_back(relationship);
         }
     }
 
     for (const auto& [_, assembly] : assembliesByUuid) {
-        if (assembly.members.empty()) {
+        if (!registry.createAssembly(assembly)) {
+            return false;
+        }
+    }
+    for (const auto& relationship : relationships) {
+        if (relationship.status != "active") {
             continue;
         }
-        if (!registry.createAssembly(assembly)) {
+        if (!registry.addChildWrapper(relationship.parentAssemblyUuid, relationship.childAssemblyUuid, relationship.relationshipType)) {
             return false;
         }
     }
@@ -177,8 +195,12 @@ bool FileRegistryStorage::save(const AssemblyRegistry& registry)
     }
 
     output << "BuildSyncRegistry\t1\n";
+    const auto relationships = registry.listRelationships();
     for (const auto& assembly : registry.listAssemblies()) {
-        if (assembly.members.empty()) {
+        const bool participatesInTree =
+            registry.getParentWrapper(assembly.assemblyUuid).has_value() ||
+            !registry.listChildWrappers(assembly.assemblyUuid).empty();
+        if (assembly.members.empty() && !participatesInTree) {
             continue;
         }
         output << joinRecord({
@@ -221,6 +243,17 @@ bool FileRegistryStorage::save(const AssemblyRegistry& registry)
                       })
                    << "\n";
         }
+    }
+    for (const auto& relationship : relationships) {
+        output << joinRecord({
+                      "R",
+                      relationship.parentAssemblyUuid,
+                      relationship.childAssemblyUuid,
+                      relationship.relationshipType,
+                      std::to_string(relationship.sortOrder),
+                      relationship.status,
+                  })
+               << "\n";
     }
     return true;
 }

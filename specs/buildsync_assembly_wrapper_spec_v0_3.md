@@ -106,6 +106,9 @@ The first version should prove the assembly wrapper concept. It should not attem
 | Inspect wrapper members in a native list | Yes |
 | Sort wrapper member list by type, element ID, and layer | Yes |
 | Select one wrapper member from the palette | Yes |
+| Store strict parent-child wrapper relationships | Yes |
+| Show direct child wrappers in the native palette | Yes |
+| Select recursive wrapper branch members | Yes |
 | Add selected elements to an existing assembly | Yes |
 | Remove selected elements from an assembly | Yes |
 | Validate missing/deleted members | Yes |
@@ -128,7 +131,7 @@ The first version should prove the assembly wrapper concept. It should not attem
 | Smooth 4D timeline playback | External viewer/web layer later |
 | Complex geometric drift detection | Later validation phase |
 | Locking or ghosting unrelated elements | Optional later UX improvement |
-| Full nested assembly editing | Data model only in v0.1 |
+| Rich nested assembly tree editing | v0.1 supports strict tree relationships and direct child management only |
 | Procurement, costing, and QA modules | Downstream consumers, not core v0.1 |
 | MCP as primary runtime transport | Local HTTP/FastAPI is simpler and better scoped first |
 | AI agent directly modifying model without constrained tools | Too risky; use explicit tool contracts later |
@@ -558,6 +561,17 @@ Display rules:
 - keep missing sort values at the bottom in ascending order,
 - double-clicking a member row selects only that member element in Archicad.
 
+The expanded `Members` section also includes a `Sub-Wrappers` area for nested wrapper branches:
+
+- direct child wrappers are shown separately from direct element members,
+- `Add Selected` nests the wrapper containing the current Archicad selection under the selected parent wrapper,
+- `Remove Child` removes the selected parent-child relationship without deleting either wrapper,
+- double-clicking a child wrapper navigates to that wrapper while preserving its identity,
+- `Select Members` selects the selected wrapper's full branch recursively, including direct members and descendant wrapper members,
+- `Select Branch` provides the same recursive branch selection from the nested section.
+
+The old `Select + Behind` palette shortcut is not part of the current UI.
+
 ---
 
 ## 7. Required Archicad Menu Commands
@@ -633,13 +647,15 @@ BuildSync
 
 ### 8.3 Assembly Relationship Object
 
-Used later for nested assemblies.
+Used for strict tree nested wrapper relationships.
 
 ```json
 {
   "parent_assembly_uuid": "uuid-parent",
   "child_assembly_uuid": "uuid-child",
-  "relationship_type": "contains"
+  "relationship_type": "contains",
+  "sort_order": 0,
+  "status": "active"
 }
 ```
 
@@ -650,6 +666,14 @@ Kitchen Assembly KIT-002
 contains
 Joinery Assembly JN-014
 ```
+
+Rules:
+
+- a wrapper may have zero or one parent,
+- a wrapper may have many children,
+- `parent_assembly_uuid == child_assembly_uuid` is invalid,
+- cycles are invalid,
+- relationships do not rewrite child wrapper identity or absorb child members into the parent.
 
 ### 8.4 Do Not Overload Member Properties
 
@@ -1360,6 +1384,8 @@ assembly_relationships
 - parent_assembly_uuid
 - child_assembly_uuid
 - relationship_type
+- sort_order
+- status
 
 sync_events
 - event_id
@@ -1428,7 +1454,7 @@ This matters because mirrored joinery may need different handedness, hardware, p
 
 ### 19.1 v0.1 Support
 
-Store parent-child relationships only.
+Store and manage strict parent-child wrapper relationships.
 
 Example:
 
@@ -1437,6 +1463,15 @@ Kitchen Assembly KIT-002
 contains
 Joinery Assembly JN-014
 ```
+
+Implemented v0.1 behaviour:
+
+- one wrapper can contain many child wrappers,
+- one child wrapper can have at most one parent,
+- parent wrappers roll up descendant members for recursive selection,
+- child wrappers keep their own IDs, names, members, properties, and validation identity,
+- relationships persist in the local registry alongside assemblies and members,
+- relationship updates are emitted to sync JSON with the current relationship tree.
 
 ### 19.2 Rule
 
@@ -1468,6 +1503,21 @@ C contains A
 ```
 
 The `AssemblyGraph` module must test for cycles.
+
+### 19.4 Direct Members vs Branch Members
+
+Direct element membership remains separate from wrapper nesting.
+
+```text
+KIT-002 Kitchen Assembly
+├── direct members: optional elements assigned directly to KIT-002
+└── child wrappers
+    └── JN-014 Kitchen Island
+        ├── Wall GUID-001
+        └── Slab GUID-002
+```
+
+The native palette's member list shows direct element members for the selected wrapper. Recursive branch selection is explicit: `Select Members` selects direct members plus all descendant wrapper members.
 
 ---
 
@@ -1656,7 +1706,7 @@ checkPropertyMismatch(...)
 
 ### 22.6 `AssemblyGraph`
 
-Prepares for nested assemblies.
+Enforces strict tree nested wrapper relationships.
 
 Required methods:
 
@@ -1664,9 +1714,18 @@ Required methods:
 addRelationship(parentUuid, childUuid)
 removeRelationship(parentUuid, childUuid)
 detectCycle(parentUuid, childUuid)
+getParent(childUuid)
 getChildren(parentUuid)
 getParents(childUuid)
+getDescendants(rootUuid)
 ```
+
+Rules enforced by this module:
+
+- reject empty parent or child IDs,
+- reject self-parenting,
+- reject cycles,
+- reject adding a child under a different parent when it already has one.
 
 ### 22.7 `SelectionReader`
 
@@ -1865,6 +1924,8 @@ CREATE TABLE assembly_relationships (
     parent_assembly_uuid TEXT,
     child_assembly_uuid TEXT,
     relationship_type TEXT,
+    sort_order INTEGER,
+    status TEXT,
     PRIMARY KEY (parent_assembly_uuid, child_assembly_uuid)
 );
 
@@ -2074,6 +2135,32 @@ When: Select Assembly Members
 Then: All live members of JN-014 are selected
 ```
 
+#### Test 2A: Select Wrapper Branch Members
+
+```text
+Given: KIT-002 has direct members
+And: KIT-002 contains child wrapper JN-014
+And: JN-014 contains child wrapper APP-003
+When: User selects KIT-002 in the Wrapper Manager palette
+And: User clicks Select Members
+Then: All live direct members of KIT-002 are selected
+And: All live descendant members from JN-014 and APP-003 are selected
+And: JN-014 and APP-003 retain their own wrapper identities
+```
+
+#### Test 2B: Strict Tree Constraints
+
+```text
+Given: KIT-002 contains JN-014
+When: User tries to add JN-014 under another parent wrapper
+Then: The add-on rejects the relationship
+
+Given: KIT-002 contains JN-014
+And: JN-014 contains APP-003
+When: User tries to add KIT-002 under APP-003
+Then: The add-on rejects the cycle
+```
+
 #### Test 3: Add Member
 
 ```text
@@ -2148,8 +2235,12 @@ The first milestone is complete when:
 17. User can sort the member list by Type, Element ID, and Layer.
 18. User can double-click a member row to select exactly that Archicad element.
 19. Unreadable member values display as `Missing`, and Archicad's square/default layer glyph displays as `Archicad Layer`.
-20. Architecture leaves MCP as an optional later agent interface, not a dependency for v0.1 operation.
-21. Coding-agent instructions are present and followed by implementation agents.
+20. User can nest one wrapper under another as a strict parent-child relationship.
+21. User can see direct child wrappers in the `Sub-Wrappers` palette section.
+22. User can select recursive wrapper branch members from the parent wrapper.
+23. The add-on rejects self-parenting, cycles, and assigning one child wrapper to two different parents.
+24. Architecture leaves MCP as an optional later agent interface, not a dependency for v0.1 operation.
+25. Coding-agent instructions are present and followed by implementation agents.
 ```
 
 ---
@@ -2248,7 +2339,9 @@ The add-on can store the relationship:
 }
 ```
 
-But v0.1 does not need rich nested editing.
+The add-on can also manage the direct relationship in the native Wrapper Manager palette. A user can select `KIT-002`, add the currently selected `JN-014` wrapper as a child, see `JN-014` in `Sub-Wrappers`, and use `Select Members` to select the full branch recursively.
+
+Rich tree editing, drag-and-drop reordering, and full visual tree views remain later UX work.
 
 ### Later Behaviour
 

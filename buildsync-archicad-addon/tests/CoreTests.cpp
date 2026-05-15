@@ -61,8 +61,36 @@ int main()
     assert(graph.addRelationship("JN-014", "APP-003"));
     assert(graph.detectCycle("APP-003", "KIT-002"));
     assert(!graph.addRelationship("APP-003", "KIT-002"));
+    assert(!graph.addRelationship("KIT-999", "APP-003"));
     assert(graph.getChildren("KIT-002").size() == 1);
     assert(graph.getParents("JN-014").size() == 1);
+    assert(graph.getParent("APP-003") == "JN-014");
+    assert(graph.getDescendants("KIT-002").size() == 2);
+
+    Assembly root;
+    root.assemblyUuid = "uuid-kit-002";
+    root.assemblyId = "KIT-002";
+    root.name = "Kitchen Assembly";
+    AssemblyRegistry treeRegistry;
+    assert(treeRegistry.createAssembly(root));
+
+    Assembly branch = sampleAssembly();
+    assert(treeRegistry.createAssembly(branch));
+    Assembly child = sampleAssembly();
+    child.assemblyUuid = "uuid-app-003";
+    child.assemblyId = "APP-003";
+    child.name = "Appliance Set";
+    child.members = {{"uuid-app-003", "GUID-004", "Object", "Appliance", "active", ""}};
+    assert(treeRegistry.createAssembly(child));
+    assert(treeRegistry.addChildWrapper("uuid-kit-002", "uuid-jn-014"));
+    assert(treeRegistry.addChildWrapper("uuid-jn-014", "uuid-app-003"));
+    assert(!treeRegistry.addChildWrapper("uuid-kit-002", "uuid-app-003"));
+    assert(!treeRegistry.addChildWrapper("uuid-app-003", "uuid-kit-002"));
+    assert(treeRegistry.listChildWrappers("uuid-kit-002").size() == 1);
+    assert(treeRegistry.listDescendantWrappers("uuid-kit-002").size() == 2);
+    assert(treeRegistry.resolveEffectiveMembers("uuid-kit-002").size() == 3);
+    assert(treeRegistry.removeChildWrapper("uuid-jn-014", "uuid-app-003"));
+    assert(!treeRegistry.getParentWrapper("uuid-app-003"));
 
     std::unordered_set<std::string> live = {"GUID-001"};
     std::unordered_map<std::string, ElementAssemblyProperties> props = {

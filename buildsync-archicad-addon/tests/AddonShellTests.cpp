@@ -98,11 +98,12 @@ int main()
     selection.selection = {{"GUID-001", "Slab"}, {"GUID-002", "Wall"}};
     FakePropertyWriter properties;
     FakeExistenceChecker existence;
-    existence.live = {"GUID-001", "GUID-002"};
+    existence.live = {"GUID-001", "GUID-002", "GUID-003"};
     FakeMetadataReader metadata;
     metadata.metadataByGuid = {
         {"GUID-001", {"GUID-001", "Slab", "SL-001", "Structural", "active"}},
         {"GUID-002", {"GUID-002", "Wall", "", "", "active"}},
+        {"GUID-003", {"GUID-003", "Object", "OBJ-003", "Loose Furniture", "active"}},
     };
     FakeHighlightController highlighter;
     FakeStorage storage;
@@ -195,6 +196,33 @@ int main()
     assert(!customRejected.ok);
     CommandResult customRemoved = service.removeWrapperCustomProperty(wrappers.front().assemblyUuid, "Finish");
     assert(customRemoved.ok);
+
+    selection.selection = {{"GUID-003", "Object"}};
+    CommandResult parentCreated = service.createAssemblyFromSelection({"Kitchen Assembly", "Kit", "A204", "L02", "Joinery", "TASK-ROOT"});
+    assert(parentCreated.ok);
+    const auto parentWrapper = registry.getAssemblyByElementGuid("GUID-003");
+    assert(parentWrapper);
+    assert(service.addChildWrapper(parentWrapper->assemblyUuid, wrapperUuid).ok);
+    assert(service.listChildWrappers(parentWrapper->assemblyUuid).size() == 1);
+    assert(service.resolveEffectiveMembers(parentWrapper->assemblyUuid).size() == 3);
+
+    CommandResult selectedBranch = service.selectWrapperBranchMembers(parentWrapper->assemblyUuid);
+    assert(selectedBranch.ok);
+    assert(highlighter.selected.size() == 3);
+
+    CommandResult removedChild = service.removeChildWrapper(parentWrapper->assemblyUuid, wrapperUuid);
+    assert(removedChild.ok);
+    assert(service.listChildWrappers(parentWrapper->assemblyUuid).empty());
+
+    selection.selection = {{"GUID-001", "Slab"}};
+    CommandResult addedSelectedChild = service.addSelectedWrapperAsChild(parentWrapper->assemblyUuid);
+    assert(addedSelectedChild.ok);
+    assert(service.listChildWrappers(parentWrapper->assemblyUuid).size() == 1);
+
+    CommandResult rejectedSelfChild = service.addChildWrapper(parentWrapper->assemblyUuid, parentWrapper->assemblyUuid);
+    assert(!rejectedSelfChild.ok);
+    CommandResult deletedParent = service.deleteWrapper(parentWrapper->assemblyUuid);
+    assert(deletedParent.ok);
 
     selection.selection = {{"GUID-001", "Slab"}, {"GUID-002", "Wall"}};
     CommandResult removedAll = service.removeSelectionFromAssembly();

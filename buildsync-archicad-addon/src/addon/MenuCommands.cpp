@@ -114,6 +114,16 @@ std::vector<ElementMetadata> AssemblyCommandService::listWrapperMemberMetadata(c
     return rows;
 }
 
+std::vector<Assembly> AssemblyCommandService::listChildWrappers(const std::string& assemblyUuid) const
+{
+    return registry_.listChildWrappers(assemblyUuid);
+}
+
+std::vector<AssemblyMember> AssemblyCommandService::resolveEffectiveMembers(const std::string& assemblyUuid) const
+{
+    return registry_.resolveEffectiveMembers(assemblyUuid);
+}
+
 CommandResult AssemblyCommandService::updateWrapper(const std::string& assemblyUuid, const AssemblyUpdateRequest& request)
 {
     auto assembly = registry_.getAssemblyByUuid(assemblyUuid);
@@ -180,6 +190,27 @@ CommandResult AssemblyCommandService::selectWrapperMembers(const std::string& as
     return {true, "Wrapper members selected.", {}};
 }
 
+CommandResult AssemblyCommandService::selectWrapperBranchMembers(const std::string& assemblyUuid)
+{
+    if (!registry_.containsAssembly(assemblyUuid)) {
+        return {false, "Wrapper was not found.", {}};
+    }
+
+    std::vector<std::string> liveGuids;
+    for (const auto& member : registry_.resolveEffectiveMembers(assemblyUuid)) {
+        if (existenceChecker_.exists(member.elementGuid)) {
+            liveGuids.push_back(member.elementGuid);
+        }
+    }
+    if (liveGuids.empty()) {
+        return {false, "Wrapper branch has no live Archicad members to select.", {}};
+    }
+    if (!highlightController_.selectElements(liveGuids)) {
+        return {false, "Wrapper branch members could not be selected in Archicad.", {}};
+    }
+    return {true, "Wrapper branch members selected.", {}};
+}
+
 CommandResult AssemblyCommandService::selectWrapperMember(const std::string& assemblyUuid, const std::string& elementGuid)
 {
     const auto assembly = registry_.getAssemblyByUuid(assemblyUuid);
@@ -199,6 +230,70 @@ CommandResult AssemblyCommandService::selectWrapperMember(const std::string& ass
         return {false, "Wrapper member could not be selected in Archicad.", {}};
     }
     return {true, "Wrapper member selected.", {}};
+}
+
+CommandResult AssemblyCommandService::addChildWrapper(const std::string& parentAssemblyUuid, const std::string& childAssemblyUuid)
+{
+    const auto parent = registry_.getAssemblyByUuid(parentAssemblyUuid);
+    const auto child = registry_.getAssemblyByUuid(childAssemblyUuid);
+    if (!parent || !child) {
+        return {false, "Parent and child wrappers must both exist.", {}};
+    }
+    if (parentAssemblyUuid == childAssemblyUuid) {
+        return {false, "A wrapper cannot contain itself.", {}};
+    }
+    const auto existingParent = registry_.getParentWrapper(childAssemblyUuid);
+    if (existingParent && *existingParent != parentAssemblyUuid) {
+        return {false, "Child wrapper already belongs to another parent wrapper.", {}};
+    }
+    if (!registry_.addChildWrapper(parentAssemblyUuid, childAssemblyUuid)) {
+        return {false, "Child wrapper could not be added. Check for circular nesting.", {}};
+    }
+    registry_.incrementVersion(parentAssemblyUuid);
+    registryStorage_.save(registry_);
+    enqueueEvent(
+        "assembly_relationship_updated",
+        JsonSerializer::assemblyRelationshipUpdated(
+            projectId_,
+            {parentAssemblyUuid, childAssemblyUuid, "contains", 0, "active"},
+            registry_.listRelationships()));
+    return {true, "Child wrapper added to parent wrapper.", {}};
+}
+
+CommandResult AssemblyCommandService::addSelectedWrapperAsChild(const std::string& parentAssemblyUuid)
+{
+    const auto selection = selectionReader_.readSelection();
+    if (selection.empty()) {
+        return {false, "Select one member of the child wrapper first.", {}};
+    }
+    const auto child = registry_.getAssemblyByElementGuid(selection.front().elementGuid);
+    if (!child) {
+        return {false, "Selected element is not part of a BuildSync wrapper.", {}};
+    }
+    return addChildWrapper(parentAssemblyUuid, child->assemblyUuid);
+}
+
+CommandResult AssemblyCommandService::removeChildWrapper(const std::string& parentAssemblyUuid, const std::string& childAssemblyUuid)
+{
+    const auto parent = registry_.getAssemblyByUuid(parentAssemblyUuid);
+    const auto child = registry_.getAssemblyByUuid(childAssemblyUuid);
+    if (!parent || !child) {
+        return {false, "Parent and child wrappers must both exist.", {}};
+    }
+    const auto existingParent = registry_.getParentWrapper(childAssemblyUuid);
+    if (!existingParent || *existingParent != parentAssemblyUuid) {
+        return {false, "Child wrapper is not nested under the selected parent.", {}};
+    }
+    registry_.removeChildWrapper(parentAssemblyUuid, childAssemblyUuid);
+    registry_.incrementVersion(parentAssemblyUuid);
+    registryStorage_.save(registry_);
+    enqueueEvent(
+        "assembly_relationship_updated",
+        JsonSerializer::assemblyRelationshipUpdated(
+            projectId_,
+            {parentAssemblyUuid, childAssemblyUuid, "contains", 0, "removed"},
+            registry_.listRelationships()));
+    return {true, "Child wrapper removed from parent wrapper.", {}};
 }
 
 CommandResult AssemblyCommandService::addSelectionToAssembly(const std::string& assemblyUuid)
@@ -426,7 +521,10 @@ CommandResult AssemblyCommandService::repairRegistry()
 {
     int removed = 0;
     for (const auto& assembly : registry_.listAssemblies()) {
-        if (assembly.members.empty()) {
+        const bool participatesInTree =
+            registry_.getParentWrapper(assembly.assemblyUuid).has_value() ||
+            !registry_.listChildWrappers(assembly.assemblyUuid).empty();
+        if (assembly.members.empty() && !participatesInTree) {
             registry_.deleteAssembly(assembly.assemblyUuid);
             ++removed;
         }

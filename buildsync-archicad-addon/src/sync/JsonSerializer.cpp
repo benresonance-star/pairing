@@ -70,6 +70,19 @@ std::string JsonSerializer::assemblyValidated(const std::string& projectId, cons
     return out.str();
 }
 
+std::string JsonSerializer::assemblyRelationshipUpdated(
+    const std::string& projectId,
+    const AssemblyRelationship& relationship,
+    const std::vector<AssemblyRelationship>& relationshipsCurrent)
+{
+    std::ostringstream out;
+    out << "{\"event_type\":\"assembly_relationship_updated\",";
+    out << "\"project_id\":\"" << escape(projectId) << "\",";
+    out << "\"relationship\":" << relationshipJson(relationship) << ",";
+    out << "\"relationships_current\":" << arrayJson<AssemblyRelationship>(relationshipsCurrent, relationshipJson) << "}";
+    return out.str();
+}
+
 std::string JsonSerializer::escape(const std::string& value)
 {
     std::ostringstream out;
@@ -83,6 +96,17 @@ std::string JsonSerializer::escape(const std::string& value)
             out << ch;
         }
     }
+    return out.str();
+}
+
+std::string JsonSerializer::relationshipJson(const AssemblyRelationship& relationship)
+{
+    std::ostringstream out;
+    out << "{\"parent_assembly_uuid\":\"" << escape(relationship.parentAssemblyUuid) << "\",";
+    out << "\"child_assembly_uuid\":\"" << escape(relationship.childAssemblyUuid) << "\",";
+    out << "\"relationship_type\":\"" << escape(relationship.relationshipType) << "\",";
+    out << "\"sort_order\":" << relationship.sortOrder << ",";
+    out << "\"status\":\"" << escape(relationship.status) << "\"}";
     return out.str();
 }
 

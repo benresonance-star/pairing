@@ -62,10 +62,16 @@ public:
     std::vector<Assembly> listWrappers() const;
     std::optional<Assembly> getWrapper(const std::string& assemblyUuid) const;
     std::vector<ElementMetadata> listWrapperMemberMetadata(const std::string& assemblyUuid) const;
+    std::vector<Assembly> listChildWrappers(const std::string& assemblyUuid) const;
+    std::vector<AssemblyMember> resolveEffectiveMembers(const std::string& assemblyUuid) const;
     CommandResult updateWrapper(const std::string& assemblyUuid, const AssemblyUpdateRequest& request);
     CommandResult deleteWrapper(const std::string& assemblyUuid);
     CommandResult selectWrapperMembers(const std::string& assemblyUuid);
+    CommandResult selectWrapperBranchMembers(const std::string& assemblyUuid);
     CommandResult selectWrapperMember(const std::string& assemblyUuid, const std::string& elementGuid);
+    CommandResult addChildWrapper(const std::string& parentAssemblyUuid, const std::string& childAssemblyUuid);
+    CommandResult addSelectedWrapperAsChild(const std::string& parentAssemblyUuid);
+    CommandResult removeChildWrapper(const std::string& parentAssemblyUuid, const std::string& childAssemblyUuid);
     CommandResult addSelectionToAssembly(const std::string& assemblyUuid);
     CommandResult createAssemblyFromSelection(const CreateAssemblyRequest& request);
     CommandResult selectAssemblyMembers();

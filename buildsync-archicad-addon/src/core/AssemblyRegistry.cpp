@@ -31,6 +31,15 @@ bool AssemblyRegistry::deleteAssembly(const std::string& assemblyUuid)
     if (found == assembliesByUuid_.end()) {
         return false;
     }
+    for (const auto& child : graph_.getChildren(assemblyUuid)) {
+        graph_.removeRelationship(assemblyUuid, child);
+        relationshipsByChildUuid_.erase(child);
+    }
+    const auto parent = graph_.getParent(assemblyUuid);
+    if (parent) {
+        graph_.removeRelationship(*parent, assemblyUuid);
+        relationshipsByChildUuid_.erase(assemblyUuid);
+    }
     for (const auto& member : found->second.members) {
         assemblyUuidByElementGuid_.erase(member.elementGuid);
     }
@@ -139,6 +148,25 @@ bool AssemblyRegistry::incrementVersion(const std::string& assemblyUuid)
     return true;
 }
 
+bool AssemblyRegistry::addChildWrapper(const std::string& parentUuid, const std::string& childUuid, const std::string& relationshipType)
+{
+    if (!containsAssembly(parentUuid) || !containsAssembly(childUuid)) {
+        return false;
+    }
+    if (!graph_.addRelationship(parentUuid, childUuid, relationshipType)) {
+        return false;
+    }
+    relationshipsByChildUuid_[childUuid] = {parentUuid, childUuid, relationshipType.empty() ? "contains" : relationshipType, 0, "active"};
+    return true;
+}
+
+bool AssemblyRegistry::removeChildWrapper(const std::string& parentUuid, const std::string& childUuid)
+{
+    graph_.removeRelationship(parentUuid, childUuid);
+    relationshipsByChildUuid_.erase(childUuid);
+    return true;
+}
+
 std::optional<Assembly> AssemblyRegistry::getAssemblyByUuid(const std::string& assemblyUuid) const
 {
     const auto found = assembliesByUuid_.find(assemblyUuid);
@@ -167,6 +195,59 @@ std::vector<Assembly> AssemblyRegistry::listAssemblies() const
     return assemblies;
 }
 
+std::optional<std::string> AssemblyRegistry::getParentWrapper(const std::string& childUuid) const
+{
+    return graph_.getParent(childUuid);
+}
+
+std::vector<Assembly> AssemblyRegistry::listChildWrappers(const std::string& parentUuid) const
+{
+    std::vector<Assembly> children;
+    for (const auto& childUuid : graph_.getChildren(parentUuid)) {
+        const auto child = getAssemblyByUuid(childUuid);
+        if (child) {
+            children.push_back(*child);
+        }
+    }
+    return children;
+}
+
+std::vector<Assembly> AssemblyRegistry::listDescendantWrappers(const std::string& rootUuid) const
+{
+    std::vector<Assembly> descendants;
+    for (const auto& childUuid : graph_.getDescendants(rootUuid)) {
+        const auto child = getAssemblyByUuid(childUuid);
+        if (child) {
+            descendants.push_back(*child);
+        }
+    }
+    return descendants;
+}
+
+std::vector<AssemblyMember> AssemblyRegistry::resolveEffectiveMembers(const std::string& rootUuid) const
+{
+    std::vector<AssemblyMember> members;
+    const auto root = getAssemblyByUuid(rootUuid);
+    if (!root) {
+        return members;
+    }
+    members.insert(members.end(), root->members.begin(), root->members.end());
+    for (const auto& child : listDescendantWrappers(rootUuid)) {
+        members.insert(members.end(), child.members.begin(), child.members.end());
+    }
+    return members;
+}
+
+std::vector<AssemblyRelationship> AssemblyRegistry::listRelationships() const
+{
+    std::vector<AssemblyRelationship> relationships;
+    relationships.reserve(relationshipsByChildUuid_.size());
+    for (const auto& item : relationshipsByChildUuid_) {
+        relationships.push_back(item.second);
+    }
+    return relationships;
+}
+
 bool AssemblyRegistry::containsAssembly(const std::string& assemblyUuid) const
 {
     return assembliesByUuid_.count(assemblyUuid) > 0;
@@ -176,6 +257,8 @@ void AssemblyRegistry::clear()
 {
     assembliesByUuid_.clear();
     assemblyUuidByElementGuid_.clear();
+    graph_.clear();
+    relationshipsByChildUuid_.clear();
 }
 
 } // namespace buildsync

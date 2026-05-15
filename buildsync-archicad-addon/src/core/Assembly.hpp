@@ -12,6 +12,14 @@ struct AssemblyProperty {
     std::string value;
 };
 
+struct AssemblyRelationship {
+    std::string parentAssemblyUuid;
+    std::string childAssemblyUuid;
+    std::string relationshipType{"contains"};
+    int sortOrder{0};
+    std::string status{"active"};
+};
+
 struct Assembly {
     std::string assemblyUuid;
     std::string assemblyId;
