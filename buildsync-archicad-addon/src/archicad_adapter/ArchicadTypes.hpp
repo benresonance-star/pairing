@@ -32,6 +32,8 @@ struct BuildSyncProperties {
     std::string sourceAssemblyUuid;
     std::string instanceUuid;
     std::string componentId;
+    std::string placementId;
+    std::string isSourcePlacement;
     std::string isInstance;
     std::string isMirror;
     std::string sourceIsCountable;
@@ -62,6 +64,14 @@ struct ElementSnapshot {
     double boundsCenterY{0.0};
     double boundsCenterZ{0.0};
     bool boundsValid{false};
+    std::vector<double> localPolygonCoords;
+    std::string diagnosticContext;
+};
+
+struct SlabCandidate {
+    ElementSnapshot snapshot;
+    BuildSyncProperties buildSyncProperties;
+    bool hasBuildSyncProperties{false};
 };
 
 struct ElementDuplicateRequest {
@@ -135,6 +145,9 @@ public:
         const ElementSnapshot& editedBaseline,
         const ElementSnapshot& targetBaseline,
         std::string* replacementElementGuid = nullptr) = 0;
+    virtual BuildSyncProperties readBuildSyncProperties(const std::string& elementGuid, bool* hasProperties = nullptr) const = 0;
+    virtual std::vector<SlabCandidate> findSlabCandidatesNear(double centerX, double centerY, double maxDistance) const = 0;
+    virtual std::vector<SlabCandidate> findBuildSyncSlabCandidates(const std::string& sourceAssemblyUuid) const = 0;
     virtual bool deleteElements(const std::vector<std::string>& elementGuids) = 0;
     virtual std::string groupElements(const std::vector<std::string>& elementGuids) = 0;
     virtual bool ungroupElements(const std::string& nativeGroupId, const std::vector<std::string>& elementGuids) = 0;

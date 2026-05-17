@@ -86,6 +86,37 @@ std::string joinRecord(const std::vector<std::string>& fields)
     return out.str();
 }
 
+std::string encodeDoubleList(const std::vector<double>& values)
+{
+    std::ostringstream out;
+    for (std::size_t index = 0; index < values.size(); ++index) {
+        if (index > 0) {
+            out << ',';
+        }
+        out << values[index];
+    }
+    return out.str();
+}
+
+std::vector<double> decodeDoubleList(const std::string& value)
+{
+    std::vector<double> values;
+    std::stringstream input(value);
+    std::string item;
+    while (std::getline(input, item, ',')) {
+        if (item.empty()) {
+            continue;
+        }
+        try {
+            values.push_back(std::stod(item));
+        } catch (...) {
+            values.clear();
+            return values;
+        }
+    }
+    return values;
+}
+
 } // namespace
 
 FileRegistryStorage::FileRegistryStorage(std::filesystem::path registryPath)
@@ -106,16 +137,18 @@ bool FileRegistryStorage::load(AssemblyRegistry& registry)
     }
 
     std::string line;
-    if (!std::getline(input, line) || (line != "BuildSyncRegistry\t1" && line != "BuildSyncRegistry\t2")) {
+    if (!std::getline(input, line) || (line != "BuildSyncRegistry\t1" && line != "BuildSyncRegistry\t2" && line != "BuildSyncRegistry\t3")) {
         return false;
     }
-    const bool isV2 = line == "BuildSyncRegistry\t2";
+    const bool isV2 = line == "BuildSyncRegistry\t2" || line == "BuildSyncRegistry\t3";
+    const bool isV3 = line == "BuildSyncRegistry\t3";
 
     std::unordered_map<std::string, Assembly> assembliesByUuid;
     std::vector<AssemblyRelationship> relationships;
     std::vector<WrapperComponent> components;
     std::vector<WrapperInstance> instances;
     std::vector<WrapperInstanceMember> instanceMembers;
+    std::vector<PlacementBinding> placementBindings;
     while (std::getline(input, line)) {
         if (line.empty()) {
             continue;
@@ -191,6 +224,9 @@ bool FileRegistryStorage::load(AssemblyRegistry& registry)
                     component.localFrame = {};
                 }
             }
+            if (fields.size() >= 14) {
+                component.localPolygonCoords = decodeDoubleList(fields[13]);
+            }
             components.push_back(component);
         } else if (isV2 && fields[0] == "I" && (fields.size() == 15 || fields.size() >= 23)) {
             WrapperInstance instance;
@@ -231,6 +267,22 @@ bool FileRegistryStorage::load(AssemblyRegistry& registry)
             instances.push_back(instance);
         } else if (isV2 && fields[0] == "IM" && fields.size() == 7) {
             instanceMembers.push_back({fields[1], fields[2], fields[3], fields[4], fields[5], fields[6].empty() ? "active" : fields[6]});
+        } else if (isV3 && fields[0] == "B" && fields.size() == 9) {
+            PlacementBinding binding;
+            binding.placementId = fields[1];
+            binding.componentId = fields[2];
+            binding.elementGuid = fields[3];
+            binding.elementType = fields[4];
+            try {
+                binding.lastBoundsCenterX = std::stod(fields[5]);
+                binding.lastBoundsCenterY = std::stod(fields[6]);
+            } catch (...) {
+                binding.lastBoundsCenterX = 0.0;
+                binding.lastBoundsCenterY = 0.0;
+            }
+            binding.lastBoundsValid = fields[7] == "true";
+            binding.health = fields[8].empty() ? "active" : fields[8];
+            placementBindings.push_back(binding);
         }
     }
 
@@ -263,6 +315,9 @@ bool FileRegistryStorage::load(AssemblyRegistry& registry)
             return false;
         }
     }
+    for (const auto& binding : placementBindings) {
+        registry.upsertPlacementBinding(binding);
+    }
     return true;
 }
 
@@ -278,7 +333,7 @@ bool FileRegistryStorage::save(const AssemblyRegistry& registry)
         return false;
     }
 
-    output << "BuildSyncRegistry\t2\n";
+    output << "BuildSyncRegistry\t3\n";
     const auto relationships = registry.listRelationships();
     for (const auto& assembly : registry.listAssemblies()) {
         const bool participatesInTree =
@@ -354,6 +409,7 @@ bool FileRegistryStorage::save(const AssemblyRegistry& registry)
                       std::to_string(component.localFrame.originY),
                       std::to_string(component.localFrame.rotationDegrees),
                       component.localFrame.valid ? "true" : "false",
+                      encodeDoubleList(component.localPolygonCoords),
                   })
                << "\n";
     }
@@ -394,6 +450,20 @@ bool FileRegistryStorage::save(const AssemblyRegistry& registry)
                       member.elementType,
                       member.role,
                       member.status,
+                  })
+               << "\n";
+    }
+    for (const auto& binding : registry.listPlacementBindings()) {
+        output << joinRecord({
+                      "B",
+                      binding.placementId,
+                      binding.componentId,
+                      binding.elementGuid,
+                      binding.elementType,
+                      std::to_string(binding.lastBoundsCenterX),
+                      std::to_string(binding.lastBoundsCenterY),
+                      binding.lastBoundsValid ? "true" : "false",
+                      binding.health,
                   })
                << "\n";
     }

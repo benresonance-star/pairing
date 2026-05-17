@@ -54,6 +54,9 @@ public:
         const ElementSnapshot& editedBaseline,
         const ElementSnapshot& targetBaseline,
         std::string* replacementElementGuid = nullptr) override;
+    BuildSyncProperties readBuildSyncProperties(const std::string& elementGuid, bool* hasProperties = nullptr) const override;
+    std::vector<SlabCandidate> findSlabCandidatesNear(double centerX, double centerY, double maxDistance) const override;
+    std::vector<SlabCandidate> findBuildSyncSlabCandidates(const std::string& sourceAssemblyUuid) const override;
     bool deleteElements(const std::vector<std::string>& elementGuids) override;
     std::string groupElements(const std::vector<std::string>& elementGuids) override;
     bool ungroupElements(const std::string& nativeGroupId, const std::vector<std::string>& elementGuids) override;

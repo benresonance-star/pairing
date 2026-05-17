@@ -51,51 +51,56 @@
 /* [ 19] */        "Repair metadata and grouping for the selected wrapper instance."
 }
 
-'GDLG' 32700 Palette | topCaption | close | grow 40 0 640 760 "BuildSync Wrapper Manager" {
-/* [  1] */ Button             555  728   70   24     LargePlain  "Close"
-/* [  2] */ SingleSelList       12   32  260  250     SmallPlain  NoPartialItems  16
+'GDLG' 32700 Palette | topCaption | close | grow 40 0 760 760 "BuildSync Wrapper Manager" {
+/* [  1] */ Button             675  728   70   24     LargePlain  "Close"
+/* [  2] */ SingleSelList       12   32  280  250     SmallPlain  NoPartialItems  16
 /* [  3] */ LeftText            12   10  120   18     SmallPlain  vCenter  "Wrappers"
-/* [  4] */ Button              12  292  120   24     LargePlain  "Create from Selection"
-/* [  5] */ Button             140  292   85   24     LargePlain  "Delete"
-/* [  6] */ Button              12  322  120   24     LargePlain  "Select Members"
-/* [  7] */ Button             140  322  120   24     LargePlain  "Add Selection"
-/* [  8] */ Button              12  352  120   24     LargePlain  "Remove Selection"
-/* [  9] */ Button             140  352  120   24     LargePlain  "Repair Registry"
-/* [ 10] */ LeftText           292   10  120   18     SmallPlain  vCenter  "Wrapper Details"
-/* [ 11] */ LeftText           292   42   65   18     SmallPlain  vCenter  "ID"
-/* [ 12] */ TextEdit           365   40  240   22     SmallPlain  255
-/* [ 13] */ LeftText           292   72   65   18     SmallPlain  vCenter  "Name"
-/* [ 14] */ TextEdit           365   70  240   22     SmallPlain  255
-/* [ 15] */ LeftText           292  102   65   18     SmallPlain  vCenter  "Type"
-/* [ 16] */ TextEdit           365  100  240   22     SmallPlain  255
-/* [ 17] */ LeftText           292  132   65   18     SmallPlain  vCenter  "Zone"
-/* [ 18] */ TextEdit           365  130  240   22     SmallPlain  255
-/* [ 19] */ LeftText           292  162   65   18     SmallPlain  vCenter  "Level"
-/* [ 20] */ TextEdit           365  160  240   22     SmallPlain  255
-/* [ 21] */ LeftText           292  192   65   18     SmallPlain  vCenter  "Trade"
-/* [ 22] */ TextEdit           365  190  240   22     SmallPlain  255
-/* [ 23] */ LeftText           292  222   65   18     SmallPlain  vCenter  "Task ID"
-/* [ 24] */ TextEdit           365  220  240   22     SmallPlain  255
-/* [ 25] */ LeftText           292  252   65   18     SmallPlain  vCenter  "Status"
-/* [ 26] */ TextEdit           365  250  240   22     SmallPlain  255
-/* [ 27] */ Button             365  282  100   24     LargePlain  "Save Details"
-/* [ 28] */ LeftText           292  322   65   18     SmallPlain  vCenter  "Prop Key"
-/* [ 29] */ TextEdit           365  320  115   22     SmallPlain  255
-/* [ 30] */ LeftText           292  352   65   18     SmallPlain  vCenter  "Prop Value"
-/* [ 31] */ TextEdit           365  350  240   22     SmallPlain  255
-/* [ 32] */ Button             490  320   55   24     LargePlain  "Set"
-/* [ 33] */ Button             550  320   70   24     LargePlain  "Remove"
-/* [ 34] */ LeftText            12  398  520   24     SmallPlain  vCenter  ""
+/* [  4] */ Button              12  292  132   24     LargePlain  "Create from Selection"
+/* [  5] */ Button             152  292   95   24     LargePlain  "Delete"
+/* [  6] */ Button              12  322  132   24     LargePlain  "Select Members"
+/* [  7] */ Button             152  322  132   24     LargePlain  "Add Selection"
+/* [  8] */ Button              12  352  132   24     LargePlain  "Remove Selection"
+/* [  9] */ Button             152  352  132   24     LargePlain  "Repair Registry"
+/* [ 10] */ LeftText           304   10  140   18     SmallPlain  vCenter  "Wrapper Details"
+/* [ 11] */ LeftText           304   42   75   18     SmallPlain  vCenter  "ID"
+/* [ 12] */ TextEdit           385   40  300   22     SmallPlain  255
+/* [ 13] */ LeftText           304   72   75   18     SmallPlain  vCenter  "Name"
+/* [ 14] */ TextEdit           385   70  300   22     SmallPlain  255
+/* [ 15] */ LeftText           304  102   75   18     SmallPlain  vCenter  "Type"
+/* [ 16] */ TextEdit           385  100  300   22     SmallPlain  255
+/* [ 17] */ LeftText           304  132   75   18     SmallPlain  vCenter  "Zone"
+/* [ 18] */ TextEdit           385  130  300   22     SmallPlain  255
+/* [ 19] */ LeftText           304  162   75   18     SmallPlain  vCenter  "Level"
+/* [ 20] */ TextEdit           385  160  300   22     SmallPlain  255
+/* [ 21] */ LeftText           304  192   75   18     SmallPlain  vCenter  "Trade"
+/* [ 22] */ TextEdit           385  190  300   22     SmallPlain  255
+/* [ 23] */ LeftText           304  222   75   18     SmallPlain  vCenter  "Task ID"
+/* [ 24] */ TextEdit           385  220  300   22     SmallPlain  255
+/* [ 25] */ LeftText           304  252   75   18     SmallPlain  vCenter  "Status"
+/* [ 26] */ TextEdit           385  250  300   22     SmallPlain  255
+/* [ 27] */ Button             385  282  110   24     LargePlain  "Save Details"
+/* [ 28] */ LeftText           304  322   75   18     SmallPlain  vCenter  "Prop Key"
+/* [ 29] */ TextEdit           385  320  160   22     SmallPlain  255
+/* [ 30] */ LeftText           304  352   75   18     SmallPlain  vCenter  "Prop Value"
+/* [ 31] */ TextEdit           385  350  300   22     SmallPlain  255
+/* [ 32] */ Button             555  320   60   24     LargePlain  "Set"
+/* [ 33] */ Button             622  320   80   24     LargePlain  "Remove"
+/* [ 34] */ RichEdit            12  398  650   84     SmallPlain  VScroll
 /* [ 35] */ Button              12  382   85   24     LargePlain  "Refresh"
 /* [ 36] */ Button             638  758    1    1     LargePlain  ""
 /* [ 37] */ LeftText            12  440   80   18     SmallPlain  vCenter  "Members"
-/* [ 38] */ Button             100  436  110   24     LargePlain  "Show Members"
-/* [ 39] */ SingleSelList       12  588  608  132     SmallPlain  NoPartialItems  16  HasHeader  18
+/* [ 38] */ Button             100  436  125   24     LargePlain  "Show Members"
+/* [ 39] */ SingleSelList       12  588  728  132     SmallPlain  NoPartialItems  16  HasHeader  18
 /* [ 40] */ LeftText            12  468  100   18     SmallPlain  vCenter  "Sub-Wrappers"
-/* [ 41] */ SingleSelList       12  492  380   72     SmallPlain  NoPartialItems  16
-/* [ 42] */ Button             405  492  105   24     LargePlain  "Add Selected"
-/* [ 43] */ Button             515  492  105   24     LargePlain  "Remove Child"
-/* [ 44] */ Button             405  522  140   24     LargePlain  "Select Branch"
+/* [ 41] */ SingleSelList       12  492  500   72     SmallPlain  NoPartialItems  16
+/* [ 42] */ Button             525  492  110   24     LargePlain  "Add Selected"
+/* [ 43] */ Button             642  492  110   24     LargePlain  "Remove Child"
+/* [ 44] */ Button             525  522  140   24     LargePlain  "Select Branch"
+/* [ 45] */ Button             304  382  118   24     LargePlain  "Place Instance"
+/* [ 46] */ Button             430  382  108   24     LargePlain  "Select Inst."
+/* [ 47] */ Button             546  382   96   24     LargePlain  "Enter Edit"
+/* [ 48] */ Button             304  412  118   24     LargePlain  "Apply Edit"
+/* [ 49] */ Button             430  412  108   24     LargePlain  "Cancel Edit"
 }
 
 'DLGH' 32700 DLG_32700_BuildSync_Wrapper_Manager {
@@ -132,7 +137,7 @@
 31  ""                          TextEdit_9
 32  ""                          Button_8
 33  ""                          Button_9
-34  ""                          LeftText_12
+34  ""                          RichEd_0
 35  ""                          Button_10
 36  ""                          Button_11
 37  ""                          LeftText_13
@@ -143,4 +148,9 @@
 42  ""                          Button_13
 43  ""                          Button_14
 44  ""                          Button_15
+45  ""                          Button_16
+46  ""                          Button_17
+47  ""                          Button_18
+48  ""                          Button_19
+49  ""                          Button_20
 }

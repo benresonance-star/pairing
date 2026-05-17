@@ -1450,7 +1450,11 @@ This matters because mirrored joinery may need different handedness, hardware, p
 
 ### 18.4 Reviewer Handoff Note: Slab Instance Edit Propagation
 
-Current known issue for the next reviewing AI: when applying shared edits to slab-based wrapper instances, the instance updates initially, but new or changed slabs are still being created at the same world location as the source slabs. The next review should focus on Archicad slab memo coordinate semantics and the source-to-instance placement transform used during `ACAPI_Element_ChangeMemo` / replacement creation, because each instance must keep its own relative coordinate space after propagation.
+Current implementation note for future review: slab instance propagation is now trace-driven and identity-bound. The add-on records edited placement GUIDs for the active apply operation, reconciles placement bindings before and after propagation, and updates other linked placements in their own live frames.
+
+Observed SDK behavior: `ACAPI_Element_ChangeMemo` can preserve the target slab GUID while landing the changed polygon at the edited/source placement bounds. The adapter must therefore re-read target bounds after the memo update. If the result differs from the expected placement bounds, it must translate the same polygon memo by the measured error and apply `ACAPI_Element_ChangeMemo` a second time, then verify bounds again. Do not treat an `APIEdit_Drag` correction as authoritative for slabs; it has been observed to leave the slab at the snapped bounds.
+
+The desired invariant remains: every linked placement receives the canonical local polygon geometry transformed into that placement's own live frame, while the edited placement is reconciled in place without duplicating BuildSync-owned slabs over itself.
 
 ---
 

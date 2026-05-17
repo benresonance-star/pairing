@@ -118,6 +118,8 @@ private:
     bool stampAssemblyProperties(const Assembly& assembly);
     bool stampInstanceProperties(const Assembly& source, const WrapperInstance& instance);
     CommandResult ensureComponentsForAssembly(const Assembly& assembly);
+    CommandResult validateRelationshipBindingsForEdit(const std::string& sourceAssemblyUuid);
+    CommandResult validatePlacementBindingInvariants(const std::string& sourceAssemblyUuid) const;
     CommandResult pruneMissingSourceMembers(const std::string& assemblyUuid, int* removedCount = nullptr);
     int countMissingInstanceMembers(const std::string& sourceAssemblyUuid) const;
     int countInstancesNeedingRepair(const std::string& sourceAssemblyUuid) const;
@@ -138,6 +140,7 @@ private:
     UuidFactory uuidFactory_;
     InstanceElementOperator* instanceOperator_;
     std::optional<WrapperEditSession> activeEditSession_;
+    std::string activeGeometryTracePath_;
     std::unordered_map<std::string, ElementSnapshot> activeBaselineByElementGuid_;
     std::unordered_map<std::string, std::string> activeComponentByElementGuid_;
 };

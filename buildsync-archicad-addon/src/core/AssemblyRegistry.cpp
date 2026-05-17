@@ -5,6 +5,16 @@
 
 namespace buildsync {
 
+std::string AssemblyRegistry::sourcePlacementIdFor(const std::string& assemblyUuid)
+{
+    return "source:" + assemblyUuid;
+}
+
+std::string AssemblyRegistry::placementBindingKey(const std::string& placementId, const std::string& componentId)
+{
+    return placementId + "|" + componentId;
+}
+
 bool AssemblyRegistry::createAssembly(const Assembly& assembly)
 {
     if (assembly.assemblyUuid.empty() || assembliesByUuid_.count(assembly.assemblyUuid) > 0) {
@@ -42,8 +52,10 @@ bool AssemblyRegistry::deleteAssembly(const std::string& assemblyUuid)
     }
     for (const auto& member : found->second.members) {
         assemblyUuidByElementGuid_.erase(member.elementGuid);
+        placementBindingKeyByElementGuid_.erase(member.elementGuid);
         const auto component = componentIdBySourceElementGuid_.find(member.elementGuid);
         if (component != componentIdBySourceElementGuid_.end()) {
+            placementBindingsByKey_.erase(placementBindingKey(sourcePlacementIdFor(assemblyUuid), component->second));
             componentsById_.erase(component->second);
             componentIdBySourceElementGuid_.erase(component);
         }
@@ -130,6 +142,7 @@ bool AssemblyRegistry::removeMembers(const std::string& assemblyUuid, const std:
         if (component != componentIdBySourceElementGuid_.end()) {
             removeComponent(component->second);
         }
+        placementBindingKeyByElementGuid_.erase(guid);
         members.erase(
             std::remove_if(members.begin(), members.end(), [&](const AssemblyMember& member) {
                 return member.elementGuid == guid;
@@ -197,6 +210,16 @@ bool AssemblyRegistry::upsertComponent(const WrapperComponent& component)
     componentsById_[component.componentId] = component;
     if (!component.sourceElementGuid.empty()) {
         componentIdBySourceElementGuid_[component.sourceElementGuid] = component.componentId;
+        upsertPlacementBinding({
+            sourcePlacementIdFor(component.sourceAssemblyUuid),
+            component.componentId,
+            component.sourceElementGuid,
+            component.elementType,
+            0.0,
+            0.0,
+            false,
+            component.status.empty() ? "active" : component.status,
+        });
     }
     return true;
 }
@@ -208,6 +231,7 @@ bool AssemblyRegistry::removeComponent(const std::string& componentId)
         return false;
     }
     componentIdBySourceElementGuid_.erase(found->second.sourceElementGuid);
+    removePlacementBinding(sourcePlacementIdFor(found->second.sourceAssemblyUuid), componentId);
     componentsById_.erase(found);
     for (auto& item : instanceMembersByInstanceUuid_) {
         auto& members = item.second;
@@ -240,6 +264,16 @@ bool AssemblyRegistry::createInstance(const WrapperInstance& instance, const std
     instanceMembersByInstanceUuid_[instance.instanceUuid] = members;
     for (const auto& member : members) {
         instanceUuidByMemberElementGuid_[member.elementGuid] = instance.instanceUuid;
+        upsertPlacementBinding({
+            instance.instanceUuid,
+            member.componentId,
+            member.elementGuid,
+            member.elementType,
+            0.0,
+            0.0,
+            false,
+            member.status.empty() ? "active" : member.status,
+        });
     }
     return true;
 }
@@ -264,6 +298,8 @@ bool AssemblyRegistry::deleteInstance(const std::string& instanceUuid)
     if (members != instanceMembersByInstanceUuid_.end()) {
         for (const auto& member : members->second) {
             instanceUuidByMemberElementGuid_.erase(member.elementGuid);
+            placementBindingKeyByElementGuid_.erase(member.elementGuid);
+            placementBindingsByKey_.erase(placementBindingKey(instanceUuid, member.componentId));
         }
         instanceMembersByInstanceUuid_.erase(members);
     }
@@ -281,6 +317,42 @@ bool AssemblyRegistry::markInstanceNeedsRepair(const std::string& instanceUuid, 
     return true;
 }
 
+bool AssemblyRegistry::replaceSourceMemberElement(const std::string& assemblyUuid, const std::string& componentId, const std::string& elementGuid)
+{
+    auto assembly = assembliesByUuid_.find(assemblyUuid);
+    auto component = componentsById_.find(componentId);
+    if (assembly == assembliesByUuid_.end() || component == componentsById_.end() || elementGuid.empty()) {
+        return false;
+    }
+    if (component->second.sourceAssemblyUuid != assemblyUuid) {
+        return false;
+    }
+    if (assemblyUuidByElementGuid_.count(elementGuid) > 0 || componentIdBySourceElementGuid_.count(elementGuid) > 0) {
+        return false;
+    }
+
+    const std::string oldGuid = component->second.sourceElementGuid;
+    bool replacedMember = false;
+    for (auto& member : assembly->second.members) {
+        if (member.elementGuid == oldGuid) {
+            assemblyUuidByElementGuid_.erase(member.elementGuid);
+            member.elementGuid = elementGuid;
+            assemblyUuidByElementGuid_[elementGuid] = assemblyUuid;
+            replacedMember = true;
+            break;
+        }
+    }
+    if (!replacedMember) {
+        return false;
+    }
+
+    componentIdBySourceElementGuid_.erase(oldGuid);
+    component->second.sourceElementGuid = elementGuid;
+    componentIdBySourceElementGuid_[elementGuid] = componentId;
+    replacePlacementBindingElement(sourcePlacementIdFor(assemblyUuid), componentId, elementGuid);
+    return true;
+}
+
 bool AssemblyRegistry::replaceInstanceMemberElement(const std::string& instanceUuid, const std::string& componentId, const std::string& elementGuid)
 {
     auto found = instanceMembersByInstanceUuid_.find(instanceUuid);
@@ -295,10 +367,70 @@ bool AssemblyRegistry::replaceInstanceMemberElement(const std::string& instanceU
             instanceUuidByMemberElementGuid_.erase(member.elementGuid);
             member.elementGuid = elementGuid;
             instanceUuidByMemberElementGuid_[elementGuid] = instanceUuid;
+            replacePlacementBindingElement(instanceUuid, componentId, elementGuid);
             return true;
         }
     }
     return false;
+}
+
+bool AssemblyRegistry::upsertPlacementBinding(const PlacementBinding& binding)
+{
+    if (binding.placementId.empty() || binding.componentId.empty() || binding.elementGuid.empty()) {
+        return false;
+    }
+    if (componentsById_.count(binding.componentId) == 0) {
+        return false;
+    }
+    const std::string key = placementBindingKey(binding.placementId, binding.componentId);
+    const auto existingGuid = placementBindingKeyByElementGuid_.find(binding.elementGuid);
+    if (existingGuid != placementBindingKeyByElementGuid_.end() && existingGuid->second != key) {
+        return false;
+    }
+    const auto previous = placementBindingsByKey_.find(key);
+    if (previous != placementBindingsByKey_.end() && previous->second.elementGuid != binding.elementGuid) {
+        placementBindingKeyByElementGuid_.erase(previous->second.elementGuid);
+    }
+    placementBindingsByKey_[key] = binding;
+    placementBindingKeyByElementGuid_[binding.elementGuid] = key;
+    return true;
+}
+
+bool AssemblyRegistry::removePlacementBinding(const std::string& placementId, const std::string& componentId)
+{
+    const std::string key = placementBindingKey(placementId, componentId);
+    const auto found = placementBindingsByKey_.find(key);
+    if (found == placementBindingsByKey_.end()) {
+        return false;
+    }
+    placementBindingKeyByElementGuid_.erase(found->second.elementGuid);
+    placementBindingsByKey_.erase(found);
+    return true;
+}
+
+bool AssemblyRegistry::replacePlacementBindingElement(const std::string& placementId, const std::string& componentId, const std::string& elementGuid)
+{
+    if (elementGuid.empty()) {
+        return false;
+    }
+    const std::string key = placementBindingKey(placementId, componentId);
+    auto found = placementBindingsByKey_.find(key);
+    if (found == placementBindingsByKey_.end()) {
+        const auto component = componentsById_.find(componentId);
+        if (component == componentsById_.end()) {
+            return false;
+        }
+        return upsertPlacementBinding({placementId, componentId, elementGuid, component->second.elementType, 0.0, 0.0, false, "active"});
+    }
+    const auto existingGuid = placementBindingKeyByElementGuid_.find(elementGuid);
+    if (existingGuid != placementBindingKeyByElementGuid_.end() && existingGuid->second != key) {
+        return false;
+    }
+    placementBindingKeyByElementGuid_.erase(found->second.elementGuid);
+    found->second.elementGuid = elementGuid;
+    found->second.health = "active";
+    placementBindingKeyByElementGuid_[elementGuid] = key;
+    return true;
 }
 
 std::optional<Assembly> AssemblyRegistry::getAssemblyByUuid(const std::string& assemblyUuid) const
@@ -353,6 +485,28 @@ std::optional<WrapperInstance> AssemblyRegistry::getInstanceByMemberElementGuid(
         return std::nullopt;
     }
     return getInstance(index->second);
+}
+
+std::optional<PlacementBinding> AssemblyRegistry::getPlacementBinding(const std::string& placementId, const std::string& componentId) const
+{
+    const auto found = placementBindingsByKey_.find(placementBindingKey(placementId, componentId));
+    if (found == placementBindingsByKey_.end()) {
+        return std::nullopt;
+    }
+    return found->second;
+}
+
+std::optional<PlacementBinding> AssemblyRegistry::getPlacementBindingByElementGuid(const std::string& elementGuid) const
+{
+    const auto index = placementBindingKeyByElementGuid_.find(elementGuid);
+    if (index == placementBindingKeyByElementGuid_.end()) {
+        return std::nullopt;
+    }
+    const auto found = placementBindingsByKey_.find(index->second);
+    if (found == placementBindingsByKey_.end()) {
+        return std::nullopt;
+    }
+    return found->second;
 }
 
 std::vector<Assembly> AssemblyRegistry::listAssemblies() const
@@ -425,6 +579,27 @@ std::vector<WrapperInstanceMember> AssemblyRegistry::listAllInstanceMembers() co
     return members;
 }
 
+std::vector<PlacementBinding> AssemblyRegistry::listPlacementBindings() const
+{
+    std::vector<PlacementBinding> bindings;
+    bindings.reserve(placementBindingsByKey_.size());
+    for (const auto& item : placementBindingsByKey_) {
+        bindings.push_back(item.second);
+    }
+    return bindings;
+}
+
+std::vector<PlacementBinding> AssemblyRegistry::listPlacementBindings(const std::string& placementId) const
+{
+    std::vector<PlacementBinding> bindings;
+    for (const auto& item : placementBindingsByKey_) {
+        if (item.second.placementId == placementId) {
+            bindings.push_back(item.second);
+        }
+    }
+    return bindings;
+}
+
 std::optional<std::string> AssemblyRegistry::getParentWrapper(const std::string& childUuid) const
 {
     return graph_.getParent(childUuid);
@@ -492,6 +667,8 @@ void AssemblyRegistry::clear()
     instancesByUuid_.clear();
     instanceMembersByInstanceUuid_.clear();
     instanceUuidByMemberElementGuid_.clear();
+    placementBindingsByKey_.clear();
+    placementBindingKeyByElementGuid_.clear();
     graph_.clear();
     relationshipsByChildUuid_.clear();
 }

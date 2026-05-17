@@ -47,7 +47,17 @@ int main()
 
     assert(registry.addMembers("uuid-jn-014", {{"", "GUID-003", "Object", "Sink", "active", ""}}));
     assert(registry.getAssemblyByUuid("uuid-jn-014")->members.size() == 3);
-    assert(registry.upsertComponent({"component-slab", "uuid-jn-014", "GUID-001", "Slab", "Benchtop", 0, "{\"type\":\"slab\"}", "active"}));
+    WrapperComponent slabComponent;
+    slabComponent.componentId = "component-slab";
+    slabComponent.sourceAssemblyUuid = "uuid-jn-014";
+    slabComponent.sourceElementGuid = "GUID-001";
+    slabComponent.elementType = "Slab";
+    slabComponent.role = "Benchtop";
+    slabComponent.sortOrder = 0;
+    slabComponent.snapshotJson = "{\"type\":\"slab\"}";
+    slabComponent.status = "active";
+    assert(registry.upsertComponent(slabComponent));
+    assert(registry.getPlacementBinding(AssemblyRegistry::sourcePlacementIdFor("uuid-jn-014"), "component-slab")->elementGuid == "GUID-001");
     WrapperInstance instance;
     instance.instanceUuid = "instance-001";
     instance.sourceAssemblyUuid = "uuid-jn-014";
@@ -58,6 +68,7 @@ int main()
     instance.localOverridesAllowed = false;
     assert(registry.createInstance(instance, {{"instance-001", "component-slab", "GUID-I-001", "Slab", "Benchtop", "active"}}));
     assert(registry.getInstanceByMemberElementGuid("GUID-I-001")->isMirrored);
+    assert(registry.getPlacementBinding("instance-001", "component-slab")->elementGuid == "GUID-I-001");
     assert(registry.listInstances("uuid-jn-014").size() == 1);
     assert(registry.markInstanceNeedsRepair("instance-001", true));
     assert(registry.getInstance("instance-001")->needsRepair);

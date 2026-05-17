@@ -188,6 +188,68 @@ bool elementBoundsCenter(const std::string& elementGuid, double& centerX, double
     return elementBoundsCenter(header, centerX, centerY, centerZ);
 }
 
+bool deleteElementByGuid(const std::string& elementGuid, std::string& diagnostic)
+{
+    GS::Array<API_Guid> guids;
+    guids.Push(apiGuidFromStdString(elementGuid));
+    const GSErrCode error = ACAPI_Element_Delete(guids);
+    if (error != NoError) {
+        diagnostic = "ACAPI_Element_Delete failed for " + elementGuid + ". error=" + errorCodeString(error);
+        return false;
+    }
+    API_Elem_Head header = {};
+    header.guid = apiGuidFromStdString(elementGuid);
+    if (ACAPI_Element_GetHeader(&header) == NoError) {
+        diagnostic = "ACAPI_Element_Delete returned success but stale element still exists: " + elementGuid;
+        return false;
+    }
+    return true;
+}
+
+bool cleanupValidatedStaleOriginalSlab(
+    const std::string& originalTargetGuid,
+    double targetBoundsBeforeX,
+    double targetBoundsBeforeY,
+    bool targetBoundsBeforeValid,
+    std::string& diagnostic)
+{
+    API_Elem_Head originalHeader = {};
+    originalHeader.guid = apiGuidFromStdString(originalTargetGuid);
+    const GSErrCode headerError = ACAPI_Element_GetHeader(&originalHeader);
+    if (headerError != NoError) {
+        diagnostic = "original slab no longer exists after replacement.";
+        return true;
+    }
+    if (originalHeader.type.typeID != API_SlabID) {
+        diagnostic = "cleanup refused because original target still exists but is not a slab: " + originalTargetGuid;
+        return false;
+    }
+    if (targetBoundsBeforeValid) {
+        double currentX = 0.0;
+        double currentY = 0.0;
+        double currentZ = 0.0;
+        if (!elementBoundsCenter(originalHeader, currentX, currentY, currentZ)) {
+            diagnostic = "cleanup refused because stale original slab bounds could not be read: " + originalTargetGuid;
+            return false;
+        }
+        const double dx = currentX - targetBoundsBeforeX;
+        const double dy = currentY - targetBoundsBeforeY;
+        if ((dx * dx + dy * dy) > 1.0e-6) {
+            diagnostic = "cleanup refused because original slab no longer matches pre-change bounds. original=" +
+                originalTargetGuid + " before=(" + std::to_string(targetBoundsBeforeX) + "," + std::to_string(targetBoundsBeforeY) +
+                ") current=(" + std::to_string(currentX) + "," + std::to_string(currentY) + ")";
+            return false;
+        }
+    }
+    std::string deleteDiagnostic;
+    if (!deleteElementByGuid(originalTargetGuid, deleteDiagnostic)) {
+        diagnostic = "cleanup failed: " + deleteDiagnostic;
+        return false;
+    }
+    diagnostic = "replacement cleaned: stale original slab deleted " + originalTargetGuid;
+    return true;
+}
+
 bool dragElementByDelta(const std::string& elementGuid, double deltaX, double deltaY, std::string& diagnostic)
 {
     if (std::abs(deltaX) < 1.0e-6 && std::abs(deltaY) < 1.0e-6) {
@@ -323,6 +385,59 @@ API_ElementMemo polygonChangeMemo(API_ElementMemo& memo)
     return tmpMemo;
 }
 
+Int32 memoCoordCount(const API_ElementMemo& memo)
+{
+    if (memo.coords == nullptr) {
+        return 0;
+    }
+    return static_cast<Int32>(BMhGetSize(reinterpret_cast<GSHandle>(memo.coords)) / Sizeof32(API_Coord)) - 1;
+}
+
+Int32 memoSubPolyCount(const API_ElementMemo& memo)
+{
+    if (memo.pends == nullptr) {
+        return 0;
+    }
+    return static_cast<Int32>(BMhGetSize(reinterpret_cast<GSHandle>(memo.pends)) / Sizeof32(Int32)) - 1;
+}
+
+Int32 memoArcCount(const API_ElementMemo& memo)
+{
+    if (memo.parcs == nullptr) {
+        return 0;
+    }
+    return static_cast<Int32>(BMhGetSize(reinterpret_cast<GSHandle>(memo.parcs)) / Sizeof32(API_PolyArc));
+}
+
+GSErrCode changeSlabPolygonWithReplacement(API_Element& targetElement, API_ElementMemo& polygonMemo)
+{
+    targetElement.slab.poly.nCoords = memoCoordCount(polygonMemo);
+    targetElement.slab.poly.nSubPolys = memoSubPolyCount(polygonMemo);
+    targetElement.slab.poly.nArcs = memoArcCount(polygonMemo);
+
+    API_Element mask = {};
+    ACAPI_ELEMENT_MASK_CLEAR(mask);
+    ACAPI_ELEMENT_MASK_SET(mask, API_SlabType, poly);
+
+    API_ElementMemo tmpMemo = polygonChangeMemo(polygonMemo);
+    return ACAPI_Element_Change(
+        &targetElement,
+        &mask,
+        &tmpMemo,
+        APIMemoMask_Polygon | APIMemoMask_SideMaterials | APIMemoMask_EdgeTrims,
+        true);
+}
+
+GSErrCode changeSlabPolygonInPlace(const API_Elem_Head& targetHeader, API_ElementMemo& polygonMemo)
+{
+    API_ElementMemo tmpMemo = polygonChangeMemo(polygonMemo);
+    API_Guid targetGuid = targetHeader.guid;
+    return ACAPI_Element_ChangeMemo(
+        targetGuid,
+        APIMemoMask_Polygon | APIMemoMask_SideMaterials | APIMemoMask_EdgeTrims,
+        &tmpMemo);
+}
+
 void translateMemoCoords(API_ElementMemo& memo, double deltaX, double deltaY)
 {
     if (memo.coords == nullptr || *memo.coords == nullptr) {
@@ -363,6 +478,32 @@ double effectiveFrameRotationDegrees(const ElementSnapshot& snapshot)
 bool effectiveFrameValid(const ElementSnapshot& snapshot)
 {
     return snapshot.coordinateFrameValid || snapshot.frameValid;
+}
+
+std::string frameString(const ElementSnapshot& snapshot)
+{
+    std::ostringstream out;
+    out << "frame=(" << effectiveFrameOriginX(snapshot) << "," << effectiveFrameOriginY(snapshot)
+        << "," << effectiveFrameRotationDegrees(snapshot) << ") valid=" << (effectiveFrameValid(snapshot) ? "true" : "false");
+    return out.str();
+}
+
+std::string coordSampleString(const std::vector<double>& coords, std::size_t maxPoints = 5)
+{
+    std::ostringstream out;
+    out << "[";
+    const std::size_t pointCount = coords.size() / 2;
+    for (std::size_t index = 0; index < pointCount && index < maxPoints; ++index) {
+        if (index > 0) {
+            out << ",";
+        }
+        out << "(" << coords[index * 2] << "," << coords[index * 2 + 1] << ")";
+    }
+    if (pointCount > maxPoints) {
+        out << ",...";
+    }
+    out << "]";
+    return out.str();
 }
 
 API_Coord transformCoordBetweenFrames(const API_Coord& coord, const ElementSnapshot& fromFrame, const ElementSnapshot& toFrame)
@@ -491,6 +632,50 @@ bool transformMemoCoordsThroughPolygonFrames(
             targetBaseline.coordinateFrameValid ? targetBaseline.coordinateOriginY : targetBaseline.polygonFrameOriginY,
             targetBaseline.coordinateFrameValid ? targetBaseline.coordinateRotationDegrees : targetBaseline.polygonFrameRotationDegrees);
     }
+    return true;
+}
+
+bool applyLocalPolygonCoordsToMemo(API_ElementMemo& memo, const ElementSnapshot& targetBaseline, const std::vector<double>& localPolygonCoords)
+{
+    if (!effectiveFrameValid(targetBaseline) || memo.coords == nullptr || *memo.coords == nullptr) {
+        return false;
+    }
+    const auto coordCount = BMGetHandleSize(reinterpret_cast<GSHandle>(memo.coords)) / sizeof(API_Coord);
+    if (localPolygonCoords.size() != coordCount * 2) {
+        return false;
+    }
+    for (std::size_t index = 1; index < coordCount; ++index) {
+        (*memo.coords)[index] = localToWorldCoord(
+            localPolygonCoords[index * 2],
+            localPolygonCoords[index * 2 + 1],
+            effectiveFrameOriginX(targetBaseline),
+            effectiveFrameOriginY(targetBaseline),
+            effectiveFrameRotationDegrees(targetBaseline));
+    }
+    return true;
+}
+
+bool memoBoundsCenter(const API_ElementMemo& memo, double& centerX, double& centerY)
+{
+    if (memo.coords == nullptr || *memo.coords == nullptr) {
+        return false;
+    }
+    const auto coordCount = BMGetHandleSize(reinterpret_cast<GSHandle>(memo.coords)) / sizeof(API_Coord);
+    if (coordCount <= 1) {
+        return false;
+    }
+    double minX = (*memo.coords)[1].x;
+    double maxX = (*memo.coords)[1].x;
+    double minY = (*memo.coords)[1].y;
+    double maxY = (*memo.coords)[1].y;
+    for (std::size_t index = 2; index < coordCount; ++index) {
+        minX = std::min(minX, (*memo.coords)[index].x);
+        maxX = std::max(maxX, (*memo.coords)[index].x);
+        minY = std::min(minY, (*memo.coords)[index].y);
+        maxY = std::max(maxY, (*memo.coords)[index].y);
+    }
+    centerX = (minX + maxX) / 2.0;
+    centerY = (minY + maxY) / 2.0;
     return true;
 }
 
@@ -624,7 +809,7 @@ bool elementFrame(const API_Element& element, const API_ElementMemo* memo, doubl
     }
 }
 
-std::array<std::pair<const char*, std::string BuildSyncProperties::*>, 19> buildSyncPropertyFields()
+std::array<std::pair<const char*, std::string BuildSyncProperties::*>, 21> buildSyncPropertyFields()
 {
     return {{
         {"BS_AssemblyID", &BuildSyncProperties::assemblyId},
@@ -640,6 +825,8 @@ std::array<std::pair<const char*, std::string BuildSyncProperties::*>, 19> build
         {"BS_SourceAssemblyUUID", &BuildSyncProperties::sourceAssemblyUuid},
         {"BS_InstanceUUID", &BuildSyncProperties::instanceUuid},
         {"BS_ComponentID", &BuildSyncProperties::componentId},
+        {"BS_PlacementID", &BuildSyncProperties::placementId},
+        {"BS_IsSourcePlacement", &BuildSyncProperties::isSourcePlacement},
         {"BS_IsInstance", &BuildSyncProperties::isInstance},
         {"BS_IsMirror", &BuildSyncProperties::isMirror},
         {"BS_SourceIsCountable", &BuildSyncProperties::sourceIsCountable},
@@ -809,6 +996,53 @@ std::string describeStringProperty(const API_Guid& elementGuid, const char* prop
         return std::string(propertyName) + "=value-conversion-failed";
     }
     return std::string(propertyName) + "=\"" + value.ToCStr().Get() + "\"";
+}
+
+bool readStringProperty(const API_Guid& elementGuid, const char* propertyName, std::string& outValue)
+{
+    API_PropertyGroup group;
+    if (getBuildSyncPropertyGroup(group) != NoError) {
+        return false;
+    }
+
+    API_PropertyDefinition definition;
+    if (getOrCreateStringPropertyDefinition(group, propertyName, definition) != NoError) {
+        return false;
+    }
+
+    if (!ACAPI_Element_IsPropertyDefinitionAvailable(elementGuid, definition.guid)) {
+        return false;
+    }
+
+    API_Property property;
+    const GSErrCode error = ACAPI_Element_GetPropertyValue(elementGuid, definition.guid, property);
+    if (error != NoError || property.status != API_Property_HasValue) {
+        return false;
+    }
+
+    GS::UniString value;
+    if (ACAPI_Property_GetPropertyValueString(property, &value) != NoError) {
+        return false;
+    }
+    outValue = value.ToCStr().Get();
+    return true;
+}
+
+BuildSyncProperties readBuildSyncPropertiesForElement(const API_Guid& elementGuid, bool* hasProperties)
+{
+    BuildSyncProperties properties;
+    bool any = false;
+    for (const auto& field : buildSyncPropertyFields()) {
+        std::string value;
+        if (readStringProperty(elementGuid, field.first, value)) {
+            properties.*(field.second) = value;
+            any = true;
+        }
+    }
+    if (hasProperties != nullptr) {
+        *hasProperties = any;
+    }
+    return properties;
 }
 
 } // namespace
@@ -1157,7 +1391,16 @@ bool ArchicadInstanceElementOperator::updateElementFromSnapshot(
     API_ElementMemo sourceMemo = {};
     API_ElementMemo targetMemo = {};
     const bool hasMemo = sourceElement.header.hasMemo;
+    const bool isSlabLocalDefinitionUpdate =
+        hasMemo && targetHeader.type.typeID == API_SlabID && !snapshot.localPolygonCoords.empty();
     std::string placementCorrectionDiagnostic;
+    std::string slabDiagnostic;
+    std::string replacementDiagnostic;
+    std::string staleOriginalCleanupDiagnostic;
+    std::string updatedElementGuid = elementGuid;
+    double generatedBoundsCenterX = 0.0;
+    double generatedBoundsCenterY = 0.0;
+    bool generatedBoundsValid = false;
     double targetBoundsBeforeX = 0.0;
     double targetBoundsBeforeY = 0.0;
     double targetBoundsBeforeZ = 0.0;
@@ -1184,7 +1427,31 @@ bool ArchicadInstanceElementOperator::updateElementFromSnapshot(
             lastDiagnostic_ = "Target instance was reshaped outside the active edit session and needs repair.";
             return false;
         }
-        if (!transformMemoCoordsThroughPolygonFrames(sourceMemo, editedBaseline, targetBaseline)) {
+        if (isSlabLocalDefinitionUpdate) {
+            if (!applyLocalPolygonCoordsToMemo(sourceMemo, targetBaseline, snapshot.localPolygonCoords)) {
+                ACAPI_DisposeElemMemoHdls(&targetMemo);
+                ACAPI_DisposeElemMemoHdls(&sourceMemo);
+                lastDiagnostic_ = "Could not regenerate slab polygon from local definition coordinates. edited=" +
+                    frameString(editedBaseline) + " target=" + frameString(targetBaseline) +
+                    " localSample=" + coordSampleString(snapshot.localPolygonCoords);
+                return false;
+            }
+            generatedBoundsValid = memoBoundsCenter(sourceMemo, generatedBoundsCenterX, generatedBoundsCenterY);
+            if (generatedBoundsValid && targetBaseline.boundsValid) {
+                const double preApplyCorrectionX = targetBaseline.boundsCenterX - generatedBoundsCenterX;
+                const double preApplyCorrectionY = targetBaseline.boundsCenterY - generatedBoundsCenterY;
+                if ((preApplyCorrectionX * preApplyCorrectionX + preApplyCorrectionY * preApplyCorrectionY) > 1.0e-10) {
+                    translateMemoCoords(sourceMemo, preApplyCorrectionX, preApplyCorrectionY);
+                    generatedBoundsCenterX += preApplyCorrectionX;
+                    generatedBoundsCenterY += preApplyCorrectionY;
+                }
+            }
+            slabDiagnostic = "slabLocalDefinition edited=" + frameString(editedBaseline) +
+                " target=" + frameString(targetBaseline) +
+                " worldBefore=" + coordSampleString(snapshot.polygonCoords) +
+                " local=" + coordSampleString(snapshot.localPolygonCoords) +
+                " generated=" + coordSampleString(memoPolygonCoords(sourceMemo));
+        } else if (!transformMemoCoordsThroughPolygonFrames(sourceMemo, editedBaseline, targetBaseline)) {
             ACAPI_DisposeElemMemoHdls(&targetMemo);
             ACAPI_DisposeElemMemoHdls(&sourceMemo);
             lastDiagnostic_ = "Could not apply polygon edit because source or target coordinate frame is invalid.";
@@ -1196,19 +1463,66 @@ bool ArchicadInstanceElementOperator::updateElementFromSnapshot(
     if (targetExists) {
         if (hasMemo && (targetHeader.type.typeID == API_SlabID || targetHeader.type.typeID == API_RoofID || targetHeader.type.typeID == API_WallID)) {
             API_ElementMemo tmpMemo = polygonChangeMemo(sourceMemo);
-            error = ACAPI_Element_ChangeMemo(targetHeader.guid, polygonChangeMemoMask(targetHeader), &tmpMemo);
+            if (isSlabLocalDefinitionUpdate && generatedBoundsValid && editedBaseline.boundsValid &&
+                effectiveFrameValid(editedBaseline) && effectiveFrameValid(targetBaseline)) {
+                const double frameDx = effectiveFrameOriginX(targetBaseline) - effectiveFrameOriginX(editedBaseline);
+                const double frameDy = effectiveFrameOriginY(targetBaseline) - effectiveFrameOriginY(editedBaseline);
+                const double generatedDx = generatedBoundsCenterX - editedBaseline.boundsCenterX;
+                const double generatedDy = generatedBoundsCenterY - editedBaseline.boundsCenterY;
+                if ((frameDx * frameDx + frameDy * frameDy) > 1.0e-8 &&
+                    (generatedDx * generatedDx + generatedDy * generatedDy) < 1.0e-8) {
+                    ACAPI_DisposeElemMemoHdls(&sourceMemo);
+                    lastDiagnostic_ = "Refused slab propagation because generated target bounds overlap the edited/source placement. " +
+                        slabDiagnostic + " generatedBounds=" + pointString(generatedBoundsCenterX, generatedBoundsCenterY) +
+                        " editedBounds=" + pointString(editedBaseline.boundsCenterX, editedBaseline.boundsCenterY);
+                    return false;
+                }
+            }
+            if (targetHeader.type.typeID == API_SlabID) {
+                const std::string originalTargetGuid = apiGuidToStdString(targetElement.header.guid);
+                error = changeSlabPolygonInPlace(targetHeader, sourceMemo);
+                updatedElementGuid = apiGuidToStdString(targetElement.header.guid);
+                replacementDiagnostic = " slabChange=ACAPI_Element_ChangeMemo in-place originalGuid=" +
+                    originalTargetGuid + " returnedGuid=" + updatedElementGuid +
+                    " targetBoundsBefore=" + pointString(targetBoundsBeforeX, targetBoundsBeforeY);
+                if (error != NoError) {
+                    replacementDiagnostic += " inPlaceError=" + errorCodeString(error);
+                    error = changeSlabPolygonWithReplacement(targetElement, sourceMemo);
+                    updatedElementGuid = apiGuidToStdString(targetElement.header.guid);
+                }
+                API_Elem_Head originalAfterChange = {};
+                originalAfterChange.guid = apiGuidFromStdString(originalTargetGuid);
+                API_Elem_Head returnedAfterChange = {};
+                returnedAfterChange.guid = apiGuidFromStdString(updatedElementGuid);
+                const bool originalExistsAfterChange = ACAPI_Element_GetHeader(&originalAfterChange) == NoError;
+                const bool returnedExistsAfterChange = ACAPI_Element_GetHeader(&returnedAfterChange) == NoError;
+                replacementDiagnostic += " fallbackSlabChange=" + std::string(error == NoError && updatedElementGuid != originalTargetGuid ? "ACAPI_Element_Change withdel=true" : "none") +
+                    " originalGuid=" +
+                    originalTargetGuid + " returnedGuid=" + updatedElementGuid +
+                    " originalExistsAfter=" + std::string(originalExistsAfterChange ? "true" : "false") +
+                    " returnedExistsAfter=" + std::string(returnedExistsAfterChange ? "true" : "false") +
+                    " targetBoundsBefore=" + pointString(targetBoundsBeforeX, targetBoundsBeforeY);
+                if (error == NoError && updatedElementGuid == originalTargetGuid) {
+                    staleOriginalCleanupDiagnostic = "changed slab in place: returned GUID unchanged.";
+                }
+            } else {
+                error = ACAPI_Element_ChangeMemo(targetHeader.guid, polygonChangeMemoMask(targetHeader), &tmpMemo);
+            }
             if (error == NoError) {
                 double targetBoundsAfterX = 0.0;
                 double targetBoundsAfterY = 0.0;
                 double targetBoundsAfterZ = 0.0;
-                if (!elementBoundsCenter(elementGuid, targetBoundsAfterX, targetBoundsAfterY, targetBoundsAfterZ)) {
+                if (!elementBoundsCenter(updatedElementGuid, targetBoundsAfterX, targetBoundsAfterY, targetBoundsAfterZ)) {
                     ACAPI_DisposeElemMemoHdls(&sourceMemo);
                     lastDiagnostic_ = "Could not read target bounds after polygon propagation.";
                     return false;
                 }
                 double expectedX = targetBoundsBeforeX;
                 double expectedY = targetBoundsBeforeY;
-                if (targetBoundsBeforeValid && snapshot.boundsValid && editedBaseline.boundsValid) {
+                if (isSlabLocalDefinitionUpdate && generatedBoundsValid) {
+                    expectedX = generatedBoundsCenterX;
+                    expectedY = generatedBoundsCenterY;
+                } else if (targetBoundsBeforeValid && snapshot.boundsValid && editedBaseline.boundsValid) {
                     expectedX = targetBoundsBeforeX + (snapshot.boundsCenterX - editedBaseline.boundsCenterX);
                     expectedY = targetBoundsBeforeY + (snapshot.boundsCenterY - editedBaseline.boundsCenterY);
                 }
@@ -1216,22 +1530,116 @@ bool ArchicadInstanceElementOperator::updateElementFromSnapshot(
                 const double correctionY = expectedY - targetBoundsAfterY;
                 const double correctionDistanceSquared = correctionX * correctionX + correctionY * correctionY;
                 if (correctionDistanceSquared > 1.0e-10) {
-                    std::string dragDiagnostic;
-                    if (!dragElementByDelta(elementGuid, correctionX, correctionY, dragDiagnostic)) {
+                    if (targetHeader.type.typeID == API_SlabID) {
+                        translateMemoCoords(sourceMemo, correctionX, correctionY);
+                        API_Elem_Head correctedHeader = {};
+                        correctedHeader.guid = apiGuidFromStdString(updatedElementGuid);
+                        const GSErrCode correctionMemoError = changeSlabPolygonInPlace(correctedHeader, sourceMemo);
+                        if (correctionMemoError != NoError) {
+                            ACAPI_DisposeElemMemoHdls(&sourceMemo);
+                            lastDiagnostic_ = "Polygon propagation snapped away from expected bounds and memo correction failed. expected=" +
+                                pointString(expectedX, expectedY) + " actual=" + pointString(targetBoundsAfterX, targetBoundsAfterY) +
+                                " memoCorrection=" + pointString(correctionX, correctionY) +
+                                " error=" + errorCodeString(correctionMemoError) +
+                                (slabDiagnostic.empty() ? "" : " " + slabDiagnostic) + replacementDiagnostic;
+                            return false;
+                        }
+                        double verifiedX = 0.0;
+                        double verifiedY = 0.0;
+                        double verifiedZ = 0.0;
+                        if (!elementBoundsCenter(updatedElementGuid, verifiedX, verifiedY, verifiedZ)) {
+                            ACAPI_DisposeElemMemoHdls(&sourceMemo);
+                            lastDiagnostic_ = "Polygon propagation memo correction completed but final bounds could not be read. expected=" +
+                                pointString(expectedX, expectedY) + " beforeCorrection=" + pointString(targetBoundsAfterX, targetBoundsAfterY) +
+                                " memoCorrection=" + pointString(correctionX, correctionY);
+                            return false;
+                        }
+                        const double verifiedDx = expectedX - verifiedX;
+                        const double verifiedDy = expectedY - verifiedY;
+                        if ((verifiedDx * verifiedDx + verifiedDy * verifiedDy) > 1.0e-8) {
+                            ACAPI_DisposeElemMemoHdls(&sourceMemo);
+                            lastDiagnostic_ = "Polygon propagation memo correction did not leave target at expected bounds. expected=" +
+                                pointString(expectedX, expectedY) + " beforeCorrection=" + pointString(targetBoundsAfterX, targetBoundsAfterY) +
+                                " final=" + pointString(verifiedX, verifiedY) +
+                                " memoCorrection=" + pointString(correctionX, correctionY) +
+                                (slabDiagnostic.empty() ? "" : " " + slabDiagnostic) + replacementDiagnostic;
+                            return false;
+                        }
+                        lastDiagnostic_ = "Applied polygon memo and corrected slab placement with second memo pass. expected=" +
+                            pointString(expectedX, expectedY) + " actual=" + pointString(targetBoundsAfterX, targetBoundsAfterY) +
+                            " final=" + pointString(verifiedX, verifiedY) +
+                            " memoCorrection=" + pointString(correctionX, correctionY) +
+                            (slabDiagnostic.empty() ? "" : " " + slabDiagnostic) + replacementDiagnostic;
+                        placementCorrectionDiagnostic = lastDiagnostic_;
+                    } else {
+                        std::string dragDiagnostic;
+                        if (!dragElementByDelta(updatedElementGuid, correctionX, correctionY, dragDiagnostic)) {
                         ACAPI_DisposeElemMemoHdls(&sourceMemo);
                         lastDiagnostic_ = "Polygon propagation snapped away from expected bounds and correction drag failed. expected=" +
                             pointString(expectedX, expectedY) + " actual=" + pointString(targetBoundsAfterX, targetBoundsAfterY) +
                             " correction=" + pointString(correctionX, correctionY) + " " + dragDiagnostic;
                         return false;
-                    }
-                    lastDiagnostic_ = "Applied polygon memo and corrected bounds placement. expected=" +
+                        }
+                        double verifiedX = 0.0;
+                        double verifiedY = 0.0;
+                        double verifiedZ = 0.0;
+                        if (!elementBoundsCenter(updatedElementGuid, verifiedX, verifiedY, verifiedZ)) {
+                        ACAPI_DisposeElemMemoHdls(&sourceMemo);
+                        lastDiagnostic_ = "Polygon propagation correction drag completed but final bounds could not be read. expected=" +
+                            pointString(expectedX, expectedY) + " beforeCorrection=" + pointString(targetBoundsAfterX, targetBoundsAfterY) +
+                            " correction=" + pointString(correctionX, correctionY);
+                        return false;
+                        }
+                        const double verifiedDx = expectedX - verifiedX;
+                        const double verifiedDy = expectedY - verifiedY;
+                        if ((verifiedDx * verifiedDx + verifiedDy * verifiedDy) > 1.0e-8) {
+                        ACAPI_DisposeElemMemoHdls(&sourceMemo);
+                        lastDiagnostic_ = "Polygon propagation correction drag did not leave target at expected bounds. expected=" +
+                            pointString(expectedX, expectedY) + " beforeCorrection=" + pointString(targetBoundsAfterX, targetBoundsAfterY) +
+                            " final=" + pointString(verifiedX, verifiedY) +
+                            " correction=" + pointString(correctionX, correctionY) +
+                            (slabDiagnostic.empty() ? "" : " " + slabDiagnostic) + replacementDiagnostic;
+                        return false;
+                        }
+                        lastDiagnostic_ = "Applied polygon memo and corrected bounds placement. expected=" +
                         pointString(expectedX, expectedY) + " actual=" + pointString(targetBoundsAfterX, targetBoundsAfterY) +
-                        " correction=" + pointString(correctionX, correctionY);
-                    placementCorrectionDiagnostic = lastDiagnostic_;
+                        " final=" + pointString(verifiedX, verifiedY) +
+                        " correction=" + pointString(correctionX, correctionY) +
+                        (slabDiagnostic.empty() ? "" : " " + slabDiagnostic) + replacementDiagnostic;
+                        placementCorrectionDiagnostic = lastDiagnostic_;
+                    }
+                } else if (!slabDiagnostic.empty()) {
+                    placementCorrectionDiagnostic = "Applied slab local-definition polygon. before=" +
+                        pointString(targetBoundsBeforeX, targetBoundsBeforeY) + " expected=" + pointString(expectedX, expectedY) +
+                        " after=" + pointString(targetBoundsAfterX, targetBoundsAfterY) + " " + slabDiagnostic + replacementDiagnostic;
+                } else if (!replacementDiagnostic.empty()) {
+                    placementCorrectionDiagnostic = "Applied slab polygon replacement." + replacementDiagnostic;
+                }
+                if (targetHeader.type.typeID == API_SlabID && updatedElementGuid != elementGuid) {
+                    std::string cleanupDiagnostic;
+                    if (!cleanupValidatedStaleOriginalSlab(
+                        elementGuid,
+                        targetBoundsBeforeX,
+                        targetBoundsBeforeY,
+                        targetBoundsBeforeValid,
+                        cleanupDiagnostic)) {
+                        ACAPI_DisposeElemMemoHdls(&sourceMemo);
+                        lastDiagnostic_ = "Slab replacement left an overlapping stale original and cleanup failed. " +
+                            cleanupDiagnostic + replacementDiagnostic;
+                        return false;
+                    }
+                    staleOriginalCleanupDiagnostic = cleanupDiagnostic;
+                    if (!placementCorrectionDiagnostic.empty()) {
+                        placementCorrectionDiagnostic += " " + staleOriginalCleanupDiagnostic;
+                    } else {
+                        placementCorrectionDiagnostic = staleOriginalCleanupDiagnostic + replacementDiagnostic;
+                    }
                 }
             }
         } else {
             copyElementSettingsInTargetFrame(sourceElement, targetElement, editedBaseline, targetBaseline);
+            // Keep withdel=false here for non-polygon settings copies: earlier testing showed true can delete
+            // instance members before the registry has replacement semantics for every supported element type.
             error = ACAPI_Element_Change(&targetElement, nullptr, hasMemo ? &sourceMemo : nullptr, hasMemo ? APIMemoMask_All : 0, false);
         }
     }
@@ -1245,7 +1653,7 @@ bool ArchicadInstanceElementOperator::updateElementFromSnapshot(
         return false;
     }
 
-    const std::string updatedGuid = targetExists ? elementGuid : apiGuidToStdString(sourceElement.header.guid);
+    const std::string updatedGuid = targetExists ? updatedElementGuid : apiGuidToStdString(sourceElement.header.guid);
     if (replacementElementGuid != nullptr && updatedGuid != elementGuid) {
         *replacementElementGuid = updatedGuid;
     }
@@ -1258,6 +1666,73 @@ bool ArchicadInstanceElementOperator::updateElementFromSnapshot(
             : "Recreated missing target instance element from edited component snapshot.";
     }
     return true;
+}
+
+BuildSyncProperties ArchicadInstanceElementOperator::readBuildSyncProperties(const std::string& elementGuid, bool* hasProperties) const
+{
+    return readBuildSyncPropertiesForElement(apiGuidFromStdString(elementGuid), hasProperties);
+}
+
+std::vector<SlabCandidate> ArchicadInstanceElementOperator::findSlabCandidatesNear(double centerX, double centerY, double maxDistance) const
+{
+    GS::Array<API_Guid> slabGuids;
+    const GSErrCode error = ACAPI_Element_GetElemList(API_SlabID, &slabGuids);
+    if (error != NoError) {
+        lastDiagnostic_ = "Could not enumerate slabs for duplicate reconciliation. error=" + errorCodeString(error);
+        return {};
+    }
+
+    std::vector<SelectedElement> selected;
+    selected.reserve(slabGuids.GetSize());
+    for (const API_Guid& guid : slabGuids) {
+        selected.push_back({apiGuidToStdString(guid), "Slab"});
+    }
+
+    std::vector<SlabCandidate> candidates;
+    const double maxDistanceSquared = maxDistance * maxDistance;
+    for (const auto& snapshot : snapshotElements(selected)) {
+        if (!snapshot.boundsValid) {
+            continue;
+        }
+        const double dx = snapshot.boundsCenterX - centerX;
+        const double dy = snapshot.boundsCenterY - centerY;
+        if ((dx * dx + dy * dy) > maxDistanceSquared) {
+            continue;
+        }
+        bool hasProperties = false;
+        BuildSyncProperties properties = readBuildSyncProperties(snapshot.elementGuid, &hasProperties);
+        candidates.push_back({snapshot, properties, hasProperties});
+    }
+    lastDiagnostic_ = "Enumerated nearby slab candidates for duplicate reconciliation.";
+    return candidates;
+}
+
+std::vector<SlabCandidate> ArchicadInstanceElementOperator::findBuildSyncSlabCandidates(const std::string& sourceAssemblyUuid) const
+{
+    GS::Array<API_Guid> slabGuids;
+    const GSErrCode error = ACAPI_Element_GetElemList(API_SlabID, &slabGuids);
+    if (error != NoError) {
+        lastDiagnostic_ = "Could not enumerate slabs for BuildSync-owned duplicate reconciliation. error=" + errorCodeString(error);
+        return {};
+    }
+
+    std::vector<SelectedElement> selected;
+    selected.reserve(slabGuids.GetSize());
+    for (const API_Guid& guid : slabGuids) {
+        selected.push_back({apiGuidToStdString(guid), "Slab"});
+    }
+
+    std::vector<SlabCandidate> candidates;
+    for (const auto& snapshot : snapshotElements(selected)) {
+        bool hasProperties = false;
+        BuildSyncProperties properties = readBuildSyncProperties(snapshot.elementGuid, &hasProperties);
+        if (!hasProperties || properties.sourceAssemblyUuid != sourceAssemblyUuid) {
+            continue;
+        }
+        candidates.push_back({snapshot, properties, true});
+    }
+    lastDiagnostic_ = "Enumerated BuildSync-owned slab candidates for duplicate reconciliation.";
+    return candidates;
 }
 
 bool ArchicadInstanceElementOperator::deleteElements(const std::vector<std::string>& elementGuids)

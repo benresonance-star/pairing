@@ -59,6 +59,7 @@ struct WrapperComponent {
     std::string role;
     int sortOrder{0};
     CoordinateSpaceFrame localFrame;
+    std::vector<double> localPolygonCoords;
     std::string snapshotJson;
     std::string status{"active"};
 };
@@ -89,6 +90,25 @@ struct WrapperInstanceMember {
     std::string status{"active"};
 };
 
+struct WrapperPlacement {
+    std::string placementId;
+    std::string sourceAssemblyUuid;
+    std::string kind{"instance"};
+    CoordinateSpaceFrame liveFrame;
+    std::string status{"active"};
+};
+
+struct PlacementBinding {
+    std::string placementId;
+    std::string componentId;
+    std::string elementGuid;
+    std::string elementType;
+    double lastBoundsCenterX{0.0};
+    double lastBoundsCenterY{0.0};
+    bool lastBoundsValid{false};
+    std::string health{"unknown"};
+};
+
 struct WrapperEditBaseline {
     std::string componentId;
     std::string elementGuid;
@@ -104,6 +124,10 @@ struct WrapperEditSession {
     int baselineAssemblyVersion{0};
     std::string status{"active"};
     std::vector<WrapperEditBaseline> baselines;
+    CoordinateSpaceFrame sourcePlacementFrame;
+    std::string editPlacementId;
+    std::string editPlacementKind{"source"};
+    CoordinateSpaceFrame editPlacementFrame;
 };
 
 } // namespace buildsync
