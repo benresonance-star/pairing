@@ -1,0 +1,10 @@
+^C:\USERS\USER\DESKTOP\PAIRING\BUILDSYNC-ARCHICAD-ADDON\BUILD-APX-SOURCE-FRAME-BOOTSTRAP-V142\CMAKEFILES\545F9676B388F37B5110F2464E7A88E7\GENERATE.STAMP.RULE
+setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -SC:/Users/User/Desktop/Pairing/buildsync-archicad-addon -BC:/Users/User/Desktop/Pairing/buildsync-archicad-addon/build-apx-source-frame-bootstrap-v142 --check-stamp-list CMakeFiles/generate.stamp.list --vs-solution-file C:/Users/User/Desktop/Pairing/buildsync-archicad-addon/build-apx-source-frame-bootstrap-v142/BuildSyncArchicadAddon.slnx
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd

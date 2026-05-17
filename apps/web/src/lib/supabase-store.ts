@@ -1,8 +1,9 @@
 import { randomUUID } from "node:crypto";
 
 import { vocab } from "../../../../shared/contracts/api/index";
+import { buildAssumptionGraphData, type AssumptionGraphData } from "./assumption-graph";
 import { projectIdFromEnv } from "./data-source";
-import { buildFeasibilityPortfolio, type FeasibilityPortfolio } from "./feasibility";
+import { buildFeasibilityMethodRuns, buildFeasibilityPortfolio, type FeasibilityMethodRun, type FeasibilityPortfolio } from "./feasibility";
 import { buildLinearScheduleData, type LinearScheduleData, type LinearScheduleFilters } from "./linear-schedule";
 import { buildProjectNetworkData, type ProjectNetworkData } from "./project-network";
 import {
@@ -18,12 +19,21 @@ import {
   requireActiveScenario,
   transitionChangeSet as applyChangeSetTransition,
   updateDevelopmentSite,
+  ASSUMPTION_PARTICIPANT_ROLES,
+  type AssumptionParticipantRole,
   type ChangeSetAction,
   type GovernedOperationalPatch,
   type RuntimeState,
   type SitePatch
 } from "./runtime-state";
 import { createServerSupabaseClient } from "./supabase-server";
+import type {
+  CreateOverviewActionTaskInput,
+  OverviewActionTask,
+  OverviewActionTaskPriority,
+  UpdateOverviewActionTaskInput
+} from "./overview-action-tasks-types";
+import { parseOverviewTaskLinkPath } from "./overview-task-link";
 
 type RuntimeRecord = Record<string, unknown>;
 
@@ -139,10 +149,12 @@ export type UpsertSitePlanningHighlightInput = {
   floodStatus?: string | null;
   bushfireStatus?: string | null;
   vegetationStatus?: string | null;
+  utilitiesStatus?: string | null;
   easements?: string | null;
   planningSummary?: string | null;
   sourceDate?: string | null;
   status?: string | null;
+  matrixCellFlags?: Record<string, boolean> | null;
 };
 
 export type CreateMasterCostTemplateInput = {
@@ -373,6 +385,30 @@ export type UpsertNetworkAgentCardInput = {
   status?: string | null;
 };
 
+export type AssignAssumptionParticipantInput = {
+  assumptionApplicationId: string;
+  profileId: string;
+  relationshipType: string;
+  status?: string | null;
+  confidence?: string | null;
+  notes?: string | null;
+  actionTitle?: string | null;
+  actionPriority?: string | null;
+  actionStage?: string | null;
+  actionRiskIfDelayed?: string | null;
+};
+
+export type CreateAssumptionActionInput = {
+  assumptionApplicationId: string;
+  responsibleProfileId?: string | null;
+  title: string;
+  priority?: string | null;
+  stage?: string | null;
+  riskIfDelayed?: string | null;
+  notes?: string | null;
+  status?: string | null;
+};
+
 export type ScenarioEditorOperationalRow = {
   id: string;
   objectRefType: "zone" | "model_object";
@@ -415,6 +451,18 @@ const OPTIONAL_FEASIBILITY_TABLES = new Set([
   "archicad_links",
   "site_resources",
   "site_planning_highlights",
+  "site_templates",
+  "scenario_templates",
+  "feasibility_templates",
+  "feasibility_branches",
+  "assumption_templates",
+  "assumption_applications",
+  "assumption_validations",
+  "assumption_evidence",
+  "assumption_actions",
+  "simulation_templates",
+  "simulation_runs",
+  "simulation_samples",
   "network_organisations",
   "network_profiles",
   "network_profile_capabilities",
@@ -527,6 +575,69 @@ function validateScheduleDates(startDate: string, finishDate: string) {
   }
 }
 
+function objectValue(value: unknown): Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value)
+    ? { ...(value as Record<string, unknown>) }
+    : {};
+}
+
+function hierarchyForView(view: Record<string, unknown>) {
+  const metadata = objectValue(view.metadata_json);
+  const hierarchy = objectValue(metadata.gantt_hierarchy);
+  const nodes = Array.isArray(hierarchy.nodes)
+    ? hierarchy.nodes
+        .map((entry) => objectValue(entry))
+        .filter((entry) => typeof entry.id === "string")
+    : [];
+  const activityLinks = Array.isArray(hierarchy.activity_links)
+    ? hierarchy.activity_links.map((entry) => objectValue(entry))
+    : [];
+  const dependencies = Array.isArray(hierarchy.dependencies)
+    ? hierarchy.dependencies.map((entry) => objectValue(entry))
+    : [];
+
+  return { metadata, hierarchy, nodes, activityLinks, dependencies };
+}
+
+function nextMetadataJson(next: {
+  metadata: Record<string, unknown>;
+  hierarchy: Record<string, unknown>;
+  nodes: Record<string, unknown>[];
+  activityLinks: Record<string, unknown>[];
+  dependencies: Record<string, unknown>[];
+}) {
+  return {
+    ...next.metadata,
+    gantt_hierarchy: {
+      ...next.hierarchy,
+      nodes: next.nodes,
+      activity_links: next.activityLinks,
+      dependencies: next.dependencies
+    }
+  };
+}
+
+function scheduleViewForScenario(state: RuntimeState, scenarioId: string) {
+  getScenarioById(state, scenarioId);
+  const view = state.linear_schedule_views.find((item) => String(item.scenario_id ?? "") === scenarioId);
+  if (!view) {
+    throw new Error("No scenario schedule view exists for this scenario");
+  }
+  return view;
+}
+
+async function updateScheduleViewMetadata(viewId: string, projectId: string, metadataJson: Record<string, unknown>) {
+  const client = createServerSupabaseClient();
+  const { error } = await client
+    .from("linear_schedule_views")
+    .update({ metadata_json: metadataJson })
+    .eq("id", viewId)
+    .eq("project_id", projectId);
+  if (error) {
+    throw new Error(`Unable to update schedule hierarchy in Supabase: ${error.message}`);
+  }
+}
+
 function validateOperationalDates(record: {
   plannedStart?: string | null;
   plannedFinish?: string | null;
@@ -623,6 +734,18 @@ async function readSupabaseState(): Promise<RuntimeState> {
     archicad_links,
     site_resources,
     site_planning_highlights,
+    site_templates,
+    scenario_templates,
+    feasibility_templates,
+    feasibility_branches,
+    assumption_templates,
+    assumption_applications,
+    assumption_validations,
+    assumption_evidence,
+    assumption_actions,
+    simulation_templates,
+    simulation_runs,
+    simulation_samples,
     network_organisations,
     network_profiles,
     network_profile_capabilities,
@@ -671,6 +794,18 @@ async function readSupabaseState(): Promise<RuntimeState> {
     readProjectTable("archicad_links"),
     readProjectTable("site_resources"),
     readProjectTable("site_planning_highlights"),
+    readProjectTable("site_templates"),
+    readProjectTable("scenario_templates"),
+    readProjectTable("feasibility_templates"),
+    readProjectTable("feasibility_branches"),
+    readProjectTable("assumption_templates"),
+    readProjectTable("assumption_applications"),
+    readProjectTable("assumption_validations"),
+    readProjectTable("assumption_evidence"),
+    readProjectTable("assumption_actions"),
+    readProjectTable("simulation_templates"),
+    readProjectTable("simulation_runs"),
+    readProjectTable("simulation_samples"),
     readProjectTable("network_organisations"),
     readProjectTable("network_profiles"),
     readProjectTable("network_profile_capabilities"),
@@ -724,6 +859,18 @@ async function readSupabaseState(): Promise<RuntimeState> {
     archicad_links,
     site_resources,
     site_planning_highlights,
+    site_templates,
+    scenario_templates,
+    feasibility_templates,
+    feasibility_branches,
+    assumption_templates,
+    assumption_applications,
+    assumption_validations,
+    assumption_evidence,
+    assumption_actions,
+    simulation_templates,
+    simulation_runs,
+    simulation_samples,
     network_organisations,
     network_profiles,
     network_profile_capabilities,
@@ -824,6 +971,16 @@ export async function getFeasibilityPortfolio(): Promise<FeasibilityPortfolio> {
   return buildFeasibilityPortfolio(state);
 }
 
+export async function getFeasibilityMethodRuns(): Promise<FeasibilityMethodRun[]> {
+  const state = await readSupabaseState();
+  return buildFeasibilityMethodRuns(state);
+}
+
+export async function getAssumptionGraphData(): Promise<AssumptionGraphData> {
+  const state = await readSupabaseState();
+  return buildAssumptionGraphData(state);
+}
+
 export async function getProjectNetworkData(): Promise<ProjectNetworkData> {
   const state = await readSupabaseState();
   return buildProjectNetworkData(state);
@@ -853,6 +1010,38 @@ function assertUnusedKnowledgePack(state: RuntimeState, knowledgePackId: string)
   if (state.network_profile_knowledge_packs.some((item) => item.knowledge_pack_id === knowledgePackId)) {
     throw new Error("Knowledge packs assigned to profiles must be archived instead of deleted");
   }
+}
+
+function requireAssumptionApplication(state: RuntimeState, assumptionApplicationId: string) {
+  const application = state.assumption_applications.find((item) => item.id === assumptionApplicationId);
+  if (!application) {
+    throw new Error(`Assumption application '${assumptionApplicationId}' was not found`);
+  }
+  return application;
+}
+
+function requireNetworkProfile(state: RuntimeState, profileId: string) {
+  const profile = state.network_profiles.find((item) => item.id === profileId);
+  if (!profile) {
+    throw new Error(`Network profile '${profileId}' was not found`);
+  }
+  return profile;
+}
+
+function normalizeAssumptionParticipantRole(role: string): AssumptionParticipantRole {
+  if ((ASSUMPTION_PARTICIPANT_ROLES as readonly string[]).includes(role)) {
+    return role as AssumptionParticipantRole;
+  }
+  throw new Error(`Unsupported assumption participant role '${role}'`);
+}
+
+function hasOpenAssumptionActionForProfile(state: RuntimeState, assumptionApplicationId: string, profileId: string): boolean {
+  return state.assumption_actions.some(
+    (action) =>
+      action.assumption_application_id === assumptionApplicationId &&
+      action.responsible_profile_id === profileId &&
+      !["done", "completed", "cancelled", "archived"].includes(action.status)
+  );
 }
 
 export async function createNetworkOrganisation(input: CreateNetworkOrganisationInput): Promise<{ organisationId: string }> {
@@ -1096,6 +1285,111 @@ export async function unassignKnowledgePackFromProfile(profileId: string, knowle
     .eq("knowledge_pack_id", knowledgePackId)
     .eq("project_id", projectIdFromEnv());
   if (error) throw new Error(`Unable to unassign knowledge pack: ${error.message}`);
+}
+
+export async function assignAssumptionParticipant(input: AssignAssumptionParticipantInput): Promise<{ validationId: string; actionId?: string }> {
+  const role = normalizeAssumptionParticipantRole(input.relationshipType);
+  const state = await readSupabaseState();
+  requireAssumptionApplication(state, input.assumptionApplicationId);
+  requireNetworkProfile(state, input.profileId);
+
+  const existingOwner = state.assumption_validations.find(
+    (item) => item.assumption_application_id === input.assumptionApplicationId && item.relationship_type === "accountable_owner"
+  );
+
+  const existing =
+    role === "accountable_owner" && existingOwner
+      ? existingOwner
+      : state.assumption_validations.find(
+          (item) =>
+            item.assumption_application_id === input.assumptionApplicationId &&
+            item.profile_id === input.profileId &&
+            item.relationship_type === role
+        );
+  const validationId = existing?.id ?? randomUUID();
+  const client = createServerSupabaseClient();
+  const payload = {
+    id: validationId,
+    project_id: projectIdFromEnv(),
+    assumption_application_id: input.assumptionApplicationId,
+    profile_id: input.profileId,
+    relationship_type: role,
+    status: input.status?.trim() || "pending",
+    confidence: input.confidence?.trim() || null,
+    notes: input.notes?.trim() || null
+  };
+  const validationResult = existing
+    ? await client
+        .from("assumption_validations")
+        .update(payload)
+        .eq("id", validationId)
+        .eq("project_id", projectIdFromEnv())
+    : await client.from("assumption_validations").insert(payload);
+  if (validationResult.error) {
+    throw new Error(`Unable to assign assumption participant: ${validationResult.error.message}`);
+  }
+
+  const actionTitle = input.actionTitle?.trim();
+  const action = actionTitle
+    ? await createAssumptionAction({
+        assumptionApplicationId: input.assumptionApplicationId,
+        responsibleProfileId: input.profileId,
+        title: actionTitle,
+        priority: input.actionPriority,
+        stage: input.actionStage,
+        riskIfDelayed: input.actionRiskIfDelayed,
+        status: "open"
+      })
+    : undefined;
+
+  return { validationId, actionId: action?.actionId };
+}
+
+export async function createAssumptionAction(input: CreateAssumptionActionInput): Promise<{ actionId: string }> {
+  const state = await readSupabaseState();
+  requireAssumptionApplication(state, input.assumptionApplicationId);
+  if (input.responsibleProfileId) {
+    requireNetworkProfile(state, input.responsibleProfileId);
+  }
+  const title = input.title.trim();
+  if (!title) throw new Error("Assumption action title is required");
+  const actionId = randomUUID();
+  const client = createServerSupabaseClient();
+  const { error } = await client.from("assumption_actions").insert({
+    id: actionId,
+    project_id: projectIdFromEnv(),
+    assumption_application_id: input.assumptionApplicationId,
+    title,
+    priority: input.priority?.trim() || "MEDIUM",
+    responsible_profile_id: input.responsibleProfileId || null,
+    stage: input.stage?.trim() || null,
+    risk_if_delayed: input.riskIfDelayed?.trim() || null,
+    status: input.status?.trim() || "open",
+    notes: input.notes?.trim() || null
+  });
+  if (error) throw new Error(`Unable to create assumption action: ${error.message}`);
+  return { actionId };
+}
+
+export async function unassignAssumptionParticipant(validationId: string): Promise<void> {
+  const state = await readSupabaseState();
+  const validation = state.assumption_validations.find((item) => item.id === validationId);
+  if (!validation) {
+    throw new Error(`Assumption participant assignment '${validationId}' was not found`);
+  }
+  if (
+    validation.relationship_type === "accountable_owner" &&
+    hasOpenAssumptionActionForProfile(state, validation.assumption_application_id, validation.profile_id)
+  ) {
+    throw new Error("Resolve or reassign open actions before removing the accountable owner");
+  }
+  const client = createServerSupabaseClient();
+  const { error } = await client
+    .from("assumption_validations")
+    .delete()
+    .eq("id", validationId)
+    .eq("project_id", projectIdFromEnv());
+  if (error) throw new Error(`Unable to unassign assumption participant: ${error.message}`);
 }
 
 export async function upsertNetworkAgentCard(input: UpsertNetworkAgentCardInput): Promise<{ agentCardId: string }> {
@@ -1366,7 +1660,7 @@ export async function deleteSiteResource(siteId: string, resourceId: string): Pr
 export async function upsertSitePlanningHighlight(input: UpsertSitePlanningHighlightInput): Promise<{ highlightId: string }> {
   const highlightId = input.highlightId ?? randomUUID();
   const client = createServerSupabaseClient();
-  const { error } = await client.from("site_planning_highlights").upsert({
+  const row = {
     id: highlightId,
     project_id: projectIdFromEnv(),
     site_id: input.siteId,
@@ -1381,11 +1675,14 @@ export async function upsertSitePlanningHighlight(input: UpsertSitePlanningHighl
     flood_status: input.floodStatus?.trim() || null,
     bushfire_status: input.bushfireStatus?.trim() || null,
     vegetation_status: input.vegetationStatus?.trim() || null,
+    utilities_status: input.utilitiesStatus?.trim() || null,
     easements: input.easements?.trim() || null,
     planning_summary: input.planningSummary?.trim() || null,
     source_date: input.sourceDate?.trim() || null,
-    status: input.status?.trim() || "active"
-  });
+    status: input.status?.trim() || "active",
+    matrix_cell_flags_json: input.matrixCellFlags ?? {}
+  };
+  const { error } = await client.from("site_planning_highlights").upsert(row);
   if (error) {
     throw new Error(`Unable to save planning highlights: ${error.message}`);
   }
@@ -2188,6 +2485,110 @@ export async function updateScenarioOption(input: UpdateScenarioOptionInput): Pr
   }
 }
 
+export async function updateSalesAssumption(input: {
+  scenarioOptionId: string;
+  grossRealisation: number;
+  averageSalePrice?: number | null;
+  saleRatePerMonth?: number | null;
+  settlementMonths?: number | null;
+  notes?: string | null;
+}): Promise<void> {
+  const state = await readSupabaseState();
+  const option = state.scenario_options.find((item) => item.id === input.scenarioOptionId);
+  if (!option) {
+    throw new Error(`Scenario option '${input.scenarioOptionId}' was not found`);
+  }
+  const existing = state.sales_assumptions.find((item) => item.scenario_option_id === input.scenarioOptionId);
+  const payload = {
+    project_id: projectIdFromEnv(),
+    scenario_option_id: input.scenarioOptionId,
+    gross_realisation: input.grossRealisation,
+    average_sale_price:
+      input.averageSalePrice ??
+      (option.dwellings && input.grossRealisation ? Math.round(input.grossRealisation / option.dwellings) : null),
+    sale_rate_per_month: input.saleRatePerMonth ?? null,
+    settlement_months: input.settlementMonths ?? null,
+    notes: input.notes ?? null
+  };
+  const client = createServerSupabaseClient();
+  const { error } = existing
+    ? await client.from("sales_assumptions").update(payload).eq("id", existing.id)
+    : await client.from("sales_assumptions").insert({ id: randomUUID(), ...payload });
+  if (error) {
+    throw new Error(`Unable to update sales assumptions: ${error.message}`);
+  }
+}
+
+export async function updateScenarioCostRange(input: {
+  rangeId: string;
+  scenarioOptionId?: string;
+  constructionCost: number;
+  professionalFees?: number | null;
+  contingency?: number | null;
+  statutoryFees?: number | null;
+  financeCost?: number | null;
+  otherCosts?: number | null;
+  notes?: string | null;
+}): Promise<void> {
+  const client = createServerSupabaseClient();
+  const { error } = await client
+    .from("scenario_cost_ranges")
+    .update({
+      construction_cost: input.constructionCost,
+      professional_fees: input.professionalFees ?? null,
+      contingency: input.contingency ?? null,
+      statutory_fees: input.statutoryFees ?? null,
+      finance_cost: input.financeCost ?? null,
+      other_costs: input.otherCosts ?? null,
+      notes: input.notes ?? null
+    })
+    .eq("id", input.rangeId);
+  if (error) {
+    throw new Error(`Unable to update scenario cost range: ${error.message}`);
+  }
+}
+
+export async function upsertFeasibilityBranchTargets(input: {
+  branchId?: string | null;
+  siteId: string;
+  scenarioOptionId: string;
+  scenarioId?: string | null;
+  feasibilityTemplateId?: string | null;
+  targetMarginPercent?: number | null;
+  targetNetPositionRatio?: number | null;
+}): Promise<{ branchId: string }> {
+  const state = await readSupabaseState();
+  const site = state.sites.find((item) => item.id === input.siteId);
+  const option = state.scenario_options.find((item) => item.id === input.scenarioOptionId);
+  if (!site || !option) {
+    throw new Error("Site or scenario option was not found");
+  }
+  const branch =
+    (input.branchId ? state.feasibility_branches.find((item) => item.id === input.branchId) : null) ??
+    state.feasibility_branches.find((item) => item.scenario_option_id === input.scenarioOptionId);
+  const client = createServerSupabaseClient();
+  const payload = {
+    project_id: projectIdFromEnv(),
+    site_id: input.siteId,
+    scenario_option_id: input.scenarioOptionId,
+    scenario_id: input.scenarioId ?? option.scenario_id ?? null,
+    feasibility_template_id: input.feasibilityTemplateId ?? branch?.feasibility_template_id ?? null,
+    name: branch?.name ?? `${site.name} - ${option.name} method branch`,
+    status: branch?.status ?? "testing",
+    summary: branch?.summary ?? "Created from the Feasibility Method workspace.",
+    target_margin_percent: input.targetMarginPercent ?? null,
+    target_net_position_ratio: input.targetNetPositionRatio ?? null
+  };
+  const branchId = branch?.id ?? randomUUID();
+  const { error } = branch
+    ? await client.from("feasibility_branches").update(payload).eq("id", branch.id)
+    : await client.from("feasibility_branches").insert({ id: branchId, ...payload });
+  if (error) {
+    throw new Error(`Unable to save feasibility branch targets: ${error.message}`);
+  }
+  return { branchId };
+}
+
 export async function archiveScenarioOption(optionId: string): Promise<void> {
   const state = await readSupabaseState();
   const option = state.scenario_options.find((item) => item.id === optionId);
@@ -2704,6 +3105,158 @@ export async function createScheduleActivity(input: {
   return { activityId };
 }
 
+export async function createGanttHierarchyNode(input: {
+  scenarioId: string;
+  label: string;
+  packageId: string;
+  parentId?: string | null;
+  hierarchyLevel?: "subtask" | "task";
+}): Promise<{ nodeId: string }> {
+  const state = await readSupabaseState();
+  const view = scheduleViewForScenario(state, input.scenarioId);
+  const trimmed = input.label.trim();
+  if (!trimmed) {
+    throw new Error("Hierarchy row label is required");
+  }
+  if (!input.packageId) {
+    throw new Error("Hierarchy row package is required");
+  }
+  const current = hierarchyForView(view);
+  const nodeId = randomUUID();
+  current.nodes.push({
+    id: nodeId,
+    label: trimmed,
+    package_id: input.packageId,
+    parent_id: input.parentId || `package:${input.packageId}`,
+    hierarchy_level: input.hierarchyLevel ?? "task",
+    sort_order: current.nodes.length + 1
+  });
+  await updateScheduleViewMetadata(String(view.id), state.project.id, nextMetadataJson(current));
+  return { nodeId };
+}
+
+export async function updateGanttHierarchyNode(input: {
+  scenarioId: string;
+  nodeId: string;
+  label: string;
+}): Promise<void> {
+  const state = await readSupabaseState();
+  const view = scheduleViewForScenario(state, input.scenarioId);
+  const current = hierarchyForView(view);
+  const node = current.nodes.find((item) => item.id === input.nodeId);
+  if (!node) {
+    throw new Error(`Hierarchy row '${input.nodeId}' was not found`);
+  }
+  const trimmed = input.label.trim();
+  if (!trimmed) {
+    throw new Error("Hierarchy row label is required");
+  }
+  node.label = trimmed;
+  await updateScheduleViewMetadata(String(view.id), state.project.id, nextMetadataJson(current));
+}
+
+export async function moveGanttHierarchyNode(input: {
+  scenarioId: string;
+  nodeId: string;
+  direction: "up" | "down" | "indent" | "outdent";
+}): Promise<void> {
+  const state = await readSupabaseState();
+  const view = scheduleViewForScenario(state, input.scenarioId);
+  const current = hierarchyForView(view);
+  const nodeIndex = current.nodes.findIndex((item) => item.id === input.nodeId);
+  const node = current.nodes[nodeIndex];
+  if (!node) {
+    throw new Error(`Hierarchy row '${input.nodeId}' was not found`);
+  }
+
+  if (input.direction === "up" || input.direction === "down") {
+    const targetIndex = input.direction === "up" ? nodeIndex - 1 : nodeIndex + 1;
+    const target = current.nodes[targetIndex];
+    if (target) {
+      const currentSort = Number(node.sort_order ?? nodeIndex + 1);
+      node.sort_order = Number(target.sort_order ?? targetIndex + 1);
+      target.sort_order = currentSort;
+    }
+  } else if (input.direction === "indent") {
+    const previous = current.nodes
+      .slice(0, nodeIndex)
+      .reverse()
+      .find((item) => item.package_id === node.package_id && item.id !== node.id);
+    if (previous) {
+      node.parent_id = previous.id;
+      node.hierarchy_level = "task";
+    }
+  } else {
+    const parent = current.nodes.find((item) => item.id === node.parent_id);
+    node.parent_id = parent?.parent_id ?? `package:${String(node.package_id)}`;
+    node.hierarchy_level = node.parent_id === `package:${String(node.package_id)}` ? "subtask" : "task";
+  }
+
+  await updateScheduleViewMetadata(String(view.id), state.project.id, nextMetadataJson(current));
+}
+
+export async function deleteGanttHierarchyNode(scenarioId: string, nodeId: string): Promise<void> {
+  const state = await readSupabaseState();
+  const view = scheduleViewForScenario(state, scenarioId);
+  const current = hierarchyForView(view);
+  const node = current.nodes.find((item) => item.id === nodeId);
+  if (!node) {
+    throw new Error(`Hierarchy row '${nodeId}' was not found`);
+  }
+  current.nodes = current.nodes
+    .filter((item) => item.id !== nodeId)
+    .map((item) => (item.parent_id === nodeId ? { ...item, parent_id: node.parent_id ?? null } : item));
+  current.activityLinks = current.activityLinks.filter((item) => item.node_id !== nodeId);
+  await updateScheduleViewMetadata(String(view.id), state.project.id, nextMetadataJson(current));
+}
+
+export async function createScheduleDependency(input: {
+  scenarioId: string;
+  predecessorActivityId: string;
+  successorActivityId: string;
+}): Promise<{ dependencyId: string }> {
+  if (input.predecessorActivityId === input.successorActivityId) {
+    throw new Error("Dependency requires two different activities");
+  }
+  const state = await readSupabaseState();
+  const view = scheduleViewForScenario(state, input.scenarioId);
+  const activityIds = new Set(
+    state.linear_schedule_activities
+      .filter((item) => String(item.scenario_id ?? "") === input.scenarioId)
+      .map((item) => String(item.id))
+  );
+  if (!activityIds.has(input.predecessorActivityId) || !activityIds.has(input.successorActivityId)) {
+    throw new Error("Dependency activities must belong to the selected scenario");
+  }
+  const current = hierarchyForView(view);
+  const alreadyExists = current.dependencies.some(
+    (item) =>
+      item.predecessor_activity_id === input.predecessorActivityId &&
+      item.successor_activity_id === input.successorActivityId
+  );
+  if (alreadyExists) {
+    throw new Error("Dependency already exists");
+  }
+  const dependencyId = randomUUID();
+  current.dependencies.push({
+    id: dependencyId,
+    predecessor_activity_id: input.predecessorActivityId,
+    successor_activity_id: input.successorActivityId,
+    dependency_type: "finish_to_start",
+    lag_days: 0
+  });
+  await updateScheduleViewMetadata(String(view.id), state.project.id, nextMetadataJson(current));
+  return { dependencyId };
+}
+
+export async function deleteScheduleDependency(scenarioId: string, dependencyId: string): Promise<void> {
+  const state = await readSupabaseState();
+  const view = scheduleViewForScenario(state, scenarioId);
+  const current = hierarchyForView(view);
+  current.dependencies = current.dependencies.filter((item) => item.id !== dependencyId);
+  await updateScheduleViewMetadata(String(view.id), state.project.id, nextMetadataJson(current));
+}
+
 export async function updateScheduleActivity(
   id: string,
   patch: {
@@ -2792,6 +3345,168 @@ export async function deleteScheduleActivity(id: string): Promise<void> {
     .eq("project_id", state.project.id);
   if (error) {
     throw new Error(`Unable to delete schedule activity in Supabase: ${error.message}`);
+  }
+}
+
+export type {
+  CreateOverviewActionTaskInput,
+  OverviewActionTask,
+  OverviewActionTaskPriority,
+  UpdateOverviewActionTaskInput
+} from "./overview-action-tasks-types";
+
+function mapOverviewActionTaskRow(row: Record<string, unknown>): OverviewActionTask {
+  return {
+    id: String(row.id),
+    title: String(row.title),
+    notes: row.notes == null ? null : String(row.notes),
+    priority: row.priority as OverviewActionTaskPriority,
+    linkPath: row.link_path == null ? null : String(row.link_path),
+    sortOrder: Number(row.sort_order)
+  };
+}
+
+export async function listOverviewActionTasks(): Promise<OverviewActionTask[]> {
+  const client = createServerSupabaseClient();
+  const projectId = projectIdFromEnv();
+  const { data, error } = await client
+    .from("overview_action_tasks")
+    .select("id, title, notes, priority, link_path, sort_order")
+    .eq("project_id", projectId)
+    .order("sort_order", { ascending: true });
+  if (error) {
+    throw new Error(`Unable to list overview action tasks: ${error.message}`);
+  }
+  return (data ?? []).map((row) => mapOverviewActionTaskRow(row as Record<string, unknown>));
+}
+
+export async function createOverviewActionTask(input: CreateOverviewActionTaskInput): Promise<OverviewActionTask> {
+  const client = createServerSupabaseClient();
+  const projectId = projectIdFromEnv();
+  const title = input.title.trim();
+  if (!title) {
+    throw new Error("Task title is required");
+  }
+  const linkPath = parseOverviewTaskLinkPath(input.linkPath ?? null);
+  const { data: maxRow, error: maxError } = await client
+    .from("overview_action_tasks")
+    .select("sort_order")
+    .eq("project_id", projectId)
+    .order("sort_order", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (maxError) {
+    throw new Error(`Unable to resolve overview task order: ${maxError.message}`);
+  }
+  const nextOrder =
+    maxRow && typeof (maxRow as { sort_order?: unknown }).sort_order === "number"
+      ? Number((maxRow as { sort_order: number }).sort_order) + 1
+      : 0;
+  const notes = input.notes == null || String(input.notes).trim() === "" ? null : String(input.notes).trim();
+  const { data, error } = await client
+    .from("overview_action_tasks")
+    .insert({
+      project_id: projectId,
+      sort_order: nextOrder,
+      title,
+      notes,
+      priority: input.priority,
+      link_path: linkPath
+    })
+    .select("id, title, notes, priority, link_path, sort_order")
+    .single();
+  if (error || !data) {
+    throw new Error(`Unable to create overview action task: ${error?.message ?? "no row returned"}`);
+  }
+  return mapOverviewActionTaskRow(data as Record<string, unknown>);
+}
+
+export async function updateOverviewActionTask(id: string, patch: UpdateOverviewActionTaskInput): Promise<void> {
+  const client = createServerSupabaseClient();
+  const projectId = projectIdFromEnv();
+  const updates: Record<string, unknown> = {};
+  if (patch.title !== undefined) {
+    const title = patch.title.trim();
+    if (!title) {
+      throw new Error("Task title is required");
+    }
+    updates.title = title;
+  }
+  if (patch.notes !== undefined) {
+    updates.notes = patch.notes == null || String(patch.notes).trim() === "" ? null : String(patch.notes).trim();
+  }
+  if (patch.priority !== undefined) {
+    updates.priority = patch.priority;
+  }
+  if (patch.linkPath !== undefined) {
+    updates.link_path = parseOverviewTaskLinkPath(patch.linkPath);
+  }
+  if (Object.keys(updates).length === 0) {
+    return;
+  }
+  const { error } = await client
+    .from("overview_action_tasks")
+    .update(updates)
+    .eq("id", id)
+    .eq("project_id", projectId);
+  if (error) {
+    throw new Error(`Unable to update overview action task: ${error.message}`);
+  }
+}
+
+export async function deleteOverviewActionTask(id: string): Promise<void> {
+  const client = createServerSupabaseClient();
+  const projectId = projectIdFromEnv();
+  const { error } = await client.from("overview_action_tasks").delete().eq("id", id).eq("project_id", projectId);
+  if (error) {
+    throw new Error(`Unable to delete overview action task: ${error.message}`);
+  }
+  const { data: remainingRows, error: remainingError } = await client
+    .from("overview_action_tasks")
+    .select("id")
+    .eq("project_id", projectId)
+    .order("sort_order", { ascending: true });
+  if (remainingError) {
+    throw new Error(`Unable to reload overview action tasks: ${remainingError.message}`);
+  }
+  const remainingIds = (remainingRows ?? []).map((r: { id: string }) => String(r.id));
+  for (let i = 0; i < remainingIds.length; i++) {
+    const { error: reorderError } = await client
+      .from("overview_action_tasks")
+      .update({ sort_order: i })
+      .eq("id", remainingIds[i])
+      .eq("project_id", projectId);
+    if (reorderError) {
+      throw new Error(`Unable to renumber overview action tasks: ${reorderError.message}`);
+    }
+  }
+}
+
+export async function reorderOverviewActionTasks(orderedIds: string[]): Promise<void> {
+  const client = createServerSupabaseClient();
+  const projectId = projectIdFromEnv();
+  const { data: rows, error: listError } = await client.from("overview_action_tasks").select("id").eq("project_id", projectId);
+  if (listError) {
+    throw new Error(`Unable to verify overview action tasks: ${listError.message}`);
+  }
+  const existing = new Set((rows ?? []).map((r: { id: string }) => String(r.id)));
+  if (orderedIds.length !== existing.size) {
+    throw new Error("Reorder payload must include every task exactly once");
+  }
+  for (const taskId of orderedIds) {
+    if (!existing.has(taskId)) {
+      throw new Error(`Unknown task id in reorder: ${taskId}`);
+    }
+  }
+  for (let i = 0; i < orderedIds.length; i++) {
+    const { error } = await client
+      .from("overview_action_tasks")
+      .update({ sort_order: i })
+      .eq("id", orderedIds[i])
+      .eq("project_id", projectId);
+    if (error) {
+      throw new Error(`Unable to reorder overview action tasks: ${error.message}`);
+    }
   }
 }
 

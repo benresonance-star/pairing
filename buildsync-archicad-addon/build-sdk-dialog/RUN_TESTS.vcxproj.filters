@@ -1,0 +1,13 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="18.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <CustomBuild Include="C:\Users\User\Desktop\Pairing\buildsync-archicad-addon\build-sdk-dialog\CMakeFiles\c85886e00354f90b93da78925eb8e4ec\RUN_TESTS_force.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="CMake Rules">
+      <UniqueIdentifier>{A1092D76-2733-3B86-AF94-D392B0EBF4DF}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>

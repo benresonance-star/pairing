@@ -1,0 +1,23 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="18.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <CustomBuild Include="C:\Users\User\Desktop\Pairing\buildsync-archicad-addon\build-sdk-next\CMakeFiles\8c1c99e8570c62e4fc82bdf602ff2ade\BuildSyncAssemblyWrapper.res.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="C:\Users\User\Desktop\Pairing\buildsync-archicad-addon\build-sdk-next\CMakeFiles\f8ea30e27e2b94b6d57e002e34b90c2b\buildsync_archicad_resources.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="C:\Users\User\Desktop\Pairing\buildsync-archicad-addon\CMakeLists.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="C:\Users\User\Desktop\Pairing\buildsync-archicad-addon\RFIX.win\BuildSyncAssemblyWrapper.rc2" />
+    <None Include="C:\Users\User\Desktop\Pairing\buildsync-archicad-addon\RFIX\BuildSyncAssemblyWrapperFix.grc" />
+    <None Include="C:\Users\User\Desktop\Pairing\buildsync-archicad-addon\RINT\BuildSyncAssemblyWrapper.grc" />
+    <None Include="C:\Users\User\Desktop\Pairing\buildsync-archicad-addon\build-sdk-next\CMakeFiles\buildsync_archicad_resources" />
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="CMake Rules">
+      <UniqueIdentifier>{ECDA7C27-89A5-38DD-92F3-50381BF42B32}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>

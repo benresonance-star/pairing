@@ -1,0 +1,23 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="18.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <CustomBuild Include="C:\Users\User\Desktop\Pairing\buildsync-archicad-addon\build-sdk-self-healing\CMakeFiles\142c0cc47819de4c03c97daecd705a12\BuildSyncAssemblyWrapper.res.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="C:\Users\User\Desktop\Pairing\buildsync-archicad-addon\build-sdk-self-healing\CMakeFiles\f85a38aa8607ea54cdbbb84ed306a8d5\buildsync_archicad_resources.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="C:\Users\User\Desktop\Pairing\buildsync-archicad-addon\CMakeLists.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="C:\Users\User\Desktop\Pairing\buildsync-archicad-addon\RFIX.win\BuildSyncAssemblyWrapper.rc2" />
+    <None Include="C:\Users\User\Desktop\Pairing\buildsync-archicad-addon\RFIX\BuildSyncAssemblyWrapperFix.grc" />
+    <None Include="C:\Users\User\Desktop\Pairing\buildsync-archicad-addon\RINT\BuildSyncAssemblyWrapper.grc" />
+    <None Include="C:\Users\User\Desktop\Pairing\buildsync-archicad-addon\build-sdk-self-healing\CMakeFiles\buildsync_archicad_resources" />
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="CMake Rules">
+      <UniqueIdentifier>{FBA38F27-EC65-3CAF-A336-59D7DC194AC5}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>

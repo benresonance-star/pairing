@@ -1,0 +1,23 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="18.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <CustomBuild Include="C:\Users\User\Desktop\Pairing\buildsync-archicad-addon\build-sdk-source-frame-leak\CMakeFiles\c739a62e240870621186b64c0081cb1a\BuildSyncAssemblyWrapper.res.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="C:\Users\User\Desktop\Pairing\buildsync-archicad-addon\build-sdk-source-frame-leak\CMakeFiles\cbddc5175087d0eebdae019c3a046121\buildsync_archicad_resources.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="C:\Users\User\Desktop\Pairing\buildsync-archicad-addon\CMakeLists.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="C:\Users\User\Desktop\Pairing\buildsync-archicad-addon\RFIX.win\BuildSyncAssemblyWrapper.rc2" />
+    <None Include="C:\Users\User\Desktop\Pairing\buildsync-archicad-addon\RFIX\BuildSyncAssemblyWrapperFix.grc" />
+    <None Include="C:\Users\User\Desktop\Pairing\buildsync-archicad-addon\RINT\BuildSyncAssemblyWrapper.grc" />
+    <None Include="C:\Users\User\Desktop\Pairing\buildsync-archicad-addon\build-sdk-source-frame-leak\CMakeFiles\buildsync_archicad_resources" />
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="CMake Rules">
+      <UniqueIdentifier>{756440F9-0C48-3E4A-BE61-50BA2F5B330B}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>

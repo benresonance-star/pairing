@@ -1,0 +1,23 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="18.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <CustomBuild Include="C:\Users\User\Desktop\Pairing\buildsync-archicad-addon\build-apx-duplicate-slab-fix-v142\CMakeFiles\875497b92b9e9a8a3dcbc00a5a8b76b9\BuildSyncAssemblyWrapper.res.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="C:\Users\User\Desktop\Pairing\buildsync-archicad-addon\build-apx-duplicate-slab-fix-v142\CMakeFiles\f1c21d102c4954a73361639054b95d36\buildsync_archicad_resources.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="C:\Users\User\Desktop\Pairing\buildsync-archicad-addon\CMakeLists.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="C:\Users\User\Desktop\Pairing\buildsync-archicad-addon\RFIX.win\BuildSyncAssemblyWrapper.rc2" />
+    <None Include="C:\Users\User\Desktop\Pairing\buildsync-archicad-addon\RFIX\BuildSyncAssemblyWrapperFix.grc" />
+    <None Include="C:\Users\User\Desktop\Pairing\buildsync-archicad-addon\RINT\BuildSyncAssemblyWrapper.grc" />
+    <None Include="C:\Users\User\Desktop\Pairing\buildsync-archicad-addon\build-apx-duplicate-slab-fix-v142\CMakeFiles\buildsync_archicad_resources" />
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="CMake Rules">
+      <UniqueIdentifier>{590F2C8B-2BE8-329A-84E3-21B8FDFDE5BA}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>

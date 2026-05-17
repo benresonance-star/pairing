@@ -1,7 +1,7 @@
 {
   "project": {
     "id": "11111111-1111-1111-1111-111111111111",
-    "name": "Mews Lane Townhouses",
+    "name": "Project Alpha",
     "archicad_project_id": "ARCHICAD-MEWS-LANE-TOWNHOUSES"
   },
   "sites": [
@@ -78,6 +78,1698 @@
       "source": "planning map"
     }
   ],
+  "site_templates": [
+    {
+      "id": "site-template-inner-suburban-townhouse",
+      "project_id": "11111111-1111-1111-1111-111111111111",
+      "name": "Inner-suburban townhouse acquisition",
+      "description": "Reusable site branch template for Melbourne townhouse opportunities with planning, finance, and participant defaults.",
+      "locality_profile": "Inner-suburban Melbourne townhouse infill",
+      "planning_authority": "Local council planning scheme",
+      "acquisition_strategy": "Conditional contract with due diligence, finance, and planning pre-application gates",
+      "default_finance_pack_id": "assumption-finance-senior-lvr",
+      "default_tax_rule_set_id": "assumption-tax-gst-margin",
+      "target_margin_percent": 30,
+      "required_participant_roles_json": [
+        "Developer Principal",
+        "Feasibility Lead",
+        "Town Planner",
+        "Solicitor",
+        "Accountant",
+        "Builder",
+        "Sales Agent",
+        "Broker"
+      ],
+      "status": "active"
+    }
+  ],
+  "scenario_templates": [
+    {
+      "id": "scenario-template-4th-retain-one",
+      "project_id": "11111111-1111-1111-1111-111111111111",
+      "name": "4 TH - Sell 3 / Retain 1",
+      "description": "Four townhouse branch with three sale settlements and one retained townhouse for long-term equity exposure.",
+      "development_type": "townhouse",
+      "dwellings": 4,
+      "sell_count": 3,
+      "retain_count": 1,
+      "gross_floor_area_sqm": 640,
+      "planning_pathway": "Pre-application meeting before DA lodgement",
+      "master_cost_template_id": "cost-template-townhouse-standard",
+      "unit_schedule_json": [
+        {
+          "unit": "TH-01",
+          "strategy": "sell",
+          "adjustment": "frontage or premium if applicable"
+        },
+        {
+          "unit": "TH-02",
+          "strategy": "sell"
+        },
+        {
+          "unit": "TH-03",
+          "strategy": "sell"
+        },
+        {
+          "unit": "TH-04",
+          "strategy": "retain"
+        }
+      ],
+      "status": "active"
+    },
+    {
+      "id": "scenario-template-3th-sell-all",
+      "project_id": "11111111-1111-1111-1111-111111111111",
+      "name": "3 TH - Sell All",
+      "description": "Lower-yield branch with larger dwellings and lower planning exposure.",
+      "development_type": "townhouse",
+      "dwellings": 3,
+      "sell_count": 3,
+      "retain_count": 0,
+      "gross_floor_area_sqm": 480,
+      "planning_pathway": "Lower-risk neighbourhood character pathway",
+      "master_cost_template_id": "cost-template-townhouse-standard",
+      "unit_schedule_json": [
+        {
+          "unit": "TH-01",
+          "strategy": "sell",
+          "adjustment": "frontage premium"
+        },
+        {
+          "unit": "TH-02",
+          "strategy": "sell"
+        },
+        {
+          "unit": "TH-03",
+          "strategy": "sell"
+        }
+      ],
+      "status": "active"
+    }
+  ],
+  "feasibility_templates": [
+    {
+      "id": "feasibility-template-optimised-retain-one",
+      "project_id": "11111111-1111-1111-1111-111111111111",
+      "name": "Optimised retain-one case",
+      "description": "Margin optimiser mode using design, revenue, cost, timing, finance, and retain-one assumptions.",
+      "calculation_mode": "optimised_retain_one",
+      "target_margin_percent": 30,
+      "target_net_position_ratio": 40,
+      "sensitivity_ranges_json": {
+        "sale_price_per_dwelling": {
+          "min": 1150000,
+          "max": 1450000,
+          "distribution": "triangular"
+        },
+        "construction_cost_per_dwelling": {
+          "min": 600000,
+          "max": 750000,
+          "distribution": "triangular"
+        },
+        "duration_months": {
+          "min": 18,
+          "max": 28,
+          "distribution": "triangular"
+        }
+      },
+      "required_validation_rules_json": [
+        {
+          "category": "revenue",
+          "profile": "network-profile-sales-agent"
+        },
+        {
+          "category": "finance",
+          "profile": "network-profile-financier"
+        },
+        {
+          "category": "cost",
+          "profile": "network-profile-builder"
+        }
+      ],
+      "status": "active"
+    }
+  ],
+  "feasibility_branches": [
+    {
+      "id": "feasibility-branch-mews-4th-optimised",
+      "project_id": "11111111-1111-1111-1111-111111111111",
+      "site_id": "site-mews-lane",
+      "scenario_option_id": "option-mews-4-townhouse",
+      "scenario_id": "22222222-2222-2222-2222-222222222223",
+      "feasibility_template_id": "feasibility-template-optimised-retain-one",
+      "name": "4 TH optimised retain-one branch",
+      "status": "testing",
+      "summary": "Applies preview-derived margin, funding, retention, and validation assumptions to the 4 townhouse option.",
+      "target_margin_percent": 30,
+      "target_net_position_ratio": 40,
+      "created_at": "2026-05-10T05:00:00.000Z"
+    }
+  ],
+  "assumption_templates": [
+    {
+      "id": "assumption-design-ceilings",
+      "project_id": "11111111-1111-1111-1111-111111111111",
+      "name": "2.7m ceilings uplift",
+      "category": "Feasibility Lever Library",
+      "assumption_kind": "design_lever",
+      "impact_area": "revenue",
+      "value_type": "range",
+      "unit": "AUD_per_dwelling",
+      "default_value": 40000,
+      "min_value": 25000,
+      "max_value": 50000,
+      "most_likely_value": 40000,
+      "step": 5000,
+      "distribution_type": "triangular",
+      "formula_key": "sale_uplift_per_dwelling",
+      "source_type": "preview_html",
+      "source_ref": "margin-levers/ceilings",
+      "default_validator_profile_id": "network-profile-architect",
+      "evidence_requirement": "Architect and sales agent to confirm premium is credible for this locality.",
+      "task_trigger_json": {
+        "stage": "Pre-Permit",
+        "priority": "MEDIUM"
+      },
+      "enabled_for_simulation": true,
+      "correlation_group": "product_quality_uplifts",
+      "notes": "Preview assumption: +$40k sale value per townhouse for 2.7m ceilings; +$8k/TH cost is tracked separately.",
+      "status": "active"
+    },
+    {
+      "id": "assumption-cost-terrace-saving",
+      "project_id": "11111111-1111-1111-1111-111111111111",
+      "name": "Terraced row shared-wall saving",
+      "category": "Feasibility Lever Library",
+      "assumption_kind": "cost_lever",
+      "impact_area": "cost",
+      "value_type": "range",
+      "unit": "percent_build_cost_saving",
+      "default_value": 15,
+      "min_value": 12,
+      "max_value": 18,
+      "most_likely_value": 15,
+      "step": 1,
+      "distribution_type": "triangular",
+      "formula_key": "build_cost_percent_saving",
+      "source_type": "preview_html",
+      "source_ref": "margin-levers/terrace",
+      "default_validator_profile_id": "network-profile-builder",
+      "evidence_requirement": "Builder to confirm shared wall, repeated floor plate, and roofline saving.",
+      "task_trigger_json": {
+        "stage": "Pre-Construction",
+        "priority": "HIGH"
+      },
+      "enabled_for_simulation": true,
+      "correlation_group": "construction_method",
+      "notes": "Preview assumption: terraced row shares party walls and saves 12-18% on affected build components.",
+      "status": "active"
+    },
+    {
+      "id": "assumption-revenue-spring-timing",
+      "project_id": "11111111-1111-1111-1111-111111111111",
+      "name": "Spring settlement timing uplift",
+      "category": "Revenue Assumptions",
+      "assumption_kind": "timing_lever",
+      "impact_area": "revenue",
+      "value_type": "range",
+      "unit": "percent_sale_price_uplift",
+      "default_value": 4.1,
+      "min_value": 0,
+      "max_value": 4.1,
+      "most_likely_value": 2.5,
+      "step": 0.1,
+      "distribution_type": "triangular",
+      "formula_key": "seasonal_sale_uplift",
+      "source_type": "preview_html",
+      "source_ref": "margin-levers/spring",
+      "default_validator_profile_id": "network-profile-sales-agent",
+      "evidence_requirement": "Sales agent to validate timing uplift against current local comparables.",
+      "task_trigger_json": {
+        "stage": "Pre-Construction",
+        "priority": "HIGH"
+      },
+      "enabled_for_simulation": true,
+      "correlation_group": "market_timing",
+      "notes": "Preview assumption: selling in Sep-Nov recovers current vendor discounting.",
+      "status": "active"
+    },
+    {
+      "id": "assumption-finance-senior-lvr",
+      "project_id": "11111111-1111-1111-1111-111111111111",
+      "name": "Senior debt LVR",
+      "category": "Finance Defaults",
+      "assumption_kind": "finance_default",
+      "impact_area": "finance",
+      "value_type": "range",
+      "unit": "percent_total_development_cost",
+      "default_value": 70,
+      "min_value": 60,
+      "max_value": 75,
+      "most_likely_value": 70,
+      "step": 1,
+      "distribution_type": "triangular",
+      "formula_key": "senior_debt_lvr",
+      "source_type": "preview_html",
+      "source_ref": "finance/senior-lvr",
+      "default_validator_profile_id": "network-profile-financier",
+      "evidence_requirement": "Broker or lender to confirm appetite, presale requirements, and covenants.",
+      "task_trigger_json": {
+        "stage": "Pre-Contract",
+        "priority": "CRITICAL"
+      },
+      "enabled_for_simulation": true,
+      "correlation_group": "credit_terms",
+      "notes": "Preview range: 60-75% of total development cost, default 70%.",
+      "status": "active"
+    },
+    {
+      "id": "assumption-tax-gst-margin",
+      "project_id": "11111111-1111-1111-1111-111111111111",
+      "name": "GST margin scheme",
+      "category": "Tax & Transaction Rules",
+      "assumption_kind": "tax_rule",
+      "impact_area": "tax",
+      "value_type": "fixed",
+      "unit": "formula",
+      "default_value": true,
+      "formula_key": "gst_margin_scheme",
+      "source_type": "preview_html",
+      "source_ref": "breakdown/gst-margin-scheme",
+      "default_validator_profile_id": "network-profile-feasibility-lead",
+      "evidence_requirement": "Accountant/solicitor to validate margin scheme wording and contract price structure.",
+      "task_trigger_json": {
+        "stage": "Pre-Contract",
+        "priority": "CRITICAL"
+      },
+      "enabled_for_simulation": false,
+      "notes": "Preview formula: 1/11 of revenue less land cost base for sold units.",
+      "status": "active"
+    },
+    {
+      "id": "assumption-design-premium-finishes",
+      "project_id": "11111111-1111-1111-1111-111111111111",
+      "name": "Engineered timber floors + stone benchtops",
+      "category": "Design Upgrade Levers",
+      "assumption_kind": "design_lever",
+      "impact_area": "revenue",
+      "value_type": "range",
+      "unit": "AUD_per_dwelling",
+      "default_value": 55000,
+      "min_value": 50000,
+      "max_value": 60000,
+      "most_likely_value": 55000,
+      "step": 5000,
+      "distribution_type": "triangular",
+      "formula_key": "premium_finishes_sale_uplift_per_dwelling",
+      "source_type": "preview_html",
+      "source_ref": "margin-levers/floors",
+      "default_validator_profile_id": "network-profile-sales-agent",
+      "evidence_requirement": "Sales agent and builder to confirm finish premium versus upgrade cost for this locality.",
+      "task_trigger_json": {
+        "stage": "Pre-Permit",
+        "priority": "MEDIUM"
+      },
+      "enabled_for_simulation": true,
+      "correlation_group": "product_quality_uplifts",
+      "notes": "Preview lever: engineered timber over carpet plus 40mm stone over laminate adds about $15k/TH build cost and $50-60k/TH sale uplift; net margin gain per sold unit about $40k.",
+      "status": "active"
+    },
+    {
+      "id": "assumption-design-double-garage",
+      "project_id": "11111111-1111-1111-1111-111111111111",
+      "name": "Double garage instead of single",
+      "category": "Design Upgrade Levers",
+      "assumption_kind": "design_lever",
+      "impact_area": "revenue",
+      "value_type": "range",
+      "unit": "AUD_per_dwelling",
+      "default_value": 70000,
+      "min_value": 60000,
+      "max_value": 80000,
+      "most_likely_value": 70000,
+      "step": 5000,
+      "distribution_type": "triangular",
+      "formula_key": "double_garage_sale_uplift_per_dwelling",
+      "source_type": "preview_html",
+      "source_ref": "margin-levers/garage",
+      "default_validator_profile_id": "network-profile-sales-agent",
+      "evidence_requirement": "Sales agent to validate family buyer premium and architect to confirm footprint feasibility.",
+      "task_trigger_json": {
+        "stage": "Pre-Permit",
+        "priority": "HIGH"
+      },
+      "enabled_for_simulation": true,
+      "correlation_group": "family_buyer_product_fit",
+      "notes": "Preview lever: +$25k/TH build cost and +$70k/TH sale uplift; widens buyer pool from couples to families, net gain about $110k across 3 sold and 4 built.",
+      "status": "active"
+    },
+    {
+      "id": "assumption-design-study-as-fourth-bedroom",
+      "project_id": "11111111-1111-1111-1111-111111111111",
+      "name": "3-bed + study market as 4-bed",
+      "category": "Design Upgrade Levers",
+      "assumption_kind": "design_lever",
+      "impact_area": "revenue",
+      "value_type": "range",
+      "unit": "AUD_per_dwelling",
+      "default_value": 65000,
+      "min_value": 55000,
+      "max_value": 75000,
+      "most_likely_value": 65000,
+      "step": 5000,
+      "distribution_type": "triangular",
+      "formula_key": "fourth_bedroom_sale_uplift_per_dwelling",
+      "source_type": "preview_html",
+      "source_ref": "margin-levers/study",
+      "default_validator_profile_id": "network-profile-sales-agent",
+      "evidence_requirement": "Sales agent and architect to validate whether the study can credibly market as a fourth bedroom.",
+      "task_trigger_json": {
+        "stage": "Pre-Permit",
+        "priority": "HIGH"
+      },
+      "enabled_for_simulation": true,
+      "correlation_group": "family_buyer_product_fit",
+      "notes": "Preview lever: +$8k/TH build cost and +$65k/TH sale uplift; families paying $1.35M+ usually require four bedrooms, net gain about $163k.",
+      "status": "active"
+    },
+    {
+      "id": "assumption-revenue-offmarket-sales",
+      "project_id": "11111111-1111-1111-1111-111111111111",
+      "name": "Sell 2 units off-market",
+      "category": "Revenue Assumptions",
+      "assumption_kind": "sales_strategy",
+      "impact_area": "revenue",
+      "value_type": "range",
+      "unit": "AUD_margin_saving",
+      "default_value": 61250,
+      "min_value": 50000,
+      "max_value": 70000,
+      "most_likely_value": 61250,
+      "step": 1000,
+      "distribution_type": "triangular",
+      "formula_key": "agent_commission_saving_offmarket_units",
+      "source_type": "preview_html",
+      "source_ref": "margin-levers/offmarket",
+      "default_validator_profile_id": "network-profile-sales-agent",
+      "evidence_requirement": "Sales agent or buyer network owner to confirm buyer access and flat-fee/off-market path.",
+      "task_trigger_json": {
+        "stage": "Pre-Sales",
+        "priority": "HIGH"
+      },
+      "enabled_for_simulation": true,
+      "correlation_group": "sales_channel_strategy",
+      "notes": "Preview lever: no 2% agent commission on 2 units through network, buyer agents at flat fee, or direct database buyers; saves about $25-28k per unit.",
+      "status": "active"
+    },
+    {
+      "id": "assumption-cost-owner-supply-fixtures",
+      "project_id": "11111111-1111-1111-1111-111111111111",
+      "name": "Owner-supply fixtures & appliances",
+      "category": "Cost Levers",
+      "assumption_kind": "procurement_lever",
+      "impact_area": "cost",
+      "value_type": "range",
+      "unit": "AUD_margin_saving",
+      "default_value": 52000,
+      "min_value": 45000,
+      "max_value": 65000,
+      "most_likely_value": 52000,
+      "step": 1000,
+      "distribution_type": "triangular",
+      "formula_key": "owner_supply_fixture_markup_saving",
+      "source_type": "preview_html",
+      "source_ref": "margin-levers/fixtures",
+      "default_validator_profile_id": "network-profile-builder",
+      "evidence_requirement": "Builder to confirm contract permits owner-supplied fixtures and warranty/interface exclusions are understood.",
+      "task_trigger_json": {
+        "stage": "Tender",
+        "priority": "MEDIUM"
+      },
+      "enabled_for_simulation": true,
+      "correlation_group": "procurement_savings",
+      "notes": "Preview lever: remove builder markup of 20-40% on tapware, appliances, and lighting across 4 units; about $13k saving per unit, $52k total.",
+      "status": "active"
+    },
+    {
+      "id": "assumption-cost-contingency-six-percent",
+      "project_id": "11111111-1111-1111-1111-111111111111",
+      "name": "Reduce contingency to 6%",
+      "category": "Cost Levers",
+      "assumption_kind": "risk_allowance_lever",
+      "impact_area": "risk",
+      "value_type": "range",
+      "unit": "percent_build_cost_contingency",
+      "default_value": 6,
+      "min_value": 6,
+      "max_value": 10,
+      "most_likely_value": 6,
+      "step": 1,
+      "distribution_type": "triangular",
+      "formula_key": "post_contract_contingency_rate",
+      "source_type": "preview_html",
+      "source_ref": "margin-levers/contingency",
+      "default_validator_profile_id": "network-profile-builder",
+      "evidence_requirement": "Builder and feasibility lead to confirm fixed-price contract, geotech report, and detailed scope before reducing contingency.",
+      "task_trigger_json": {
+        "stage": "Post-Tender",
+        "priority": "HIGH"
+      },
+      "enabled_for_simulation": true,
+      "correlation_group": "construction_risk_allowance",
+      "notes": "Preview lever: reduce contingency from 10% to 6% after fixed-price contract, geotech, and detailed scope; frees about $80k on $2M construction.",
+      "status": "active"
+    },
+    {
+      "id": "assumption-timing-shorten-three-months",
+      "project_id": "11111111-1111-1111-1111-111111111111",
+      "name": "Shorten timeline by 3 months",
+      "category": "Timing Assumptions",
+      "assumption_kind": "programme_lever",
+      "impact_area": "timing",
+      "value_type": "range",
+      "unit": "months_saved",
+      "default_value": 3,
+      "min_value": 2,
+      "max_value": 3,
+      "most_likely_value": 3,
+      "step": 1,
+      "distribution_type": "triangular",
+      "formula_key": "programme_interest_saving_months",
+      "source_type": "preview_html",
+      "source_ref": "margin-levers/timeline",
+      "default_validator_profile_id": "network-profile-feasibility-lead",
+      "evidence_requirement": "Feasibility lead to confirm pre-application meeting, parallel tendering, and early sales appointment are realistic.",
+      "task_trigger_json": {
+        "stage": "Pre-Permit",
+        "priority": "HIGH"
+      },
+      "enabled_for_simulation": true,
+      "correlation_group": "programme_compression",
+      "notes": "Preview lever: pre-application council meeting, parallel tender during permit, and appoint selling agent at lodgement; 3 months less interest on about $2.5M average balance saves $55-75k.",
+      "status": "active"
+    },
+    {
+      "id": "assumption-gap-staged-build-completion",
+      "project_id": "11111111-1111-1111-1111-111111111111",
+      "name": "Staged build completion",
+      "category": "Gap Analysis - Project Cost",
+      "assumption_kind": "gap_project_cost_lever",
+      "impact_area": "finance",
+      "value_type": "range",
+      "unit": "AUD_interest_saving",
+      "default_value": 42782,
+      "min_value": 30000,
+      "max_value": 60000,
+      "most_likely_value": 42782,
+      "step": 1000,
+      "distribution_type": "triangular",
+      "formula_key": "staged_completion_interest_saving",
+      "source_type": "preview_html",
+      "source_ref": "gap-analysis/stagedbuild",
+      "default_validator_profile_id": "network-profile-builder",
+      "evidence_requirement": "Builder and lender to confirm staged completion, partial settlements, and debt retirement mechanics.",
+      "task_trigger_json": {
+        "stage": "Construction",
+        "priority": "HIGH"
+      },
+      "enabled_for_simulation": true,
+      "correlation_group": "gap_project_cost",
+      "notes": "Preview gap lever: staged build completion reduces senior debt interest in all tabs; current scenario impact about $42,782.",
+      "status": "active"
+    },
+    {
+      "id": "assumption-gap-smsf-bridging",
+      "project_id": "11111111-1111-1111-1111-111111111111",
+      "name": "SMSF bridging",
+      "category": "Gap Analysis - Project Cost",
+      "assumption_kind": "gap_funding_lever",
+      "impact_area": "finance",
+      "value_type": "range",
+      "unit": "AUD_bridge_funding",
+      "default_value": 200000,
+      "min_value": 0,
+      "max_value": 200000,
+      "most_likely_value": 200000,
+      "step": 10000,
+      "distribution_type": "triangular",
+      "formula_key": "smsf_bridge_funding",
+      "source_type": "preview_html",
+      "source_ref": "gap-analysis/smsf",
+      "default_validator_profile_id": "network-profile-financier",
+      "evidence_requirement": "SMSF specialist, lender, and accountant to confirm bridging is permitted and interest cost is modelled.",
+      "task_trigger_json": {
+        "stage": "Pre-Permit",
+        "priority": "CRITICAL"
+      },
+      "enabled_for_simulation": true,
+      "correlation_group": "gap_project_cost",
+      "notes": "Preview gap lever: adds $200,000 bridge funding during pre-permit and adds bridge interest to project cost.",
+      "status": "active"
+    },
+    {
+      "id": "assumption-gap-immediate-retained-refinance",
+      "project_id": "11111111-1111-1111-1111-111111111111",
+      "name": "Immediate retained TH refinance",
+      "category": "Gap Analysis - Project Cost",
+      "assumption_kind": "post_completion_finance_lever",
+      "impact_area": "finance",
+      "value_type": "range",
+      "unit": "AUD_refinance_saving",
+      "default_value": 24500,
+      "min_value": 15000,
+      "max_value": 35000,
+      "most_likely_value": 24500,
+      "step": 1000,
+      "distribution_type": "triangular",
+      "formula_key": "retained_townhouse_refinance_saving",
+      "source_type": "preview_html",
+      "source_ref": "gap-analysis/refinance",
+      "default_validator_profile_id": "network-profile-financier",
+      "evidence_requirement": "Broker to confirm post-completion refinance rate, valuation basis, and timing for retained townhouse debt.",
+      "task_trigger_json": {
+        "stage": "Settlement",
+        "priority": "MEDIUM"
+      },
+      "enabled_for_simulation": true,
+      "correlation_group": "gap_project_cost",
+      "notes": "Preview gap lever: shows post-completion refinance/holding benefit only; current scenario impact about $24,500.",
+      "status": "active"
+    },
+    {
+      "id": "assumption-gap-early-offplan-marketing",
+      "project_id": "11111111-1111-1111-1111-111111111111",
+      "name": "Early off-plan marketing",
+      "category": "Gap Analysis - Working Capital",
+      "assumption_kind": "working_capital_lever",
+      "impact_area": "timing",
+      "value_type": "range",
+      "unit": "AUD_presale_deposits",
+      "default_value": 306250,
+      "min_value": 250000,
+      "max_value": 350000,
+      "most_likely_value": 306250,
+      "step": 5000,
+      "distribution_type": "triangular",
+      "formula_key": "early_marketing_presale_deposits",
+      "source_type": "preview_html",
+      "source_ref": "gap-analysis/earlymarketing",
+      "default_validator_profile_id": "network-profile-sales-agent",
+      "evidence_requirement": "Sales agent to confirm lender-acceptable presale deposits can be secured before construction finance activates.",
+      "task_trigger_json": {
+        "stage": "Pre-Construction",
+        "priority": "HIGH"
+      },
+      "enabled_for_simulation": true,
+      "correlation_group": "gap_working_capital",
+      "notes": "Preview gap lever: adds presale deposits as capital and improves timing/liquidity only; current scenario impact about $306,250.",
+      "status": "active"
+    },
+    {
+      "id": "assumption-gap-builder-deferred-margin",
+      "project_id": "11111111-1111-1111-1111-111111111111",
+      "name": "Builder deferred margin",
+      "category": "Gap Analysis - Working Capital",
+      "assumption_kind": "working_capital_lever",
+      "impact_area": "timing",
+      "value_type": "range",
+      "unit": "AUD_deferred_payment",
+      "default_value": 170380,
+      "min_value": 100000,
+      "max_value": 200000,
+      "most_likely_value": 170380,
+      "step": 5000,
+      "distribution_type": "triangular",
+      "formula_key": "builder_deferred_margin",
+      "source_type": "preview_html",
+      "source_ref": "gap-analysis/builderdeferred",
+      "default_validator_profile_id": "network-profile-builder",
+      "evidence_requirement": "Builder to confirm deferred margin terms, risk premium, and payment trigger; this is timing only, not a saving.",
+      "task_trigger_json": {
+        "stage": "Pre-Construction",
+        "priority": "HIGH"
+      },
+      "enabled_for_simulation": true,
+      "correlation_group": "gap_working_capital",
+      "notes": "Preview gap lever: defers payment and reduces construction finance need; current scenario impact about $170,380.",
+      "status": "active"
+    },
+    {
+      "id": "assumption-gap-gst-input-credits",
+      "project_id": "11111111-1111-1111-1111-111111111111",
+      "name": "GST input tax credits",
+      "category": "Gap Analysis - Working Capital",
+      "assumption_kind": "working_capital_lever",
+      "impact_area": "tax",
+      "value_type": "range",
+      "unit": "AUD_input_tax_credits",
+      "default_value": 221494,
+      "min_value": 180000,
+      "max_value": 240000,
+      "most_likely_value": 221494,
+      "step": 5000,
+      "distribution_type": "triangular",
+      "formula_key": "gst_input_tax_credit_working_capital",
+      "source_type": "preview_html",
+      "source_ref": "gap-analysis/gstcredits",
+      "default_validator_profile_id": "network-profile-feasibility-lead",
+      "evidence_requirement": "Accountant to confirm GST registration timing, GST-inclusive cost assumptions, and BAS credit timing.",
+      "task_trigger_json": {
+        "stage": "Construction",
+        "priority": "CRITICAL"
+      },
+      "enabled_for_simulation": true,
+      "correlation_group": "gap_working_capital",
+      "notes": "Preview gap lever: working capital only unless costs are GST-inclusive; current scenario impact about $221,494.",
+      "status": "active"
+    },
+    {
+      "id": "assumption-gap-builder-retention-five-percent",
+      "project_id": "11111111-1111-1111-1111-111111111111",
+      "name": "5% builder retention hold",
+      "category": "Gap Analysis - Working Capital",
+      "assumption_kind": "working_capital_lever",
+      "impact_area": "timing",
+      "value_type": "range",
+      "unit": "AUD_payment_holdback",
+      "default_value": 121700,
+      "min_value": 100000,
+      "max_value": 140000,
+      "most_likely_value": 121700,
+      "step": 5000,
+      "distribution_type": "triangular",
+      "formula_key": "builder_retention_holdback",
+      "source_type": "preview_html",
+      "source_ref": "gap-analysis/retention5",
+      "default_validator_profile_id": "network-profile-builder",
+      "evidence_requirement": "Builder and solicitor to confirm 5% retention holdback wording and defect-release mechanics.",
+      "task_trigger_json": {
+        "stage": "Settlement",
+        "priority": "MEDIUM"
+      },
+      "enabled_for_simulation": true,
+      "correlation_group": "gap_working_capital",
+      "notes": "Preview gap lever: payment holdback, not a saving; current scenario impact about $121,700.",
+      "status": "active"
+    },
+    {
+      "id": "assumption-gap-conditional-contract",
+      "project_id": "11111111-1111-1111-1111-111111111111",
+      "name": "Conditional contract",
+      "category": "Gap Analysis - Risk Control",
+      "assumption_kind": "risk_control_lever",
+      "impact_area": "risk",
+      "value_type": "fixed",
+      "unit": "AUD_capital_at_risk_reduction",
+      "default_value": 180000,
+      "min_value": 180000,
+      "max_value": 180000,
+      "most_likely_value": 180000,
+      "step": 1,
+      "formula_key": "conditional_contract_risk_reduction",
+      "source_type": "preview_html",
+      "source_ref": "gap-analysis/conditional",
+      "default_validator_profile_id": "network-profile-feasibility-lead",
+      "evidence_requirement": "Solicitor and feasibility lead to confirm due diligence, finance, and planning conditions remain live until risk is resolved.",
+      "task_trigger_json": {
+        "stage": "Pre-Contract",
+        "priority": "CRITICAL"
+      },
+      "enabled_for_simulation": false,
+      "correlation_group": "gap_risk_control",
+      "notes": "Preview gap lever: reduces capital at risk by about $180,000; does not create cash, funding, or profit.",
+      "status": "active"
+    }
+  ],
+  "assumption_applications": [
+    {
+      "id": "assumption-app-mews-spring",
+      "project_id": "11111111-1111-1111-1111-111111111111",
+      "assumption_template_id": "assumption-revenue-spring-timing",
+      "applied_ref_type": "scenario_option",
+      "applied_ref_id": "option-mews-4-townhouse",
+      "feasibility_branch_id": "feasibility-branch-mews-4th-optimised",
+      "local_value": 3.2,
+      "local_min_value": 0,
+      "local_max_value": 4.1,
+      "local_most_likely_value": 2.5,
+      "enabled_for_simulation": true,
+      "confidence": "medium",
+      "status": "pending_validation",
+      "calculation_impact_json": {
+        "metric": "gross_realisation",
+        "direction": "increase"
+      },
+      "notes": "Applied to the 4 townhouse option, pending local sales evidence."
+    },
+    {
+      "id": "assumption-app-mews-lvr",
+      "project_id": "11111111-1111-1111-1111-111111111111",
+      "assumption_template_id": "assumption-finance-senior-lvr",
+      "applied_ref_type": "feasibility_branch",
+      "applied_ref_id": "feasibility-branch-mews-4th-optimised",
+      "feasibility_branch_id": "feasibility-branch-mews-4th-optimised",
+      "local_value": 70,
+      "local_min_value": 60,
+      "local_max_value": 75,
+      "local_most_likely_value": 70,
+      "enabled_for_simulation": true,
+      "confidence": "low",
+      "status": "requires_evidence",
+      "calculation_impact_json": {
+        "metric": "funding_gap",
+        "direction": "reduce"
+      },
+      "notes": "Default debt assumption until lender feedback is captured."
+    },
+    {
+      "id": "assumption-app-mews-terrace",
+      "project_id": "11111111-1111-1111-1111-111111111111",
+      "assumption_template_id": "assumption-cost-terrace-saving",
+      "applied_ref_type": "scenario_option",
+      "applied_ref_id": "option-mews-4-townhouse",
+      "feasibility_branch_id": "feasibility-branch-mews-4th-optimised",
+      "local_value": 12,
+      "local_min_value": 8,
+      "local_max_value": 15,
+      "local_most_likely_value": 12,
+      "enabled_for_simulation": true,
+      "confidence": "medium",
+      "status": "pending_validation",
+      "calculation_impact_json": {
+        "metric": "construction_cost",
+        "direction": "decrease"
+      },
+      "notes": "Applied only if the design keeps party wall and roofline repetition."
+    },
+    {
+      "id": "assumption-app-mews-gst",
+      "project_id": "11111111-1111-1111-1111-111111111111",
+      "assumption_template_id": "assumption-tax-gst-margin",
+      "applied_ref_type": "site",
+      "applied_ref_id": "site-mews-lane",
+      "feasibility_branch_id": "feasibility-branch-mews-4th-optimised",
+      "local_value": true,
+      "enabled_for_simulation": false,
+      "confidence": "low",
+      "status": "requires_evidence",
+      "calculation_impact_json": {
+        "metric": "tax_cost",
+        "direction": "control"
+      },
+      "notes": "Needs accountant and solicitor sign-off before acquisition commitment."
+    },
+    {
+      "id": "assumption-app-mews-finishes",
+      "project_id": "11111111-1111-1111-1111-111111111111",
+      "assumption_template_id": "assumption-design-premium-finishes",
+      "applied_ref_type": "scenario_option",
+      "applied_ref_id": "option-mews-4-townhouse",
+      "feasibility_branch_id": "feasibility-branch-mews-4th-optimised",
+      "local_value": 55000,
+      "local_min_value": 50000,
+      "local_max_value": 60000,
+      "local_most_likely_value": 55000,
+      "enabled_for_simulation": true,
+      "confidence": "medium",
+      "status": "pending_validation",
+      "calculation_impact_json": {
+        "metric": "gross_realisation",
+        "direction": "increase",
+        "build_cost_per_dwelling": 15000,
+        "sale_uplift_per_dwelling": 55000
+      },
+      "notes": "Applied if finish upgrades are specified and supported by comparable sales."
+    },
+    {
+      "id": "assumption-app-mews-garage",
+      "project_id": "11111111-1111-1111-1111-111111111111",
+      "assumption_template_id": "assumption-design-double-garage",
+      "applied_ref_type": "scenario_option",
+      "applied_ref_id": "option-mews-4-townhouse",
+      "feasibility_branch_id": "feasibility-branch-mews-4th-optimised",
+      "local_value": 70000,
+      "local_min_value": 60000,
+      "local_max_value": 80000,
+      "local_most_likely_value": 70000,
+      "enabled_for_simulation": true,
+      "confidence": "medium",
+      "status": "pending_validation",
+      "calculation_impact_json": {
+        "metric": "gross_realisation",
+        "direction": "increase",
+        "build_cost_per_dwelling": 25000,
+        "sale_uplift_per_dwelling": 70000
+      },
+      "notes": "Applied if the plan can accommodate double garages without undermining yield."
+    },
+    {
+      "id": "assumption-app-mews-study",
+      "project_id": "11111111-1111-1111-1111-111111111111",
+      "assumption_template_id": "assumption-design-study-as-fourth-bedroom",
+      "applied_ref_type": "scenario_option",
+      "applied_ref_id": "option-mews-4-townhouse",
+      "feasibility_branch_id": "feasibility-branch-mews-4th-optimised",
+      "local_value": 65000,
+      "local_min_value": 55000,
+      "local_max_value": 75000,
+      "local_most_likely_value": 65000,
+      "enabled_for_simulation": true,
+      "confidence": "medium",
+      "status": "pending_validation",
+      "calculation_impact_json": {
+        "metric": "gross_realisation",
+        "direction": "increase",
+        "build_cost_per_dwelling": 8000,
+        "sale_uplift_per_dwelling": 65000
+      },
+      "notes": "Applied if the study can credibly market as a fourth bedroom."
+    },
+    {
+      "id": "assumption-app-mews-offmarket",
+      "project_id": "11111111-1111-1111-1111-111111111111",
+      "assumption_template_id": "assumption-revenue-offmarket-sales",
+      "applied_ref_type": "scenario_option",
+      "applied_ref_id": "option-mews-4-townhouse",
+      "feasibility_branch_id": "feasibility-branch-mews-4th-optimised",
+      "local_value": 61250,
+      "local_min_value": 50000,
+      "local_max_value": 70000,
+      "local_most_likely_value": 61250,
+      "enabled_for_simulation": true,
+      "confidence": "medium",
+      "status": "pending_validation",
+      "calculation_impact_json": {
+        "metric": "sales_cost",
+        "direction": "decrease",
+        "units_offmarket": 2
+      },
+      "notes": "Applied to test off-market sale of 2 units while retaining agent coverage for remaining stock."
+    },
+    {
+      "id": "assumption-app-mews-fixtures",
+      "project_id": "11111111-1111-1111-1111-111111111111",
+      "assumption_template_id": "assumption-cost-owner-supply-fixtures",
+      "applied_ref_type": "scenario_option",
+      "applied_ref_id": "option-mews-4-townhouse",
+      "feasibility_branch_id": "feasibility-branch-mews-4th-optimised",
+      "local_value": 52000,
+      "local_min_value": 45000,
+      "local_max_value": 65000,
+      "local_most_likely_value": 52000,
+      "enabled_for_simulation": true,
+      "confidence": "medium",
+      "status": "pending_validation",
+      "calculation_impact_json": {
+        "metric": "construction_cost",
+        "direction": "decrease",
+        "saving_per_unit": 13000
+      },
+      "notes": "Applied if tender and contract allow owner-supplied fixtures and appliances."
+    },
+    {
+      "id": "assumption-app-mews-contingency",
+      "project_id": "11111111-1111-1111-1111-111111111111",
+      "assumption_template_id": "assumption-cost-contingency-six-percent",
+      "applied_ref_type": "feasibility_branch",
+      "applied_ref_id": "feasibility-branch-mews-4th-optimised",
+      "feasibility_branch_id": "feasibility-branch-mews-4th-optimised",
+      "local_value": 6,
+      "local_min_value": 6,
+      "local_max_value": 10,
+      "local_most_likely_value": 6,
+      "enabled_for_simulation": true,
+      "confidence": "low",
+      "status": "requires_evidence",
+      "calculation_impact_json": {
+        "metric": "contingency",
+        "direction": "decrease",
+        "base_rate_percent": 10,
+        "target_rate_percent": 6
+      },
+      "notes": "Applied only after fixed-price contract, geotech, and detailed scope reduce contingency risk."
+    },
+    {
+      "id": "assumption-app-mews-timeline",
+      "project_id": "11111111-1111-1111-1111-111111111111",
+      "assumption_template_id": "assumption-timing-shorten-three-months",
+      "applied_ref_type": "feasibility_branch",
+      "applied_ref_id": "feasibility-branch-mews-4th-optimised",
+      "feasibility_branch_id": "feasibility-branch-mews-4th-optimised",
+      "local_value": 3,
+      "local_min_value": 2,
+      "local_max_value": 3,
+      "local_most_likely_value": 3,
+      "enabled_for_simulation": true,
+      "confidence": "low",
+      "status": "requires_evidence",
+      "calculation_impact_json": {
+        "metric": "finance_cost",
+        "direction": "decrease",
+        "average_balance": 2500000
+      },
+      "notes": "Applied if council, tender, and sales workstreams can be overlapped safely."
+    },
+    {
+      "id": "assumption-app-gap-staged-build",
+      "project_id": "11111111-1111-1111-1111-111111111111",
+      "assumption_template_id": "assumption-gap-staged-build-completion",
+      "applied_ref_type": "feasibility_branch",
+      "applied_ref_id": "feasibility-branch-mews-4th-optimised",
+      "feasibility_branch_id": "feasibility-branch-mews-4th-optimised",
+      "local_value": 42782,
+      "local_min_value": 30000,
+      "local_max_value": 60000,
+      "local_most_likely_value": 42782,
+      "enabled_for_simulation": true,
+      "confidence": "medium",
+      "status": "pending_validation",
+      "calculation_impact_json": {
+        "metric": "senior_debt_interest",
+        "direction": "decrease",
+        "stage": "Construction",
+        "bucket": "Project cost"
+      },
+      "notes": "Applied to model staged completion and early senior debt retirement during construction."
+    },
+    {
+      "id": "assumption-app-gap-smsf",
+      "project_id": "11111111-1111-1111-1111-111111111111",
+      "assumption_template_id": "assumption-gap-smsf-bridging",
+      "applied_ref_type": "feasibility_branch",
+      "applied_ref_id": "feasibility-branch-mews-4th-optimised",
+      "feasibility_branch_id": "feasibility-branch-mews-4th-optimised",
+      "local_value": 200000,
+      "local_min_value": 0,
+      "local_max_value": 200000,
+      "local_most_likely_value": 200000,
+      "enabled_for_simulation": true,
+      "confidence": "low",
+      "status": "requires_evidence",
+      "calculation_impact_json": {
+        "metric": "bridge_funding",
+        "direction": "increase",
+        "stage": "Pre-Permit",
+        "bucket": "Project cost"
+      },
+      "notes": "Applied to cover pre-permit holding with SMSF bridge funding, subject to specialist advice."
+    },
+    {
+      "id": "assumption-app-gap-refinance",
+      "project_id": "11111111-1111-1111-1111-111111111111",
+      "assumption_template_id": "assumption-gap-immediate-retained-refinance",
+      "applied_ref_type": "feasibility_branch",
+      "applied_ref_id": "feasibility-branch-mews-4th-optimised",
+      "feasibility_branch_id": "feasibility-branch-mews-4th-optimised",
+      "local_value": 24500,
+      "local_min_value": 15000,
+      "local_max_value": 35000,
+      "local_most_likely_value": 24500,
+      "enabled_for_simulation": true,
+      "confidence": "medium",
+      "status": "pending_validation",
+      "calculation_impact_json": {
+        "metric": "post_completion_finance_cost",
+        "direction": "decrease",
+        "stage": "Settlement",
+        "bucket": "Project cost"
+      },
+      "notes": "Applied to model immediate refinance of retained townhouse after completion."
+    },
+    {
+      "id": "assumption-app-gap-early-marketing",
+      "project_id": "11111111-1111-1111-1111-111111111111",
+      "assumption_template_id": "assumption-gap-early-offplan-marketing",
+      "applied_ref_type": "scenario_option",
+      "applied_ref_id": "option-mews-4-townhouse",
+      "feasibility_branch_id": "feasibility-branch-mews-4th-optimised",
+      "local_value": 306250,
+      "local_min_value": 250000,
+      "local_max_value": 350000,
+      "local_most_likely_value": 306250,
+      "enabled_for_simulation": true,
+      "confidence": "medium",
+      "status": "pending_validation",
+      "calculation_impact_json": {
+        "metric": "working_capital",
+        "direction": "increase",
+        "stage": "Pre-Construction",
+        "bucket": "Working capital"
+      },
+      "notes": "Applied to model early off-plan deposits as timing/liquidity support."
+    },
+    {
+      "id": "assumption-app-gap-builder-deferred",
+      "project_id": "11111111-1111-1111-1111-111111111111",
+      "assumption_template_id": "assumption-gap-builder-deferred-margin",
+      "applied_ref_type": "feasibility_branch",
+      "applied_ref_id": "feasibility-branch-mews-4th-optimised",
+      "feasibility_branch_id": "feasibility-branch-mews-4th-optimised",
+      "local_value": 170380,
+      "local_min_value": 100000,
+      "local_max_value": 200000,
+      "local_most_likely_value": 170380,
+      "enabled_for_simulation": true,
+      "confidence": "low",
+      "status": "requires_evidence",
+      "calculation_impact_json": {
+        "metric": "working_capital",
+        "direction": "increase",
+        "stage": "Pre-Construction",
+        "bucket": "Working capital"
+      },
+      "notes": "Applied to model builder deferred margin as payment timing, not profit saving."
+    },
+    {
+      "id": "assumption-app-gap-gst-credits",
+      "project_id": "11111111-1111-1111-1111-111111111111",
+      "assumption_template_id": "assumption-gap-gst-input-credits",
+      "applied_ref_type": "feasibility_branch",
+      "applied_ref_id": "feasibility-branch-mews-4th-optimised",
+      "feasibility_branch_id": "feasibility-branch-mews-4th-optimised",
+      "local_value": 221494,
+      "local_min_value": 180000,
+      "local_max_value": 240000,
+      "local_most_likely_value": 221494,
+      "enabled_for_simulation": true,
+      "confidence": "low",
+      "status": "requires_evidence",
+      "calculation_impact_json": {
+        "metric": "working_capital",
+        "direction": "increase",
+        "stage": "Construction",
+        "bucket": "Working capital"
+      },
+      "notes": "Applied to model GST input tax credit timing through construction."
+    },
+    {
+      "id": "assumption-app-gap-retention",
+      "project_id": "11111111-1111-1111-1111-111111111111",
+      "assumption_template_id": "assumption-gap-builder-retention-five-percent",
+      "applied_ref_type": "feasibility_branch",
+      "applied_ref_id": "feasibility-branch-mews-4th-optimised",
+      "feasibility_branch_id": "feasibility-branch-mews-4th-optimised",
+      "local_value": 121700,
+      "local_min_value": 100000,
+      "local_max_value": 140000,
+      "local_most_likely_value": 121700,
+      "enabled_for_simulation": true,
+      "confidence": "medium",
+      "status": "pending_validation",
+      "calculation_impact_json": {
+        "metric": "working_capital",
+        "direction": "increase",
+        "stage": "Settlement",
+        "bucket": "Working capital"
+      },
+      "notes": "Applied to model 5% builder retention as payment holdback at settlement."
+    },
+    {
+      "id": "assumption-app-gap-conditional",
+      "project_id": "11111111-1111-1111-1111-111111111111",
+      "assumption_template_id": "assumption-gap-conditional-contract",
+      "applied_ref_type": "site",
+      "applied_ref_id": "site-mews-lane",
+      "feasibility_branch_id": "feasibility-branch-mews-4th-optimised",
+      "local_value": 180000,
+      "local_min_value": 180000,
+      "local_max_value": 180000,
+      "local_most_likely_value": 180000,
+      "enabled_for_simulation": false,
+      "confidence": "medium",
+      "status": "pending_validation",
+      "calculation_impact_json": {
+        "metric": "capital_at_risk",
+        "direction": "decrease",
+        "stage": "Pre-Contract",
+        "bucket": "Risk control"
+      },
+      "notes": "Applied to model conditional contract risk control; it reduces exposure but does not create funding."
+    }
+  ],
+  "assumption_validations": [
+    {
+      "id": "assumption-val-mews-spring-sales",
+      "project_id": "11111111-1111-1111-1111-111111111111",
+      "assumption_application_id": "assumption-app-mews-spring",
+      "profile_id": "network-profile-sales-agent",
+      "relationship_type": "validates_assumption",
+      "status": "pending",
+      "confidence": "medium",
+      "notes": "Confirm spring timing uplift and off-market buyer appetite."
+    },
+    {
+      "id": "assumption-val-mews-lvr-financier",
+      "project_id": "11111111-1111-1111-1111-111111111111",
+      "assumption_application_id": "assumption-app-mews-lvr",
+      "profile_id": "network-profile-financier",
+      "relationship_type": "approves_strategy",
+      "status": "pending",
+      "confidence": "low",
+      "notes": "Confirm LVR, presale requirements, and staged drawdown assumptions."
+    },
+    {
+      "id": "assumption-val-mews-terrace-builder",
+      "project_id": "11111111-1111-1111-1111-111111111111",
+      "assumption_application_id": "assumption-app-mews-terrace",
+      "profile_id": "network-profile-builder",
+      "relationship_type": "provides_evidence",
+      "status": "pending",
+      "confidence": "medium",
+      "notes": "Validate shared-wall saving against builder pricing."
+    },
+    {
+      "id": "assumption-val-mews-gst-feasibility",
+      "project_id": "11111111-1111-1111-1111-111111111111",
+      "assumption_application_id": "assumption-app-mews-gst",
+      "profile_id": "network-profile-feasibility-lead",
+      "relationship_type": "accountable_owner",
+      "status": "pending",
+      "confidence": "low",
+      "notes": "Route to accountant and solicitor before contract exchange."
+    },
+    {
+      "id": "assumption-val-mews-finishes-sales",
+      "project_id": "11111111-1111-1111-1111-111111111111",
+      "assumption_application_id": "assumption-app-mews-finishes",
+      "profile_id": "network-profile-sales-agent",
+      "relationship_type": "validates_assumption",
+      "status": "pending",
+      "confidence": "medium",
+      "notes": "Confirm finish uplift against current townhouse comparable sales."
+    },
+    {
+      "id": "assumption-val-mews-garage-sales",
+      "project_id": "11111111-1111-1111-1111-111111111111",
+      "assumption_application_id": "assumption-app-mews-garage",
+      "profile_id": "network-profile-sales-agent",
+      "relationship_type": "validates_assumption",
+      "status": "pending",
+      "confidence": "medium",
+      "notes": "Validate family buyer premium for double garage product."
+    },
+    {
+      "id": "assumption-val-mews-garage-architect",
+      "project_id": "11111111-1111-1111-1111-111111111111",
+      "assumption_application_id": "assumption-app-mews-garage",
+      "profile_id": "network-profile-architect",
+      "relationship_type": "provides_evidence",
+      "status": "pending",
+      "confidence": "medium",
+      "notes": "Confirm double garage footprint can fit without harming planning or yield."
+    },
+    {
+      "id": "assumption-val-mews-study-sales",
+      "project_id": "11111111-1111-1111-1111-111111111111",
+      "assumption_application_id": "assumption-app-mews-study",
+      "profile_id": "network-profile-sales-agent",
+      "relationship_type": "validates_assumption",
+      "status": "pending",
+      "confidence": "medium",
+      "notes": "Confirm study can be marketed as a fourth bedroom for target buyers."
+    },
+    {
+      "id": "assumption-val-mews-offmarket-sales",
+      "project_id": "11111111-1111-1111-1111-111111111111",
+      "assumption_application_id": "assumption-app-mews-offmarket",
+      "profile_id": "network-profile-sales-agent",
+      "relationship_type": "accountable_owner",
+      "status": "pending",
+      "confidence": "medium",
+      "notes": "Confirm off-market buyer channel and expected commission saving."
+    },
+    {
+      "id": "assumption-val-mews-fixtures-builder",
+      "project_id": "11111111-1111-1111-1111-111111111111",
+      "assumption_application_id": "assumption-app-mews-fixtures",
+      "profile_id": "network-profile-builder",
+      "relationship_type": "provides_evidence",
+      "status": "pending",
+      "confidence": "medium",
+      "notes": "Confirm tender exclusions, warranty boundaries, and owner-supply logistics."
+    },
+    {
+      "id": "assumption-val-mews-contingency-builder",
+      "project_id": "11111111-1111-1111-1111-111111111111",
+      "assumption_application_id": "assumption-app-mews-contingency",
+      "profile_id": "network-profile-builder",
+      "relationship_type": "approves_strategy",
+      "status": "pending",
+      "confidence": "low",
+      "notes": "Confirm fixed-price contract, geotech, and detailed scope support lower contingency."
+    },
+    {
+      "id": "assumption-val-mews-timeline-lead",
+      "project_id": "11111111-1111-1111-1111-111111111111",
+      "assumption_application_id": "assumption-app-mews-timeline",
+      "profile_id": "network-profile-feasibility-lead",
+      "relationship_type": "accountable_owner",
+      "status": "pending",
+      "confidence": "low",
+      "notes": "Confirm programme compression plan and finance saving assumptions."
+    },
+    {
+      "id": "assumption-val-gap-staged-build-builder",
+      "project_id": "11111111-1111-1111-1111-111111111111",
+      "assumption_application_id": "assumption-app-gap-staged-build",
+      "profile_id": "network-profile-builder",
+      "relationship_type": "provides_evidence",
+      "status": "pending",
+      "confidence": "medium",
+      "notes": "Confirm staged completion and early settlement handover are buildable."
+    },
+    {
+      "id": "assumption-val-gap-staged-build-financier",
+      "project_id": "11111111-1111-1111-1111-111111111111",
+      "assumption_application_id": "assumption-app-gap-staged-build",
+      "profile_id": "network-profile-financier",
+      "relationship_type": "approves_strategy",
+      "status": "pending",
+      "confidence": "medium",
+      "notes": "Confirm lender allows staged settlements to reduce senior debt interest."
+    },
+    {
+      "id": "assumption-val-gap-smsf-financier",
+      "project_id": "11111111-1111-1111-1111-111111111111",
+      "assumption_application_id": "assumption-app-gap-smsf",
+      "profile_id": "network-profile-financier",
+      "relationship_type": "approves_strategy",
+      "status": "pending",
+      "confidence": "low",
+      "notes": "Confirm SMSF bridge funding, interest treatment, and compliance requirements."
+    },
+    {
+      "id": "assumption-val-gap-refinance-financier",
+      "project_id": "11111111-1111-1111-1111-111111111111",
+      "assumption_application_id": "assumption-app-gap-refinance",
+      "profile_id": "network-profile-financier",
+      "relationship_type": "validates_assumption",
+      "status": "pending",
+      "confidence": "medium",
+      "notes": "Confirm retained townhouse refinance LVR, rate, valuation, and timing."
+    },
+    {
+      "id": "assumption-val-gap-early-marketing-sales",
+      "project_id": "11111111-1111-1111-1111-111111111111",
+      "assumption_application_id": "assumption-app-gap-early-marketing",
+      "profile_id": "network-profile-sales-agent",
+      "relationship_type": "accountable_owner",
+      "status": "pending",
+      "confidence": "medium",
+      "notes": "Confirm early off-plan marketing can produce lender-acceptable deposits."
+    },
+    {
+      "id": "assumption-val-gap-builder-deferred-builder",
+      "project_id": "11111111-1111-1111-1111-111111111111",
+      "assumption_application_id": "assumption-app-gap-builder-deferred",
+      "profile_id": "network-profile-builder",
+      "relationship_type": "approves_strategy",
+      "status": "pending",
+      "confidence": "low",
+      "notes": "Confirm deferred margin amount, payment trigger, and risk premium."
+    },
+    {
+      "id": "assumption-val-gap-gst-feasibility",
+      "project_id": "11111111-1111-1111-1111-111111111111",
+      "assumption_application_id": "assumption-app-gap-gst-credits",
+      "profile_id": "network-profile-feasibility-lead",
+      "relationship_type": "accountable_owner",
+      "status": "pending",
+      "confidence": "low",
+      "notes": "Confirm GST registration and input tax credit timing before costs are incurred."
+    },
+    {
+      "id": "assumption-val-gap-retention-builder",
+      "project_id": "11111111-1111-1111-1111-111111111111",
+      "assumption_application_id": "assumption-app-gap-retention",
+      "profile_id": "network-profile-builder",
+      "relationship_type": "provides_evidence",
+      "status": "pending",
+      "confidence": "medium",
+      "notes": "Confirm builder accepts 5% retention hold and release mechanics."
+    },
+    {
+      "id": "assumption-val-gap-conditional-lead",
+      "project_id": "11111111-1111-1111-1111-111111111111",
+      "assumption_application_id": "assumption-app-gap-conditional",
+      "profile_id": "network-profile-feasibility-lead",
+      "relationship_type": "accountable_owner",
+      "status": "pending",
+      "confidence": "medium",
+      "notes": "Confirm conditional contract clauses reduce exposure and remain enforceable."
+    }
+  ],
+  "assumption_evidence": [
+    {
+      "id": "assumption-evidence-mews-spring-sales",
+      "project_id": "11111111-1111-1111-1111-111111111111",
+      "assumption_application_id": "assumption-app-mews-spring",
+      "evidence_type": "market_comparable",
+      "title": "Spring sale comparables required",
+      "linked_ref_type": "network_inquiry",
+      "linked_ref_id": "network-inquiry-yield-risk",
+      "notes": "Attach comparable sales or agent memo before raising confidence.",
+      "status": "pending"
+    },
+    {
+      "id": "assumption-evidence-mews-gst",
+      "project_id": "11111111-1111-1111-1111-111111111111",
+      "assumption_application_id": "assumption-app-mews-gst",
+      "evidence_type": "professional_advice",
+      "title": "GST margin scheme advice required",
+      "linked_ref_type": "network_inquiry",
+      "linked_ref_id": "network-inquiry-yield-risk",
+      "notes": "Accountant/solicitor advice should confirm cost-base and sale-contract wording.",
+      "status": "pending"
+    },
+    {
+      "id": "assumption-evidence-mews-garage-comps",
+      "project_id": "11111111-1111-1111-1111-111111111111",
+      "assumption_application_id": "assumption-app-mews-garage",
+      "evidence_type": "market_comparable",
+      "title": "Double garage comparable sales required",
+      "linked_ref_type": "network_inquiry",
+      "linked_ref_id": "network-inquiry-yield-risk",
+      "notes": "Attach sales evidence showing family buyer premium for double garage townhouse product.",
+      "status": "pending"
+    },
+    {
+      "id": "assumption-evidence-mews-offmarket-channel",
+      "project_id": "11111111-1111-1111-1111-111111111111",
+      "assumption_application_id": "assumption-app-mews-offmarket",
+      "evidence_type": "sales_strategy",
+      "title": "Off-market buyer channel evidence required",
+      "linked_ref_type": "network_inquiry",
+      "linked_ref_id": "network-inquiry-yield-risk",
+      "notes": "Confirm buyer database, flat-fee agent pathway, or buyer-agent access before relying on commission saving.",
+      "status": "pending"
+    },
+    {
+      "id": "assumption-evidence-mews-contingency-contract",
+      "project_id": "11111111-1111-1111-1111-111111111111",
+      "assumption_application_id": "assumption-app-mews-contingency",
+      "evidence_type": "contract_scope",
+      "title": "Fixed-price contract and geotech evidence required",
+      "linked_ref_type": "network_work_product",
+      "linked_ref_id": "network-work-product-yield-brief",
+      "notes": "Attach fixed-price contract, geotech report, and detailed scope before reducing contingency from 10% to 6%.",
+      "status": "pending"
+    },
+    {
+      "id": "assumption-evidence-mews-timeline-programme",
+      "project_id": "11111111-1111-1111-1111-111111111111",
+      "assumption_application_id": "assumption-app-mews-timeline",
+      "evidence_type": "programme_plan",
+      "title": "Compressed programme evidence required",
+      "linked_ref_type": "network_work_product",
+      "linked_ref_id": "network-work-product-yield-brief",
+      "notes": "Document pre-application meeting, parallel tender, and early sales appointment plan.",
+      "status": "pending"
+    },
+    {
+      "id": "assumption-evidence-gap-staged-build",
+      "project_id": "11111111-1111-1111-1111-111111111111",
+      "assumption_application_id": "assumption-app-gap-staged-build",
+      "evidence_type": "programme_plan",
+      "title": "Staged completion and settlement plan required",
+      "linked_ref_type": "network_work_product",
+      "linked_ref_id": "network-work-product-yield-brief",
+      "notes": "Document staged completion dates, settlement sequence, and debt retirement assumptions.",
+      "status": "pending"
+    },
+    {
+      "id": "assumption-evidence-gap-smsf-advice",
+      "project_id": "11111111-1111-1111-1111-111111111111",
+      "assumption_application_id": "assumption-app-gap-smsf",
+      "evidence_type": "professional_advice",
+      "title": "SMSF bridging advice required",
+      "linked_ref_type": "network_inquiry",
+      "linked_ref_id": "network-inquiry-yield-risk",
+      "notes": "Attach SMSF specialist advice, lending terms, and interest cost treatment.",
+      "status": "pending"
+    },
+    {
+      "id": "assumption-evidence-gap-early-marketing",
+      "project_id": "11111111-1111-1111-1111-111111111111",
+      "assumption_application_id": "assumption-app-gap-early-marketing",
+      "evidence_type": "sales_strategy",
+      "title": "Early off-plan deposit strategy required",
+      "linked_ref_type": "network_inquiry",
+      "linked_ref_id": "network-inquiry-yield-risk",
+      "notes": "Show how deposits are obtained before construction finance activates and whether lender accepts them.",
+      "status": "pending"
+    },
+    {
+      "id": "assumption-evidence-gap-builder-deferred",
+      "project_id": "11111111-1111-1111-1111-111111111111",
+      "assumption_application_id": "assumption-app-gap-builder-deferred",
+      "evidence_type": "contract_scope",
+      "title": "Builder deferred margin term sheet required",
+      "linked_ref_type": "network_work_product",
+      "linked_ref_id": "network-work-product-yield-brief",
+      "notes": "Attach builder agreement showing deferred amount, trigger, and any price premium.",
+      "status": "pending"
+    },
+    {
+      "id": "assumption-evidence-gap-gst-registration",
+      "project_id": "11111111-1111-1111-1111-111111111111",
+      "assumption_application_id": "assumption-app-gap-gst-credits",
+      "evidence_type": "professional_advice",
+      "title": "GST registration and BAS timing evidence required",
+      "linked_ref_type": "network_inquiry",
+      "linked_ref_id": "network-inquiry-yield-risk",
+      "notes": "Confirm GST registration before costs, GST-inclusive invoices, and expected credit timing.",
+      "status": "pending"
+    },
+    {
+      "id": "assumption-evidence-gap-conditional-contract",
+      "project_id": "11111111-1111-1111-1111-111111111111",
+      "assumption_application_id": "assumption-app-gap-conditional",
+      "evidence_type": "contract_clause",
+      "title": "Conditional contract clauses required",
+      "linked_ref_type": "network_work_product",
+      "linked_ref_id": "network-work-product-yield-brief",
+      "notes": "Attach due diligence, finance, and planning pre-application conditions before treating risk as reduced.",
+      "status": "pending"
+    }
+  ],
+  "assumption_actions": [
+    {
+      "id": "assumption-action-confirm-spring-demand",
+      "project_id": "11111111-1111-1111-1111-111111111111",
+      "assumption_application_id": "assumption-app-mews-spring",
+      "title": "Validate spring sale timing uplift",
+      "stage": "Pre-Construction",
+      "timing_offset_days": 120,
+      "priority": "HIGH",
+      "responsible_profile_id": "network-profile-sales-agent",
+      "risk_if_delayed": "Revenue uplift may be overstated, causing the optimised branch to overstate margin.",
+      "status": "open",
+      "notes": "Ask sales agent for current comparable evidence and buyer demand notes."
+    },
+    {
+      "id": "assumption-action-confirm-lvr",
+      "project_id": "11111111-1111-1111-1111-111111111111",
+      "assumption_application_id": "assumption-app-mews-lvr",
+      "title": "Confirm lender LVR and presale conditions",
+      "stage": "Pre-Contract",
+      "timing_offset_days": 0,
+      "priority": "CRITICAL",
+      "responsible_profile_id": "network-profile-financier",
+      "risk_if_delayed": "Funding gap may remain hidden until the contract is unconditional.",
+      "status": "open",
+      "notes": "Broker to validate senior debt appetite and whether presales are required."
+    },
+    {
+      "id": "assumption-action-validate-garage-premium",
+      "project_id": "11111111-1111-1111-1111-111111111111",
+      "assumption_application_id": "assumption-app-mews-garage",
+      "title": "Validate double garage premium",
+      "stage": "Pre-Permit",
+      "timing_offset_days": 30,
+      "priority": "HIGH",
+      "responsible_profile_id": "network-profile-sales-agent",
+      "risk_if_delayed": "Revenue uplift may be overstated if buyer premium is not supported by comparable sales.",
+      "status": "open",
+      "notes": "Ask sales agent for family-buyer comparable evidence and price delta."
+    },
+    {
+      "id": "assumption-action-confirm-offmarket-path",
+      "project_id": "11111111-1111-1111-1111-111111111111",
+      "assumption_application_id": "assumption-app-mews-offmarket",
+      "title": "Confirm off-market buyer pathway",
+      "stage": "Pre-Sales",
+      "timing_offset_days": 90,
+      "priority": "HIGH",
+      "responsible_profile_id": "network-profile-sales-agent",
+      "risk_if_delayed": "Sales cost saving may disappear if buyer channel is not ready before launch.",
+      "status": "open",
+      "notes": "Confirm buyer database, agent flat-fee option, and which units can be sold off-market."
+    },
+    {
+      "id": "assumption-action-approve-lower-contingency",
+      "project_id": "11111111-1111-1111-1111-111111111111",
+      "assumption_application_id": "assumption-app-mews-contingency",
+      "title": "Approve lower contingency gate",
+      "stage": "Post-Tender",
+      "timing_offset_days": 0,
+      "priority": "CRITICAL",
+      "responsible_profile_id": "network-profile-builder",
+      "risk_if_delayed": "Project margin may rely on risk allowance reduction before construction risk is genuinely transferred.",
+      "status": "open",
+      "notes": "Only approve 6% contingency after fixed-price contract, geotech, and detailed scope are complete."
+    },
+    {
+      "id": "assumption-action-compress-programme",
+      "project_id": "11111111-1111-1111-1111-111111111111",
+      "assumption_application_id": "assumption-app-mews-timeline",
+      "title": "Validate 3-month programme compression",
+      "stage": "Pre-Permit",
+      "timing_offset_days": 30,
+      "priority": "HIGH",
+      "responsible_profile_id": "network-profile-feasibility-lead",
+      "risk_if_delayed": "Finance savings may be overstated if approvals, tender, or sales milestones cannot overlap.",
+      "status": "open",
+      "notes": "Confirm council pre-app path, parallel tender schedule, and sales appointment at lodgement."
+    },
+    {
+      "id": "assumption-action-gap-stage-completion",
+      "project_id": "11111111-1111-1111-1111-111111111111",
+      "assumption_application_id": "assumption-app-gap-staged-build",
+      "title": "Validate staged completion debt reduction",
+      "stage": "Construction",
+      "timing_offset_days": 150,
+      "priority": "HIGH",
+      "responsible_profile_id": "network-profile-builder",
+      "risk_if_delayed": "Interest saving may be overstated if completion and settlements cannot be staged.",
+      "status": "open",
+      "notes": "Coordinate builder programme, lender conditions, and settlement sequence."
+    },
+    {
+      "id": "assumption-action-gap-smsf-advice",
+      "project_id": "11111111-1111-1111-1111-111111111111",
+      "assumption_application_id": "assumption-app-gap-smsf",
+      "title": "Obtain SMSF bridging advice",
+      "stage": "Pre-Permit",
+      "timing_offset_days": 0,
+      "priority": "CRITICAL",
+      "responsible_profile_id": "network-profile-financier",
+      "risk_if_delayed": "Bridge funding may be unavailable or non-compliant when pre-permit holding costs arrive.",
+      "status": "open",
+      "notes": "Get specialist advice before relying on SMSF bridge funding."
+    },
+    {
+      "id": "assumption-action-gap-refinance-terms",
+      "project_id": "11111111-1111-1111-1111-111111111111",
+      "assumption_application_id": "assumption-app-gap-refinance",
+      "title": "Confirm retained townhouse refinance terms",
+      "stage": "Settlement",
+      "timing_offset_days": 180,
+      "priority": "MEDIUM",
+      "responsible_profile_id": "network-profile-financier",
+      "risk_if_delayed": "Post-completion finance saving may not be available at the assumed rate or valuation.",
+      "status": "open",
+      "notes": "Confirm refinance product, valuation basis, LVR, and timing."
+    },
+    {
+      "id": "assumption-action-gap-presale-deposits",
+      "project_id": "11111111-1111-1111-1111-111111111111",
+      "assumption_application_id": "assumption-app-gap-early-marketing",
+      "title": "Validate early off-plan deposit path",
+      "stage": "Pre-Construction",
+      "timing_offset_days": 90,
+      "priority": "HIGH",
+      "responsible_profile_id": "network-profile-sales-agent",
+      "risk_if_delayed": "Working capital may be overstated if deposits are not secured or lender-accepted.",
+      "status": "open",
+      "notes": "Confirm campaign timing, deposit amounts, and lender acceptance."
+    },
+    {
+      "id": "assumption-action-gap-builder-deferred",
+      "project_id": "11111111-1111-1111-1111-111111111111",
+      "assumption_application_id": "assumption-app-gap-builder-deferred",
+      "title": "Negotiate builder deferred margin",
+      "stage": "Pre-Construction",
+      "timing_offset_days": 60,
+      "priority": "HIGH",
+      "responsible_profile_id": "network-profile-builder",
+      "risk_if_delayed": "Deferred payment benefit may be unavailable or offset by a price premium.",
+      "status": "open",
+      "notes": "Document deferred margin amount, trigger, and pricing trade-off."
+    },
+    {
+      "id": "assumption-action-gap-gst-registration",
+      "project_id": "11111111-1111-1111-1111-111111111111",
+      "assumption_application_id": "assumption-app-gap-gst-credits",
+      "title": "Confirm GST input credit timing",
+      "stage": "Construction",
+      "timing_offset_days": 0,
+      "priority": "CRITICAL",
+      "responsible_profile_id": "network-profile-feasibility-lead",
+      "risk_if_delayed": "Late GST registration can remove input credits from working capital assumptions.",
+      "status": "open",
+      "notes": "Confirm GST registration before construction costs and BAS timing."
+    },
+    {
+      "id": "assumption-action-gap-retention",
+      "project_id": "11111111-1111-1111-1111-111111111111",
+      "assumption_application_id": "assumption-app-gap-retention",
+      "title": "Agree 5% builder retention hold",
+      "stage": "Settlement",
+      "timing_offset_days": 120,
+      "priority": "MEDIUM",
+      "responsible_profile_id": "network-profile-builder",
+      "risk_if_delayed": "Retention holdback may not be available to cover settlement timing gap.",
+      "status": "open",
+      "notes": "Confirm retention amount and defect release terms in the building contract."
+    },
+    {
+      "id": "assumption-action-gap-conditional-contract",
+      "project_id": "11111111-1111-1111-1111-111111111111",
+      "assumption_application_id": "assumption-app-gap-conditional",
+      "title": "Confirm conditional contract gates",
+      "stage": "Pre-Contract",
+      "timing_offset_days": 0,
+      "priority": "CRITICAL",
+      "responsible_profile_id": "network-profile-feasibility-lead",
+      "risk_if_delayed": "Going unconditional removes the primary option-risk control before feasibility risks are closed.",
+      "status": "open",
+      "notes": "Confirm due diligence, finance, and planning conditions with solicitor."
+    }
+  ],
+  "simulation_templates": [
+    {
+      "id": "simulation-template-margin-risk",
+      "project_id": "11111111-1111-1111-1111-111111111111",
+      "name": "Margin and funding risk Monte Carlo",
+      "description": "Future simulation preset that samples land, sale, build, duration, finance, contingency, and timing assumptions.",
+      "sample_count": 1000,
+      "target_metrics_json": [
+        "margin_percent",
+        "funding_gap",
+        "net_position_ratio"
+      ],
+      "enabled_assumption_categories_json": [
+        "Revenue Assumptions",
+        "Finance Defaults",
+        "Feasibility Lever Library",
+        "Design Upgrade Levers",
+        "Cost Levers",
+        "Timing Assumptions",
+        "Gap Analysis - Project Cost",
+        "Gap Analysis - Working Capital",
+        "Gap Analysis - Risk Control"
+      ],
+      "optimisation_constraints_json": {
+        "minimum_margin_percent": 30,
+        "maximum_funding_gap": 0,
+        "minimum_net_position_ratio": 40
+      },
+      "status": "planned"
+    }
+  ],
+  "simulation_runs": [],
+  "simulation_samples": [],
   "scenario_options": [
     {
       "id": "option-mews-3-townhouse",
@@ -92,7 +1784,9 @@
       "planning_fit": "strong",
       "status": "preferred",
       "summary": "Lower planning risk with larger dwellings, stronger end value, and current baseline schedule.",
-      "target_margin_percent": 18
+      "target_margin_percent": 18,
+      "pinned_at": "2026-05-10T04:30:00.000Z",
+      "pinned_reason": "Most balanced option: strong planning fit, current Archicad link, and margin above target."
     },
     {
       "id": "option-mews-4-townhouse",
@@ -107,7 +1801,9 @@
       "planning_fit": "moderate",
       "status": "testing",
       "summary": "Higher yield option using the recovery scenario for tighter sequencing and sales release testing.",
-      "target_margin_percent": 20
+      "target_margin_percent": 20,
+      "pinned_at": "2026-05-10T04:45:00.000Z",
+      "pinned_reason": "Worth watching for yield upside if planning and programme risk can be contained."
     },
     {
       "id": "option-river-duplex",
@@ -370,7 +2066,10 @@
       "council": "Merri-bek City Council",
       "planning_scheme": "Merri-bek Planning Scheme",
       "zoning": "Neighbourhood Residential Zone",
-      "overlays_json": ["Design and Development Overlay", "Development Contributions Plan Overlay"],
+      "overlays_json": [
+        "Design and Development Overlay",
+        "Development Contributions Plan Overlay"
+      ],
       "site_area_sqm": 812,
       "lot_plan": "Lots 12-14 LP12345",
       "heritage_status": "No individual heritage overlay identified in source report",
@@ -378,6 +2077,7 @@
       "bushfire_status": "Not in Bushfire Management Overlay",
       "vegetation_status": "Street tree and rear vegetation retention to be confirmed",
       "easements": "Rear drainage easement noted along south boundary; maintain authority access during design.",
+      "matrix_cell_flags_json": {},
       "planning_summary": "Townhouse yield appears plausible subject to height, overlooking, neighbourhood character, and drainage easement constraints.",
       "source_date": "2026-05-08",
       "status": "active",
@@ -569,34 +2269,78 @@
       "id": "network-cap-feasibility-lead",
       "project_id": "11111111-1111-1111-1111-111111111111",
       "profile_id": "network-profile-feasibility-lead",
-      "skills_json": ["financial feasibility", "scenario comparison", "sensitivity analysis"],
+      "skills_json": [
+        "financial feasibility",
+        "scenario comparison",
+        "sensitivity analysis"
+      ],
       "base_knowledge": "Uses current sites, scenarios, cost ranges, sales assumptions, and schedule data.",
       "scope": "Can propose assumptions and work products; project mutations require human approval.",
-      "constraints_json": ["Separate assumptions from evidence", "Flag stale or missing inputs"],
-      "question_types_json": ["Which scenario is best?", "What is driving margin?", "What needs validation next?"],
-      "output_types_json": ["decision memo", "risk register", "sensitivity table"]
+      "constraints_json": [
+        "Separate assumptions from evidence",
+        "Flag stale or missing inputs"
+      ],
+      "question_types_json": [
+        "Which scenario is best?",
+        "What is driving margin?",
+        "What needs validation next?"
+      ],
+      "output_types_json": [
+        "decision memo",
+        "risk register",
+        "sensitivity table"
+      ]
     },
     {
       "id": "network-cap-cost-agent",
       "project_id": "11111111-1111-1111-1111-111111111111",
       "profile_id": "network-profile-cost-agent",
-      "skills_json": ["cost benchmarking", "rate source review", "template comparison"],
+      "skills_json": [
+        "cost benchmarking",
+        "rate source review",
+        "template comparison"
+      ],
       "base_knowledge": "Reads master cost database items, code catalogue links, template items, scenario cost plans, and source notes.",
       "scope": "Advisory only until a human accepts a cost database or scenario update.",
-      "constraints_json": ["Do not silently update scenario snapshots", "Cite source labels and dates"],
-      "question_types_json": ["Which rates are weak?", "Which package is over allowance?", "What should be repriced?"],
-      "output_types_json": ["cost review", "pricing query", "source gap report"]
+      "constraints_json": [
+        "Do not silently update scenario snapshots",
+        "Cite source labels and dates"
+      ],
+      "question_types_json": [
+        "Which rates are weak?",
+        "Which package is over allowance?",
+        "What should be repriced?"
+      ],
+      "output_types_json": [
+        "cost review",
+        "pricing query",
+        "source gap report"
+      ]
     },
     {
       "id": "network-cap-planning-agent",
       "project_id": "11111111-1111-1111-1111-111111111111",
       "profile_id": "network-profile-planning-agent",
-      "skills_json": ["planning risk screening", "constraint synthesis", "authority question drafting"],
+      "skills_json": [
+        "planning risk screening",
+        "constraint synthesis",
+        "authority question drafting"
+      ],
       "base_knowledge": "Reads site constraints, scenario summaries, Archicad links, and planning fit notes.",
       "scope": "Can prepare questions and review notes; cannot represent formal planning advice.",
-      "constraints_json": ["Identify uncertainty", "Avoid legal conclusions without planner review"],
-      "question_types_json": ["What will council ask?", "Which yield has fewer objections?"],
-      "output_types_json": ["planning risk brief", "RFI list", "meeting agenda"]
+      "constraints_json": [
+        "Identify uncertainty",
+        "Avoid legal conclusions without planner review"
+      ],
+      "question_types_json": [
+        "What will council ask?",
+        "Which yield has fewer objections?"
+      ],
+      "output_types_json": [
+        "planning risk brief",
+        "RFI list",
+        "meeting agenda"
+      ]
     }
   ],
   "network_knowledge_packs": [
@@ -606,9 +2350,20 @@
       "title": "Feasibility Control Pack",
       "domain": "Financial and scenario feasibility",
       "instructions": "Compare scenarios using site constraints, cost ranges, sales assumptions, and schedule impacts. Separate facts, assumptions, and decisions.",
-      "constraints_json": ["No automatic changes to approved scenario snapshots", "Always identify source confidence"],
-      "sources_json": ["sites", "scenario_options", "scenario_cost_ranges", "sales_assumptions"],
-      "tools_json": ["portfolio reader", "scenario comparator"],
+      "constraints_json": [
+        "No automatic changes to approved scenario snapshots",
+        "Always identify source confidence"
+      ],
+      "sources_json": [
+        "sites",
+        "scenario_options",
+        "scenario_cost_ranges",
+        "sales_assumptions"
+      ],
+      "tools_json": [
+        "portfolio reader",
+        "scenario comparator"
+      ],
       "output_policy": "Decision-ready outputs require human review before becoming project records.",
       "status": "active"
     },
@@ -618,9 +2373,19 @@
       "title": "Planning and Authority Pack",
       "domain": "Planning, utilities, building approvals",
       "instructions": "Interrogate constraints, likely authority questions, overlays, and neighbour concerns before committing to design yield.",
-      "constraints_json": ["Use plain-language risk labels", "Flag when formal consultant advice is needed"],
-      "sources_json": ["site_constraints", "archicad_links", "scenario_options"],
-      "tools_json": ["constraint summariser", "RFI generator"],
+      "constraints_json": [
+        "Use plain-language risk labels",
+        "Flag when formal consultant advice is needed"
+      ],
+      "sources_json": [
+        "site_constraints",
+        "archicad_links",
+        "scenario_options"
+      ],
+      "tools_json": [
+        "constraint summariser",
+        "RFI generator"
+      ],
       "output_policy": "Authority-facing material must be reviewed by the nominated human planner.",
       "status": "active"
     },
@@ -630,18 +2395,49 @@
       "title": "Cost Intelligence Pack",
       "domain": "Master cost database, package pricing, source confidence",
       "instructions": "Use linked master costs and source notes to explain pricing confidence, gaps, and package-level risk.",
-      "constraints_json": ["Preserve scenario snapshot history", "Do not invent source rates"],
-      "sources_json": ["master_cost_items", "master_cost_item_sources", "master_cost_templates", "master_code_items"],
-      "tools_json": ["cost code lookup", "rate variance review"],
+      "constraints_json": [
+        "Preserve scenario snapshot history",
+        "Do not invent source rates"
+      ],
+      "sources_json": [
+        "master_cost_items",
+        "master_cost_item_sources",
+        "master_cost_templates",
+        "master_code_items"
+      ],
+      "tools_json": [
+        "cost code lookup",
+        "rate variance review"
+      ],
       "output_policy": "Cost outputs are advisory until accepted into the master database or a scenario revision.",
       "status": "active"
     }
   ],
   "network_profile_knowledge_packs": [
-    { "id": "network-link-kp-feasibility-lead", "project_id": "11111111-1111-1111-1111-111111111111", "profile_id": "network-profile-feasibility-lead", "knowledge_pack_id": "network-kp-feasibility-control" },
-    { "id": "network-link-kp-planning-agent", "project_id": "11111111-1111-1111-1111-111111111111", "profile_id": "network-profile-planning-agent", "knowledge_pack_id": "network-kp-planning-risk" },
-    { "id": "network-link-kp-cost-agent", "project_id": "11111111-1111-1111-1111-111111111111", "profile_id": "network-profile-cost-agent", "knowledge_pack_id": "network-kp-cost-intelligence" },
-    { "id": "network-link-kp-orchestrator", "project_id": "11111111-1111-1111-1111-111111111111", "profile_id": "network-profile-orchestration-agent", "knowledge_pack_id": "network-kp-feasibility-control" }
+    {
+      "id": "network-link-kp-feasibility-lead",
+      "project_id": "11111111-1111-1111-1111-111111111111",
+      "profile_id": "network-profile-feasibility-lead",
+      "knowledge_pack_id": "network-kp-feasibility-control"
+    },
+    {
+      "id": "network-link-kp-planning-agent",
+      "project_id": "11111111-1111-1111-1111-111111111111",
+      "profile_id": "network-profile-planning-agent",
+      "knowledge_pack_id": "network-kp-planning-risk"
+    },
+    {
+      "id": "network-link-kp-cost-agent",
+      "project_id": "11111111-1111-1111-1111-111111111111",
+      "profile_id": "network-profile-cost-agent",
+      "knowledge_pack_id": "network-kp-cost-intelligence"
+    },
+    {
+      "id": "network-link-kp-orchestrator",
+      "project_id": "11111111-1111-1111-1111-111111111111",
+      "profile_id": "network-profile-orchestration-agent",
+      "knowledge_pack_id": "network-kp-feasibility-control"
+    }
   ],
   "network_inquiries": [
     {
@@ -676,7 +2472,10 @@
       "author_label": "Planning Risk Agent",
       "author_type": "agentic",
       "message": "The 4 townhouse option should be tested against rear setback, overlooking, parking, and third-storey bulk before relying on the higher revenue case.",
-      "citations_json": ["constraint-mews-planning-height", "constraint-mews-services-easement"],
+      "citations_json": [
+        "constraint-mews-planning-height",
+        "constraint-mews-services-easement"
+      ],
       "created_at": "2026-05-09T09:00:00.000Z"
     },
     {
@@ -687,7 +2486,9 @@
       "author_label": "Sales and Marketing Agent",
       "author_type": "human",
       "message": "Four smaller dwellings may broaden the buyer pool, but the loss of private open space and parking certainty needs a buyer objection check.",
-      "citations_json": ["sales-mews-4-townhouse"],
+      "citations_json": [
+        "sales-mews-4-townhouse"
+      ],
       "created_at": "2026-05-09T09:18:00.000Z"
     },
     {
@@ -698,7 +2499,10 @@
       "author_label": "Cost Intelligence Agent",
       "author_type": "agentic",
       "message": "Facade, drainage, and preliminaries should be repriced first because they touch both package risk and planning-response scope.",
-      "citations_json": ["cost-item-facade-screen", "cost-item-drainage"],
+      "citations_json": [
+        "cost-item-facade-screen",
+        "cost-item-drainage"
+      ],
       "created_at": "2026-05-09T09:24:00.000Z"
     }
   ],
@@ -727,8 +2531,22 @@
     }
   ],
   "network_work_product_links": [
-    { "id": "network-product-link-planning-brief", "project_id": "11111111-1111-1111-1111-111111111111", "work_product_id": "network-product-planning-risk-brief", "linked_ref_type": "scenario_option", "linked_ref_id": "option-mews-4-townhouse", "notes": "Use with the yield scenario planning review." },
-    { "id": "network-product-link-cost-gap", "project_id": "11111111-1111-1111-1111-111111111111", "work_product_id": "network-product-cost-source-gap", "linked_ref_type": "master_cost_template", "linked_ref_id": "cost-template-townhouse-standard", "notes": "Supports template pricing review." }
+    {
+      "id": "network-product-link-planning-brief",
+      "project_id": "11111111-1111-1111-1111-111111111111",
+      "work_product_id": "network-product-planning-risk-brief",
+      "linked_ref_type": "scenario_option",
+      "linked_ref_id": "option-mews-4-townhouse",
+      "notes": "Use with the yield scenario planning review."
+    },
+    {
+      "id": "network-product-link-cost-gap",
+      "project_id": "11111111-1111-1111-1111-111111111111",
+      "work_product_id": "network-product-cost-source-gap",
+      "linked_ref_type": "master_cost_template",
+      "linked_ref_id": "cost-template-townhouse-standard",
+      "notes": "Supports template pricing review."
+    }
   ],
   "network_agent_cards": [
     {
@@ -738,8 +2556,18 @@
       "model_label": "Configurable LLM",
       "system_instructions": "Act as an advisory planning-risk analyst. Use project evidence and mark uncertainty clearly.",
       "context_policy": "May read site, scenario, constraint, Archicad-link, and inquiry records. Writes require human review.",
-      "tool_policy_json": ["read_project_network", "read_feasibility", "draft_work_product"],
-      "output_schema_json": { "required": ["risk_summary", "evidence", "open_questions"] },
+      "tool_policy_json": [
+        "read_project_network",
+        "read_feasibility",
+        "draft_work_product"
+      ],
+      "output_schema_json": {
+        "required": [
+          "risk_summary",
+          "evidence",
+          "open_questions"
+        ]
+      },
       "status": "active"
     },
     {
@@ -749,8 +2577,18 @@
       "model_label": "Configurable LLM",
       "system_instructions": "Act as an advisory cost-intelligence analyst. Never mutate scenario snapshots without approval.",
       "context_policy": "May read master cost, code catalogue, source, template, and scenario cost plan records.",
-      "tool_policy_json": ["read_cost_database", "compare_templates", "draft_work_product"],
-      "output_schema_json": { "required": ["cost_risks", "source_gaps", "recommended_checks"] },
+      "tool_policy_json": [
+        "read_cost_database",
+        "compare_templates",
+        "draft_work_product"
+      ],
+      "output_schema_json": {
+        "required": [
+          "cost_risks",
+          "source_gaps",
+          "recommended_checks"
+        ]
+      },
       "status": "active"
     }
   ],
@@ -768,9 +2606,27 @@
     }
   ],
   "network_agent_session_participants": [
-    { "id": "network-agent-participant-planning", "project_id": "11111111-1111-1111-1111-111111111111", "session_id": "network-agent-session-yield-risk", "profile_id": "network-profile-planning-agent", "session_role": "planning critic" },
-    { "id": "network-agent-participant-cost", "project_id": "11111111-1111-1111-1111-111111111111", "session_id": "network-agent-session-yield-risk", "profile_id": "network-profile-cost-agent", "session_role": "cost critic" },
-    { "id": "network-agent-participant-orchestrator", "project_id": "11111111-1111-1111-1111-111111111111", "session_id": "network-agent-session-yield-risk", "profile_id": "network-profile-orchestration-agent", "session_role": "facilitator" }
+    {
+      "id": "network-agent-participant-planning",
+      "project_id": "11111111-1111-1111-1111-111111111111",
+      "session_id": "network-agent-session-yield-risk",
+      "profile_id": "network-profile-planning-agent",
+      "session_role": "planning critic"
+    },
+    {
+      "id": "network-agent-participant-cost",
+      "project_id": "11111111-1111-1111-1111-111111111111",
+      "session_id": "network-agent-session-yield-risk",
+      "profile_id": "network-profile-cost-agent",
+      "session_role": "cost critic"
+    },
+    {
+      "id": "network-agent-participant-orchestrator",
+      "project_id": "11111111-1111-1111-1111-111111111111",
+      "session_id": "network-agent-session-yield-risk",
+      "profile_id": "network-profile-orchestration-agent",
+      "session_role": "facilitator"
+    }
   ],
   "network_agent_messages": [
     {
@@ -793,7 +2649,10 @@
       "tool_name": "read_feasibility_portfolio",
       "input_summary": "Compare Mews Lane 3TH and 4TH options.",
       "output_summary": "Returned cost ranges, GFA, dwellings, sales assumptions, and linked template data.",
-      "evidence_refs_json": ["option-mews-3-townhouse", "option-mews-4-townhouse"]
+      "evidence_refs_json": [
+        "option-mews-3-townhouse",
+        "option-mews-4-townhouse"
+      ]
     }
   ],
   "network_agent_outputs": [
@@ -805,7 +2664,10 @@
       "output_type": "roundtable synthesis",
       "title": "Initial yield-risk synthesis",
       "summary": "Proceed with the 4 townhouse option only after planning massing tests and targeted subcontractor repricing.",
-      "output_json": { "confidence": "medium", "requires_human_review": true },
+      "output_json": {
+        "confidence": "medium",
+        "requires_human_review": true
+      },
       "status": "draft"
     }
   ],

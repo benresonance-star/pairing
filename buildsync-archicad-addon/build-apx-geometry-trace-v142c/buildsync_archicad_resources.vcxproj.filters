@@ -1,0 +1,23 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="18.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <CustomBuild Include="C:\Users\User\Desktop\Pairing\buildsync-archicad-addon\build-apx-geometry-trace-v142c\CMakeFiles\067e35bd07a5e9433a75cc03c7eabc0f\BuildSyncAssemblyWrapper.res.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="C:\Users\User\Desktop\Pairing\buildsync-archicad-addon\build-apx-geometry-trace-v142c\CMakeFiles\489feac6fd0fc237429aec0a7b6de083\buildsync_archicad_resources.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="C:\Users\User\Desktop\Pairing\buildsync-archicad-addon\CMakeLists.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="C:\Users\User\Desktop\Pairing\buildsync-archicad-addon\RFIX.win\BuildSyncAssemblyWrapper.rc2" />
+    <None Include="C:\Users\User\Desktop\Pairing\buildsync-archicad-addon\RFIX\BuildSyncAssemblyWrapperFix.grc" />
+    <None Include="C:\Users\User\Desktop\Pairing\buildsync-archicad-addon\RINT\BuildSyncAssemblyWrapper.grc" />
+    <None Include="C:\Users\User\Desktop\Pairing\buildsync-archicad-addon\build-apx-geometry-trace-v142c\CMakeFiles\buildsync_archicad_resources" />
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="CMake Rules">
+      <UniqueIdentifier>{CEF2C21C-799C-39CE-BE81-169C112D614C}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>

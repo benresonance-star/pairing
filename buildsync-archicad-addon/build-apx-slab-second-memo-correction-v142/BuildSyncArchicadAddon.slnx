@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Solution>
+	<Configurations>
+		<BuildType Name="Debug"/>
+		<BuildType Name="Release"/>
+		<BuildType Name="MinSizeRel"/>
+		<BuildType Name="RelWithDebInfo"/>
+		<Platform Name="x64"/>
+	</Configurations>
+	<Project Path="ALL_BUILD.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="f89ae59e-ed9a-3c29-b165-43a1a03c7e6f" DefaultStartup="true">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="buildsync_addon_shell_tests.vcxproj"/>
+		<BuildDependency Project="buildsync_archicad_addon.vcxproj"/>
+		<BuildDependency Project="buildsync_core.vcxproj"/>
+		<BuildDependency Project="buildsync_core_tests.vcxproj"/>
+		<BuildDependency Project="buildsync_native_runtime_tests.vcxproj"/>
+		<BuildDependency Project="buildsync_sync_tests.vcxproj"/>
+		<Build Solution="Debug|*" Project="false"/>
+		<Build Solution="Release|*" Project="false"/>
+		<Build Solution="MinSizeRel|*" Project="false"/>
+		<Build Solution="RelWithDebInfo|*" Project="false"/>
+	</Project>
+	<Project Path="RUN_TESTS.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="ec449c3f-43fb-33ff-ab65-80effe562c64">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<Build Solution="Debug|*" Project="false"/>
+		<Build Solution="Release|*" Project="false"/>
+		<Build Solution="MinSizeRel|*" Project="false"/>
+		<Build Solution="RelWithDebInfo|*" Project="false"/>
+	</Project>
+	<Project Path="ZERO_CHECK.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="8283b373-c49a-3b17-a0a3-a37df9499745"/>
+	<Project Path="buildsync_addon_shell_tests.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="0f3e2dd1-896f-3cc8-8514-da85337e7333">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="buildsync_core.vcxproj"/>
+	</Project>
+	<Project Path="buildsync_archicad_addon.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="84b2c2d8-447c-303a-806d-dddcb220dd1d">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="buildsync_archicad_resources.vcxproj"/>
+		<BuildDependency Project="buildsync_core.vcxproj"/>
+	</Project>
+	<Project Path="buildsync_archicad_resources.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="a717fabb-e3f1-353a-8d5e-a1239eeceea2">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+	</Project>
+	<Project Path="buildsync_core.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="d5fd5528-7a72-38b5-94e9-f88b2a03c0cd">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+	</Project>
+	<Project Path="buildsync_core_tests.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="42fe5761-5dda-3521-aa04-d93cc8519858">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="buildsync_core.vcxproj"/>
+	</Project>
+	<Project Path="buildsync_native_runtime_tests.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="3f88741c-8062-3565-9587-918fc8cf469a">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="buildsync_core.vcxproj"/>
+	</Project>
+	<Project Path="buildsync_sync_tests.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="4761b936-6dc1-377b-bdca-61a383a2b33c">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="buildsync_core.vcxproj"/>
+	</Project>
+</Solution>

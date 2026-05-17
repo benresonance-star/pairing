@@ -193,12 +193,13 @@ export default async function ArchicadIntegrationPage({ searchParams }: PageProp
 
   return (
     <section className="panel">
-      <div className="section-heading">
-        <div>
-          <h2>Archicad Live Link</h2>
+      <div className="section-heading app-title-panel app-title-panel--compact">
+        <div className="app-title-panel__content">
+          <p className="eyebrow">Integration Control</p>
+          <h2>Archicad Sync</h2>
           <p className="muted">
-            Control the local desktop companion to connect an open Archicad session, run connector
-            inbound/outbound, and inspect bridge health.
+            Connect the local desktop companion, run inbound inventory refreshes, queue approved metadata
+            write-back, and inspect bridge health.
           </p>
         </div>
         <Link className="secondary-link" href="/">

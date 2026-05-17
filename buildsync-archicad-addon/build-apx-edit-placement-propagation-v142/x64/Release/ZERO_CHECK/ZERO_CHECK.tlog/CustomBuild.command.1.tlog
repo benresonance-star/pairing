@@ -1,0 +1,10 @@
+^C:\USERS\USER\DESKTOP\PAIRING\BUILDSYNC-ARCHICAD-ADDON\BUILD-APX-EDIT-PLACEMENT-PROPAGATION-V142\CMAKEFILES\704ADB902F34DBC09A57A8C99F03C8B6\GENERATE.STAMP.RULE
+setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -SC:/Users/User/Desktop/Pairing/buildsync-archicad-addon -BC:/Users/User/Desktop/Pairing/buildsync-archicad-addon/build-apx-edit-placement-propagation-v142 --check-stamp-list CMakeFiles/generate.stamp.list --vs-solution-file C:/Users/User/Desktop/Pairing/buildsync-archicad-addon/build-apx-edit-placement-propagation-v142/BuildSyncArchicadAddon.slnx
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd

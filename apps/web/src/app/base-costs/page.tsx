@@ -25,9 +25,10 @@ import {
   updateMasterCodeItem,
   updateMasterDatabaseItem,
   updateMasterDatabaseItemSource,
-  updateMasterDatabaseTargetLink
+  updateMasterDatabaseTargetLink,
+  getAssumptionGraphData
 } from "../../lib/demo-store";
-import { BaseCostsWorkspace } from "./base-costs-workspace";
+import { AssumptionsWorkspace } from "./assumptions-workspace";
 
 function textValue(formData: FormData, key: string): string {
   return String(formData.get(key) ?? "").trim();
@@ -339,11 +340,12 @@ async function deleteTemplateItemLinkAction(formData: FormData) {
 }
 
 export default async function BaseCostsPage() {
-  const portfolio = await getFeasibilityPortfolio();
+  const [portfolio, assumptionGraph] = await Promise.all([getFeasibilityPortfolio(), getAssumptionGraphData()]);
 
   return (
-    <BaseCostsWorkspace
+    <AssumptionsWorkspace
       portfolio={portfolio}
+      graph={assumptionGraph}
       actions={{
         createTemplateAction,
         updateTemplateAction,

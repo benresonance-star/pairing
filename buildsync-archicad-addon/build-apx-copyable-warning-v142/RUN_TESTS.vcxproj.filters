@@ -1,0 +1,13 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="18.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <CustomBuild Include="C:\Users\User\Desktop\Pairing\buildsync-archicad-addon\build-apx-copyable-warning-v142\CMakeFiles\dff33a031372d9f3c33f99e7cf117564\RUN_TESTS_force.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="CMake Rules">
+      <UniqueIdentifier>{67332EFC-5648-35E9-8514-2CBB27A0D8C1}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>

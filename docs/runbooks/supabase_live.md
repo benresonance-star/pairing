@@ -49,7 +49,28 @@ This script:
 - applies all SQL files in `database/migrations/`
 - seeds the global master code catalog used by Base Costs dropdowns
 - removes the current `PROJECT_ID` from the database if it already exists
-- reseeds the project using `shared/examples/demo_state.seed.json`
+- reseeds the project, including preview-derived assumption graph records, using `shared/examples/demo_state.seed.json`
+
+## Seed assumptions only
+
+To populate the Assumptions page without wiping the rest of the project, run:
+
+```powershell
+npm run supabase:seed:assumptions
+```
+
+This command applies any pending migrations, reads the preview-derived assumption graph records from `shared/examples/demo_state.seed.json`, rewrites them to the active `PROJECT_ID`, deletes/replaces only those seeded assumption graph IDs, and inserts:
+
+- site, scenario, and feasibility templates
+- feasibility branches
+- assumption templates, applications, validations, evidence, and actions
+- simulation templates/runs/samples when present
+
+## Clear sites only (keep schema and other project data)
+
+To drop **all rows in `public.sites`** for your `PROJECT_ID` (scenario options, constraints, resources, etc. cascade where defined in migrations), run the SQL in [`scripts/dev/clear_sites_for_project.sql`](../../scripts/dev/clear_sites_for_project.sql) after editing the UUID to match `PROJECT_ID`.
+
+Then use **Sites → Create site** in the app; with `CCP_DATA_SOURCE=supabase`, new sites persist in Postgres (the app no longer falls back to demo JSON when the site list is empty).
 
 ## Web app
 

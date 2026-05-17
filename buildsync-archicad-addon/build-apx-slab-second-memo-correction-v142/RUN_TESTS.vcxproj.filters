@@ -1,0 +1,13 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="18.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <CustomBuild Include="C:\Users\User\Desktop\Pairing\buildsync-archicad-addon\build-apx-slab-second-memo-correction-v142\CMakeFiles\56eb3ed03c15621cf49adeefc6829ede\RUN_TESTS_force.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="CMake Rules">
+      <UniqueIdentifier>{82A99659-0340-3051-B662-FA0729CA3216}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>

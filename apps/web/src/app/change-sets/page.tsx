@@ -55,16 +55,20 @@ export default async function ChangeSetsPage({ searchParams }: PageProps) {
 
   return (
     <section className="panel">
-      <h2>Change Sets</h2>
-      <p className="muted">
-        Move package assignment changes through draft, submit, approve, and queue. Once queued,
-        run the connector outbound command to record the `CCP_PackageID` write-back payload.
-      </p>
-      <p className="muted">
-        Archicad bridge: <strong>{bridgeReachable ? "reachable" : "not reachable"}</strong>. Manage
-        connection and run sync controls on the <Link href="/integrations/archicad">Integrations</Link>{" "}
-        tab.
-      </p>
+      <div className="app-title-panel app-title-panel--compact">
+        <div className="app-title-panel__content">
+          <p className="eyebrow">Approval Queue</p>
+          <h2>Model Change Approvals</h2>
+          <p className="muted">
+            Review governed CCP metadata updates intended for Archicad write-back. Move package assignment
+            changes through draft, submit, approve, and queue before outbound sync records the `CCP_PackageID` payload.
+          </p>
+          <p className="muted">
+            Archicad bridge: <strong>{bridgeReachable ? "reachable" : "not reachable"}</strong>. Manage
+            connection and run sync controls on the <Link href="/integrations/archicad">Archicad Sync</Link> page.
+          </p>
+        </div>
+      </div>
       {selectedScenario ? (
         <div className="notice">
           Active scenario: <strong>{selectedScenario.name}</strong> ({selectedScenario.status})

@@ -954,11 +954,14 @@ export default function LinearScheduleClient({
 
   const filterPanel = (
     <section className="panel">
-      <div>
+      <div className="app-title-panel app-title-panel--compact">
+        <div className="app-title-panel__content">
+          <p className="eyebrow">Schedule Controls</p>
         <h2>Schedule Filters</h2>
         <p className="muted">
           Filter the linked stage flow, linear schedule, Gantt, and detail view from one place.
         </p>
+        </div>
       </div>
 
       <form className="filter-row" method="get">
@@ -1022,8 +1025,9 @@ export default function LinearScheduleClient({
 
   const flowPanel = (
     <section className="panel flow-panel">
-      <div className="flow-header">
-        <div>
+      <div className="flow-header app-title-panel app-title-panel--compact">
+        <div className="app-title-panel__content">
+          <p className="eyebrow">Stage Logic</p>
           <h3>Stage Flow</h3>
           <p className="muted">
             High-level sequencing map for the townhouse program. Hover or pin a stage to highlight
@@ -1147,8 +1151,9 @@ export default function LinearScheduleClient({
       {flowPanel}
 
       <section className="panel">
-      <div className="schedule-header">
-        <div className="schedule-header-main">
+      <div className="schedule-header app-title-panel app-title-panel--compact">
+        <div className="schedule-header-main app-title-panel__content">
+          <p className="eyebrow">Programme View</p>
           <h2>Linear Schedule</h2>
           {!embedded ? (
             <>
@@ -1712,8 +1717,9 @@ export default function LinearScheduleClient({
       </section>
 
       <section className="panel gantt-panel">
-          <div className="gantt-header">
-            <div>
+          <div className="gantt-header app-title-panel app-title-panel--compact">
+            <div className="app-title-panel__content">
+              <p className="eyebrow">Linked Timeline</p>
               <h3>Linked Gantt View</h3>
               {!embedded ? (
                 <p className="muted">
@@ -1872,6 +1878,61 @@ export default function LinearScheduleClient({
               fill="transparent"
               onPointerDown={(event) => startGanttColumnResize("group", event)}
             />
+
+            {data.dependencies.map((dependency) => {
+              const predecessorIndex = visibleGanttRows.findIndex(
+                (row) => row.activityId === dependency.predecessorActivityId
+              );
+              const successorIndex = visibleGanttRows.findIndex(
+                (row) => row.activityId === dependency.successorActivityId
+              );
+              const predecessor = data.activities.find((activity) => activity.id === dependency.predecessorActivityId);
+              const successor = data.activities.find((activity) => activity.id === dependency.successorActivityId);
+              if (predecessorIndex < 0 || successorIndex < 0 || !predecessor || !successor) {
+                return null;
+              }
+              const x1 = xForDate(
+                predecessor.finishDate,
+                ganttStartMs,
+                ganttEndMs,
+                GANTT_CHART_WIDTH,
+                ganttLeftGutter,
+                GANTT_RIGHT_GUTTER
+              );
+              const x2 = xForDate(
+                successor.startDate,
+                ganttStartMs,
+                ganttEndMs,
+                GANTT_CHART_WIDTH,
+                ganttLeftGutter,
+                GANTT_RIGHT_GUTTER
+              );
+              const y1 = GANTT_TOP_GUTTER + GANTT_HEADER_CLEARANCE + predecessorIndex * GANTT_ROW_HEIGHT;
+              const y2 = GANTT_TOP_GUTTER + GANTT_HEADER_CLEARANCE + successorIndex * GANTT_ROW_HEIGHT;
+              const midX = Math.max(x1 + 16, Math.min(x2 - 8, x1 + Math.abs(x2 - x1) / 2));
+              const active =
+                highlightedActivityIds.has(dependency.predecessorActivityId) ||
+                highlightedActivityIds.has(dependency.successorActivityId);
+
+              return (
+                <g key={dependency.id}>
+                  <title>{`${predecessor.activityName} -> ${successor.activityName}`}</title>
+                  <path
+                    d={`M ${x1} ${y1} L ${midX} ${y1} L ${midX} ${y2} L ${x2} ${y2}`}
+                    fill="none"
+                    stroke={active ? "#ffffff" : "#85f5d5"}
+                    strokeOpacity={active ? 0.85 : 0.45}
+                    strokeWidth={active ? 1.8 : 1.2}
+                    strokeDasharray="4 4"
+                  />
+                  <polygon
+                    points={`${x2},${y2} ${x2 - 6},${y2 - 4} ${x2 - 6},${y2 + 4}`}
+                    fill={active ? "#ffffff" : "#85f5d5"}
+                    opacity={active ? 0.9 : 0.55}
+                  />
+                </g>
+              );
+            })}
 
             {visibleGanttRows.map((row, index) => {
               const y = GANTT_TOP_GUTTER + GANTT_HEADER_CLEARANCE + index * GANTT_ROW_HEIGHT;

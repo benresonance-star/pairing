@@ -1,0 +1,10 @@
+^C:\USERS\USER\DESKTOP\PAIRING\BUILDSYNC-ARCHICAD-ADDON\BUILD-APX-DUPLICATE-SLAB-FIX\CMAKEFILES\4A3248C304878335D67E0C054B0F9456\GENERATE.STAMP.RULE
+setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -SC:/Users/User/Desktop/Pairing/buildsync-archicad-addon -BC:/Users/User/Desktop/Pairing/buildsync-archicad-addon/build-apx-duplicate-slab-fix --check-stamp-list CMakeFiles/generate.stamp.list --vs-solution-file C:/Users/User/Desktop/Pairing/buildsync-archicad-addon/build-apx-duplicate-slab-fix/BuildSyncArchicadAddon.slnx
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd

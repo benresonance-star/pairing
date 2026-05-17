@@ -1,33 +1,40 @@
-# Archicad Construction Control Plane MVP
+# Construction Feasibility Control Plane
 
-This repository contains the implementation scaffold for the Archicad Construction Control Plane (CCP) MVP.
+This repository contains the current Construction Feasibility Control Plane MVP. The app has grown from an Archicad Construction Control Plane vertical slice into a broader workflow for evaluating development sites, scenario options, embedded feasibility evidence, construction schedules, human/agentic Project Network review, and governed Archicad metadata write-back.
 
-The system is intentionally split into four clear responsibilities:
+The system is intentionally split into clear responsibilities:
 
-- `specs/`: source-of-truth product and integration specifications
+- `specs/`: product and integration specifications; these must be reconciled with code before being treated as current
 - `database/`: Supabase schema, policies, and helper functions
 - `apps/web/`: the external operational control-plane UI
 - `services/connector/`: the Python connector that reads from and writes to Archicad
+- `buildsync-archicad-addon/`: native Archicad add-on foundation for BuildSync assembly workflows
+- `python_listener/`: local listener for BuildSync/native-side events and commands
+- `shared/contracts/`: shared enums, schemas, and TypeScript contracts
+- `shared/examples/`: demo state, runtime files, and local validation fixtures
 
 ## Current build focus
 
-The implementation follows a vertical-slice-first strategy:
+The current product spine is:
 
-1. normalize the repo and document system boundaries
-2. establish the Supabase schema and shared contracts
-3. prove a first end-to-end slice for `zones` plus a small element subset
-4. write back only approved `CCP_PackageID` changes first
+1. select a development site from the opportunity pipeline
+2. work scenario options with embedded feasibility evidence
+3. compare options across sites in the feasibility decision board
+4. review assumptions, risks, and recommendations through Project Network
+5. inspect synced Archicad inventory and approve governed model metadata changes
+6. sync approved, allowlisted metadata back through Archicad Connect
 
-The current implementation uses demo adapters and runtime files for local validation. Real Supabase and live Archicad integrations remain future work behind the same architecture boundaries.
+Demo JSON remains the default local data source. Supabase mode, connector smokes, companion/bridge tooling, and BuildSync/native foundations are in-tree and should be validated against the same workflow boundaries before expanding product scope.
 
-The repo now also includes a first read-only linear scheduling path in the web app, driven by explicit location-axis and plotted-activity metadata rather than direct geometry rendering.
+The web app currently includes:
 
-That current demo path is modeled as a four-townhouse Melbourne-style development and now includes:
-
-- a linked time-location chart and companion Gantt
-- a high-level stage-flow panel rendered from explicit schedule-view metadata
-- package checkbox filtering, including multi-package selection
-- automatic refresh of the mutable demo runtime when the seed file is newer
+- site opportunity pipeline and scenario options
+- scenario-level feasibility cost bands, sales assumptions, margins, and planning-fit signals
+- Base Data cost templates, master code/catalog data, and model-target cost links
+- read-only linear scheduling with time-location, Gantt, stage-flow, and package filters
+- Archicad Connect inventory, operational state, governed model change approvals, and recorded writes
+- Project Network inquiries, profiles, knowledge packs, agentic review, and work products
+- Archicad Sync desktop companion / bridge controls for inbound, outbound, and snapshot filtering
 
 ## System boundaries
 
@@ -35,6 +42,7 @@ That current demo path is modeled as a four-townhouse Melbourne-style developmen
 - Supabase owns operational state, scenarios, approvals, and audit history
 - the web app edits operational data only through change sets
 - the connector is the only component allowed to write approved CCP properties back to Archicad
+- BuildSync/native-side events must use explicit contracts when crossing into Python or web-owned state
 
 ## Repository layout
 
@@ -44,6 +52,8 @@ docs/                  Architecture notes, ADRs, runbooks
 apps/web/              Next.js control-plane UI
 services/connector/    Python connector
 database/              SQL migrations, policies, helper functions
+buildsync-archicad-addon/ Native Archicad add-on foundation
+python_listener/       Local listener for BuildSync/native event capture
 shared/contracts/      Shared enums and payload contracts
 shared/examples/       Example data for local development and validation
 scripts/               Local development and CI helpers
@@ -59,6 +69,7 @@ Start with the runbooks in `docs/runbooks/`:
 - `archicad_live_adapter.md`
 - `archicad_validation.md`
 - `scenario_clone_validation.md`
+- `primary_workflow_acceptance.md`
 
 ## Security documentation
 
@@ -69,4 +80,6 @@ Use these docs alongside the specs during implementation:
 
 ## Source of truth
 
-The files in `specs/` must remain the primary reference. Implementation should not silently diverge from those documents.
+The current implementation, migrations, shared contracts, tests, and runbooks are the baseline for near-term work. The files in `specs/` remain important design references, but several are behind the app's current direction and must be audited before being used as authoritative acceptance criteria.
+
+Use `docs/product_focus_assessment.md` and `docs/code_modularity_assessment.md` before adding features or reshaping the workflow.

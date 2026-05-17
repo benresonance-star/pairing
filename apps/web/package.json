@@ -6,9 +6,12 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "test": "tsx --test src/lib/runtime-state.test.ts src/lib/linear-schedule.test.ts src/lib/feasibility.test.ts src/lib/project-network.test.ts"
+    "test": "tsx --test src/lib/runtime-state.test.ts src/lib/linear-schedule.test.ts src/lib/feasibility.test.ts src/lib/project-network.test.ts src/lib/primary-workflow.test.ts src/lib/assumption-graph.test.ts"
   },
   "dependencies": {
+    "@dnd-kit/core": "^6.3.1",
+    "@dnd-kit/sortable": "^10.0.0",
+    "@dnd-kit/utilities": "^3.2.2",
     "@supabase/ssr": "^0.10.2",
     "@supabase/supabase-js": "^2.103.0",
     "next": "^15.2.0",

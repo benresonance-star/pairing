@@ -1,0 +1,10 @@
+^C:\USERS\USER\DESKTOP\PAIRING\BUILDSYNC-ARCHICAD-ADDON\BUILD-SDK-VALIDATED\CMAKEFILES\85D21E9B1C8C97C92FF8DF428353FBD5\GENERATE.STAMP.RULE
+setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -SC:/Users/User/Desktop/Pairing/buildsync-archicad-addon -BC:/Users/User/Desktop/Pairing/buildsync-archicad-addon/build-sdk-validated --check-stamp-list CMakeFiles/generate.stamp.list --vs-solution-file C:/Users/User/Desktop/Pairing/buildsync-archicad-addon/build-sdk-validated/BuildSyncArchicadAddon.slnx
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd

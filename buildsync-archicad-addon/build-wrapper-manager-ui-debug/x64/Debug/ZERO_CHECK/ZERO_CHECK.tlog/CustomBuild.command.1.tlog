@@ -1,0 +1,10 @@
+^C:\USERS\USER\DESKTOP\PAIRING\BUILDSYNC-ARCHICAD-ADDON\BUILD-WRAPPER-MANAGER-UI-DEBUG\CMAKEFILES\9B5F28CC33E8D6CDEB37BE5004075EEB\GENERATE.STAMP.RULE
+setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -SC:/Users/User/Desktop/Pairing/buildsync-archicad-addon -BC:/Users/User/Desktop/Pairing/buildsync-archicad-addon/build-wrapper-manager-ui-debug --check-stamp-list CMakeFiles/generate.stamp.list --vs-solution-file C:/Users/User/Desktop/Pairing/buildsync-archicad-addon/build-wrapper-manager-ui-debug/BuildSyncArchicadAddon.slnx
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd

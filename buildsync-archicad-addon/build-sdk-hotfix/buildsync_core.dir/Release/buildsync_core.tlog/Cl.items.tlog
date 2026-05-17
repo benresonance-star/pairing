@@ -1,0 +1,10 @@
+C:\Users\User\Desktop\Pairing\buildsync-archicad-addon\src\addon\MenuCommands.cpp;C:\Users\User\Desktop\Pairing\buildsync-archicad-addon\build-sdk-hotfix\buildsync_core.dir\Release\MenuCommands.obj
+C:\Users\User\Desktop\Pairing\buildsync-archicad-addon\src\addon\NativeRuntime.cpp;C:\Users\User\Desktop\Pairing\buildsync-archicad-addon\build-sdk-hotfix\buildsync_core.dir\Release\NativeRuntime.obj
+C:\Users\User\Desktop\Pairing\buildsync-archicad-addon\src\archicad_adapter\FileRegistryStorage.cpp;C:\Users\User\Desktop\Pairing\buildsync-archicad-addon\build-sdk-hotfix\buildsync_core.dir\Release\FileRegistryStorage.obj
+C:\Users\User\Desktop\Pairing\buildsync-archicad-addon\src\core\AssemblyRegistry.cpp;C:\Users\User\Desktop\Pairing\buildsync-archicad-addon\build-sdk-hotfix\buildsync_core.dir\Release\AssemblyRegistry.obj
+C:\Users\User\Desktop\Pairing\buildsync-archicad-addon\src\core\NamingRules.cpp;C:\Users\User\Desktop\Pairing\buildsync-archicad-addon\build-sdk-hotfix\buildsync_core.dir\Release\NamingRules.obj
+C:\Users\User\Desktop\Pairing\buildsync-archicad-addon\src\core\AssemblyGraph.cpp;C:\Users\User\Desktop\Pairing\buildsync-archicad-addon\build-sdk-hotfix\buildsync_core.dir\Release\AssemblyGraph.obj
+C:\Users\User\Desktop\Pairing\buildsync-archicad-addon\src\core\AssemblyValidator.cpp;C:\Users\User\Desktop\Pairing\buildsync-archicad-addon\build-sdk-hotfix\buildsync_core.dir\Release\AssemblyValidator.obj
+C:\Users\User\Desktop\Pairing\buildsync-archicad-addon\src\sync\JsonSerializer.cpp;C:\Users\User\Desktop\Pairing\buildsync-archicad-addon\build-sdk-hotfix\buildsync_core.dir\Release\JsonSerializer.obj
+C:\Users\User\Desktop\Pairing\buildsync-archicad-addon\src\sync\PythonListenerClient.cpp;C:\Users\User\Desktop\Pairing\buildsync-archicad-addon\build-sdk-hotfix\buildsync_core.dir\Release\PythonListenerClient.obj
+C:\Users\User\Desktop\Pairing\buildsync-archicad-addon\src\sync\SyncQueue.cpp;C:\Users\User\Desktop\Pairing\buildsync-archicad-addon\build-sdk-hotfix\buildsync_core.dir\Release\SyncQueue.obj

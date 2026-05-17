@@ -11,6 +11,7 @@ import {
   createSiteScenarioOption,
   deleteSiteResource,
   deleteScenarioOption,
+  getAssumptionGraphData,
   getFeasibilityPortfolio,
   upsertSitePlanningHighlight,
   uploadSiteResourceFile,
@@ -18,6 +19,15 @@ import {
   updateSiteResource,
   updateScenarioOption
 } from "../../../lib/demo-store";
+import { AssumptionGraphPanel } from "../../assumption-graph-panel";
+
+import { PlanningIntelligenceEditPanel } from "./planning-intelligence-edit-panel";
+import type { PlanningMatrixContent } from "./planning-matrix-flags";
+import {
+  compactMatrixCellFlags,
+  isPlanningMatrixCellFlagged,
+  matrixCellFlagsFromForm
+} from "./planning-matrix-flags";
 
 type PageProps = {
   params: Promise<{ siteId: string }>;
@@ -264,7 +274,7 @@ async function upsertSitePlanningHighlightAction(formData: FormData) {
   "use server";
 
   const siteId = String(formData.get("siteId") ?? "");
-  let nextUrl = `/sites/${siteId}?status=${encodeURIComponent("Planning highlights saved")}`;
+  let nextUrl = `/sites/${siteId}?status=${encodeURIComponent("Saved")}`;
   try {
     await upsertSitePlanningHighlight({
       siteId,
@@ -280,10 +290,12 @@ async function upsertSitePlanningHighlightAction(formData: FormData) {
       floodStatus: emptyToNull(formData.get("floodStatus")),
       bushfireStatus: emptyToNull(formData.get("bushfireStatus")),
       vegetationStatus: emptyToNull(formData.get("vegetationStatus")),
+      utilitiesStatus: emptyToNull(formData.get("utilitiesStatus")),
       easements: emptyToNull(formData.get("easements")),
       planningSummary: emptyToNull(formData.get("planningSummary")),
       sourceDate: emptyToNull(formData.get("sourceDate")),
-      status: "active"
+      status: "active",
+      matrixCellFlags: compactMatrixCellFlags(matrixCellFlagsFromForm(formData))
     });
     revalidateSitePaths(siteId);
   } catch (error) {
@@ -350,7 +362,7 @@ function formatDateLabel(value: string | null | undefined): string {
 
 export default async function SiteDetailPage({ params, searchParams }: PageProps) {
   const { siteId } = await params;
-  const portfolio = await getFeasibilityPortfolio();
+  const [portfolio, assumptionGraph] = await Promise.all([getFeasibilityPortfolio(), getAssumptionGraphData()]);
   const site = portfolio.sites.find((item) => item.id === siteId) ?? null;
   const query = (await searchParams) ?? {};
   const status = typeof query.status === "string" ? query.status : null;
@@ -370,12 +382,27 @@ export default async function SiteDetailPage({ params, searchParams }: PageProps
   const reportResources = activeResources.filter((resource) => resource.resource_type === "property_report");
   const primaryReport = reportResources[0] ?? null;
   const siteInfoDate = site.siteDate ?? planning?.source_date ?? null;
+  const planningMatrixContent: PlanningMatrixContent = {
+    council: planning?.council ?? "n/a",
+    zoning: planning?.zoning ?? "n/a",
+    overlays: overlays.length > 0 ? overlays.join(", ") : "n/a",
+    siteArea: formatNumber(planning?.site_area_sqm ?? site.siteAreaSqm, " sqm"),
+    planningScheme: planning?.planning_scheme ?? "n/a",
+    heritage: planning?.heritage_status ?? "n/a",
+    flood: planning?.flood_status ?? "n/a",
+    bushfire: planning?.bushfire_status ?? "n/a",
+    vegetation: planning?.vegetation_status ?? "n/a",
+    easements: planning?.easements ?? "n/a",
+    utilities: planning?.utilities_status?.trim() || "n/a",
+    topography: planning?.lot_plan ?? "n/a"
+  };
 
   return (
     <div className="site-dashboard-shell">
-      <section className="site-dashboard-hero">
-        <div className="site-hero-main">
+      <section className="site-dashboard-hero app-title-panel app-title-panel--grid">
+        <div className="site-hero-main app-title-panel__content">
           <div>
+            <p className="eyebrow">Site Intelligence</p>
             <h2>{site.name}</h2>
             <p className="site-hero-address">
               {site.address}
@@ -386,11 +413,17 @@ export default async function SiteDetailPage({ params, searchParams }: PageProps
               <span><strong>Site Code</strong>{site.siteCode ?? site.id}</span>
             </div>
             <p className="site-hero-summary">{site.summary ?? "No site summary has been captured yet."}</p>
+            <p className="muted">
+              This is the local opportunity room for site-specific intelligence, resources, constraints,
+              scenario options, and review evidence.
+            </p>
           </div>
         </div>
         <div className="site-hero-actions">
           <Link className="outline-link" href={isAddingResource ? `/sites/${site.id}` : `/sites/${site.id}?resource=new`}>Add Resource</Link>
           <Link className="outline-link" href={`/sites/${site.id}?resource=new`}>Add Report</Link>
+          <Link className="outline-link" href="/feasibility">Compare Feasibility</Link>
+          <Link className="outline-link" href={`/project-network?linkedRefType=site&linkedRefId=${site.id}`}>Project Network</Link>
           <Link className="outline-link" href={isEditingSite ? `/sites/${site.id}` : `/sites/${site.id}?edit=site`}>Edit Site</Link>
           <Link className="outline-link" href="/sites">Back to sites</Link>
         </div>
@@ -401,92 +434,101 @@ export default async function SiteDetailPage({ params, searchParams }: PageProps
 
       <div className="site-dashboard-grid">
         <section className="site-dashboard-panel site-dashboard-panel--wide">
-          <div className="site-panel-title">
-            <h2>Planning</h2>
+          <AssumptionGraphPanel
+            graph={assumptionGraph}
+            refType="site"
+            refId={site.id}
+            title="Deal Assumptions"
+            description="Site branch assumptions pulled from the Assumptions library, including participant validation, evidence needs, and open actions."
+          />
+        </section>
+
+        <section className="site-dashboard-panel site-dashboard-panel--wide">
+          <div className="site-panel-title app-title-panel app-title-panel--compact">
+            <div className="app-title-panel__content">
+              <p className="eyebrow">Planning Review</p>
+              <h2>Site Planning Intelligence</h2>
+            </div>
             <Link className="site-mini-action" href={isEditingPlanning ? `/sites/${site.id}` : `/sites/${site.id}?edit=planning`}>
               {isEditingPlanning ? "Cancel" : "Edit"}
             </Link>
           </div>
-          <div className="site-highlight-matrix">
-            <div><span>Council</span><strong>{planning?.council ?? "n/a"}</strong></div>
-            <div><span>Zoning</span><strong>{planning?.zoning ?? "n/a"}</strong></div>
-            <div><span>Overlays</span><strong>{overlays.length > 0 ? overlays.join(", ") : "n/a"}</strong></div>
-            <div><span>Site Area</span><strong>{formatNumber(planning?.site_area_sqm ?? site.siteAreaSqm, " sqm")}</strong></div>
-            <div><span>Planning Scheme</span><strong>{planning?.planning_scheme ?? "n/a"}</strong></div>
-            <div><span>Heritage</span><strong>{planning?.heritage_status ?? "n/a"}</strong></div>
-            <div><span>Flood</span><strong>{planning?.flood_status ?? "n/a"}</strong></div>
-            <div><span>Bushfire</span><strong>{planning?.bushfire_status ?? "n/a"}</strong></div>
-            <div><span>Vegetation</span><strong>{planning?.vegetation_status ?? "n/a"}</strong></div>
-            <div><span>Easements</span><strong>{planning?.easements ?? "n/a"}</strong></div>
-            <div><span>Utilities</span><strong>Check authority reports</strong></div>
-            <div><span>Topography</span><strong>{planning?.lot_plan ?? "n/a"}</strong></div>
-          </div>
-          <div className="site-planning-summary">
-            <strong>Planning Summary</strong>
-            <p>{planning?.planning_summary ?? "Add planning highlights from a property report to make this site dashboard useful for review."}</p>
-          </div>
-          <div className="site-planning-constraints">
-            <h3>Planning and Site Constraints</h3>
-            {site.constraints.length === 0 ? (
-              <p className="muted">No constraints have been recorded for this site.</p>
-            ) : (
-              <table>
-                <thead>
-                  <tr>
-                    <th>Category</th>
-                    <th>Constraint</th>
-                    <th>Severity</th>
-                    <th>Status</th>
-                    <th>Authority</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {site.constraints.map((constraint) => (
-                    <tr key={constraint.id}>
-                      <td>
-                        <span className="tag">{constraint.category}</span>
-                      </td>
-                      <td>
-                        <strong>{constraint.title}</strong>
-                        <div className="muted">{constraint.description}</div>
-                      </td>
-                      <td>{constraint.severity}</td>
-                      <td>{constraint.status ?? "n/a"}</td>
-                      <td>{constraint.authority ?? "n/a"}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            )}
-          </div>
           {isEditingPlanning ? (
-            <form action={upsertSitePlanningHighlightAction} className="stack-form site-form-block">
-            <input type="hidden" name="siteId" value={site.id} />
-            <input type="hidden" name="highlightId" value={planning?.id ?? ""} />
-            <div className="form-grid">
-              <label><span>Source report</span><select name="sourceResourceId" defaultValue={planning?.source_resource_id ?? ""}><option value="">No source selected</option>{reportResources.map((resource) => <option key={resource.id} value={resource.id}>{resource.title}</option>)}</select></label>
-              <label><span>Council</span><input name="council" defaultValue={planning?.council ?? ""} /></label>
-              <label><span>Planning scheme</span><input name="planningScheme" defaultValue={planning?.planning_scheme ?? ""} /></label>
-              <label><span>Zoning</span><input name="zoning" defaultValue={planning?.zoning ?? ""} /></label>
-              <label><span>Overlays, comma separated</span><input name="overlays" defaultValue={overlays.join(", ")} /></label>
-              <label><span>Site area sqm</span><input name="siteAreaSqm" type="number" step="0.1" defaultValue={planning?.site_area_sqm ?? site.siteAreaSqm ?? ""} /></label>
-              <label><span>Lot / plan</span><input name="lotPlan" defaultValue={planning?.lot_plan ?? ""} /></label>
-              <label><span>Heritage</span><input name="heritageStatus" defaultValue={planning?.heritage_status ?? ""} /></label>
-              <label><span>Flood</span><input name="floodStatus" defaultValue={planning?.flood_status ?? ""} /></label>
-              <label><span>Bushfire</span><input name="bushfireStatus" defaultValue={planning?.bushfire_status ?? ""} /></label>
-              <label><span>Vegetation</span><input name="vegetationStatus" defaultValue={planning?.vegetation_status ?? ""} /></label>
-              <label><span>Source date</span><input name="sourceDate" type="date" defaultValue={planning?.source_date ?? ""} /></label>
-            </div>
-            <label><span>Easements</span><textarea name="easements" defaultValue={planning?.easements ?? ""} /></label>
-            <label><span>Planning summary</span><textarea name="planningSummary" defaultValue={planning?.planning_summary ?? ""} /></label>
-            <div className="inline-actions"><button type="submit">Save Planning Highlights</button></div>
-          </form>
-          ) : null}
+            <PlanningIntelligenceEditPanel
+              siteId={site.id}
+              siteAreaSqm={site.siteAreaSqm}
+              planning={planning}
+              matrixContent={planningMatrixContent}
+              overlaysCsv={overlays.join(", ")}
+              reportResources={reportResources.map((r) => ({ id: r.id, title: r.title }))}
+              saveAction={upsertSitePlanningHighlightAction}
+            />
+          ) : (
+            <>
+              <div className="site-highlight-matrix">
+                <div className={isPlanningMatrixCellFlagged(planning, "council") ? "site-highlight-matrix__cell--flagged" : undefined}>
+                  <span>Council</span>
+                  <strong>{planningMatrixContent.council}</strong>
+                </div>
+                <div className={isPlanningMatrixCellFlagged(planning, "zoning") ? "site-highlight-matrix__cell--flagged" : undefined}>
+                  <span>Zoning</span>
+                  <strong>{planningMatrixContent.zoning}</strong>
+                </div>
+                <div className={isPlanningMatrixCellFlagged(planning, "overlays") ? "site-highlight-matrix__cell--flagged" : undefined}>
+                  <span>Overlays</span>
+                  <strong>{planningMatrixContent.overlays}</strong>
+                </div>
+                <div className={isPlanningMatrixCellFlagged(planning, "siteArea") ? "site-highlight-matrix__cell--flagged" : undefined}>
+                  <span>Site Area</span>
+                  <strong>{planningMatrixContent.siteArea}</strong>
+                </div>
+                <div className={isPlanningMatrixCellFlagged(planning, "planningScheme") ? "site-highlight-matrix__cell--flagged" : undefined}>
+                  <span>Planning Scheme</span>
+                  <strong>{planningMatrixContent.planningScheme}</strong>
+                </div>
+                <div className={isPlanningMatrixCellFlagged(planning, "heritage") ? "site-highlight-matrix__cell--flagged" : undefined}>
+                  <span>Heritage</span>
+                  <strong>{planningMatrixContent.heritage}</strong>
+                </div>
+                <div className={isPlanningMatrixCellFlagged(planning, "flood") ? "site-highlight-matrix__cell--flagged" : undefined}>
+                  <span>Flood</span>
+                  <strong>{planningMatrixContent.flood}</strong>
+                </div>
+                <div className={isPlanningMatrixCellFlagged(planning, "bushfire") ? "site-highlight-matrix__cell--flagged" : undefined}>
+                  <span>Bushfire</span>
+                  <strong>{planningMatrixContent.bushfire}</strong>
+                </div>
+                <div className={isPlanningMatrixCellFlagged(planning, "vegetation") ? "site-highlight-matrix__cell--flagged" : undefined}>
+                  <span>Vegetation</span>
+                  <strong>{planningMatrixContent.vegetation}</strong>
+                </div>
+                <div className={isPlanningMatrixCellFlagged(planning, "easements") ? "site-highlight-matrix__cell--flagged" : undefined}>
+                  <span>Easements</span>
+                  <strong>{planningMatrixContent.easements}</strong>
+                </div>
+                <div className={isPlanningMatrixCellFlagged(planning, "utilities") ? "site-highlight-matrix__cell--flagged" : undefined}>
+                  <span>Utilities</span>
+                  <strong>{planningMatrixContent.utilities}</strong>
+                </div>
+                <div className={isPlanningMatrixCellFlagged(planning, "topography") ? "site-highlight-matrix__cell--flagged" : undefined}>
+                  <span>Topography</span>
+                  <strong>{planningMatrixContent.topography}</strong>
+                </div>
+              </div>
+              <div className="site-planning-summary">
+                <strong>Site-Specific Planning Summary</strong>
+                <p>{planning?.planning_summary ?? "Add planning highlights from a property report to make this site dashboard useful for review."}</p>
+              </div>
+            </>
+          )}
         </section>
 
         <aside className="site-dashboard-panel site-map-report-panel">
-          <div className="site-panel-title">
-            <h2>Site Location</h2>
+          <div className="site-panel-title app-title-panel app-title-panel--compact">
+            <div className="app-title-panel__content">
+              <p className="eyebrow">Map Context</p>
+              <h2>Site Location</h2>
+            </div>
           </div>
           <iframe
             className="site-map-embed"
@@ -499,8 +541,11 @@ export default async function SiteDetailPage({ params, searchParams }: PageProps
       </div>
 
       <section className="site-dashboard-panel">
-        <div className="site-panel-title">
-          <h2>Site Resources</h2>
+        <div className="site-panel-title app-title-panel app-title-panel--compact">
+          <div className="app-title-panel__content">
+            <p className="eyebrow">Evidence Base</p>
+            <h2>Site Evidence And Resources</h2>
+          </div>
           <Link className="site-mini-action" href={isAddingResource ? `/sites/${site.id}` : `/sites/${site.id}?resource=new`}>
             {isAddingResource ? "Cancel" : "Add Resource"}
           </Link>
@@ -590,7 +635,12 @@ export default async function SiteDetailPage({ params, searchParams }: PageProps
 
       {isEditingSite ? (
         <section className="panel">
-          <h2>Edit Site</h2>
+          <div className="app-title-panel app-title-panel--compact">
+            <div className="app-title-panel__content">
+              <p className="eyebrow">Site Details</p>
+              <h2>Edit Site</h2>
+            </div>
+          </div>
           <form action={updateSiteAction} className="stack-form">
             <input type="hidden" name="siteId" value={site.id} />
             <div className="form-grid">
@@ -617,10 +667,12 @@ export default async function SiteDetailPage({ params, searchParams }: PageProps
               <label>
                 <span>Status</span>
                 <select name="status" defaultValue={site.status}>
-                  <option value="screening">screening</option>
+                  <option value="to_explore">to explore</option>
+                  <option value="exploring">exploring</option>
                   <option value="shortlisted">shortlisted</option>
                   <option value="under_option">under option</option>
                   <option value="active">active</option>
+                  <option value="screening">screening</option>
                   <option value="archived">archived</option>
                 </select>
               </label>
@@ -659,12 +711,13 @@ export default async function SiteDetailPage({ params, searchParams }: PageProps
 
       {isCreatingScenario ? (
         <section className="panel">
-          <div className="section-heading">
-            <div>
-              <h2>Create Scenario Option</h2>
+          <div className="section-heading app-title-panel app-title-panel--compact">
+            <div className="app-title-panel__content">
+              <p className="eyebrow">New Option</p>
+              <h2>Create Site Scenario Option</h2>
               <p className="muted">
                 Start from a reusable scenario template and optional master cost template, then instantiate an active
-                site-linked option.
+                site-linked option with its own feasibility, schedule, review, and operational overlay.
               </p>
             </div>
             <Link className="outline-link" href={`/sites/${site.id}`}>
@@ -737,8 +790,11 @@ export default async function SiteDetailPage({ params, searchParams }: PageProps
       ) : null}
 
       <section className="site-dashboard-panel site-scenarios-panel">
-        <div className="site-panel-title">
-          <h2>Scenario Options</h2>
+        <div className="site-panel-title app-title-panel app-title-panel--compact">
+          <div className="app-title-panel__content">
+            <p className="eyebrow">Option Set</p>
+            <h2>Site Scenario Options</h2>
+          </div>
         </div>
         <div className="site-scenario-card-grid">
           {site.scenarioOptions.map((option) => {
@@ -804,8 +860,9 @@ export default async function SiteDetailPage({ params, searchParams }: PageProps
                   ) : (
                     <span className="muted">No detailed scenario linked yet</span>
                   )}
+                  <Link href={`/project-network?linkedRefType=scenario_option&linkedRefId=${option.id}`}>Review Network</Link>
                   {option.scheduleSummary.activityCount > 0 && option.scenario_id ? (
-                    <Link href={`/linear-schedule?scenarioId=${option.scenario_id}&siteId=${site.id}`}>Gantt</Link>
+                    <Link href={`/linear-schedule?scenarioId=${option.scenario_id}&siteId=${site.id}`}>Schedule</Link>
                   ) : null}
                 </div>
                 <details className="detail-panel">

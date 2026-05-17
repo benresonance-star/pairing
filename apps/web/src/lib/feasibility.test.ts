@@ -1,7 +1,12 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import { buildFeasibilityPortfolio, calculateCostRangeTotal } from "./feasibility";
+import {
+  buildFeasibilityMethodRuns,
+  buildFeasibilityPortfolio,
+  calculateCostRangeTotal,
+  calculateFeasibilityMethodMetrics
+} from "./feasibility";
 import {
   archiveDevelopmentSite,
   createDevelopmentSite,
@@ -25,6 +30,23 @@ test("calculateCostRangeTotal combines construction and feasibility allowances",
     }),
     1_200_000
   );
+});
+
+test("calculateFeasibilityMethodMetrics separates developer margin and retained position", () => {
+  const metrics = calculateFeasibilityMethodMetrics({
+    allInCost: 6_500_000,
+    grossRealisation: 8_400_000,
+    soldRevenue: 6_300_000,
+    retainedDwellingValue: 2_100_000,
+    retainedDebt: 600_000
+  });
+
+  assert.equal(metrics.cashProfit, -200_000);
+  assert.equal(metrics.requiredResidualDebt, 200_000);
+  assert.equal(metrics.netRetainedEquity, 1_500_000);
+  assert.equal(Math.round(metrics.standardDeveloperMarginPercent ?? 0), -3);
+  assert.equal(Math.round(metrics.marginOnCostPercent ?? 0), 62);
+  assert.equal(Math.round(metrics.netRetainedPositionRatio ?? 0), 23);
 });
 
 test("buildFeasibilityPortfolio links sites, scenario options, cost bands, sales, Archicad, and schedule", () => {
@@ -219,6 +241,214 @@ test("buildFeasibilityPortfolio links sites, scenario options, cost bands, sales
   assert.equal(Math.round(option.costBands[0].marginPercent), 27);
   assert.equal(option.scheduleSummary.durationDays, 10);
   assert.deepEqual(option.assemblyTaskIds, ["task-facade", "task-frame"]);
+});
+
+test("buildFeasibilityMethodRuns creates Hampton-style editable target fixture with challenges and levers", () => {
+  const state = normalizeRuntimeState({
+    project: {
+      id: "project-1",
+      name: "Hampton East Fixture",
+      archicad_project_id: "ARCHICAD-HAMPTON"
+    },
+    sites: [
+      {
+        id: "site-hampton",
+        project_id: "project-1",
+        name: "Hampton East",
+        address: "24 View Street, Hampton East VIC 3188",
+        locality: "Hampton East",
+        status: "screening",
+        site_area_sqm: 820
+      }
+    ],
+    site_constraints: [
+      {
+        id: "constraint-tree",
+        site_id: "site-hampton",
+        category: "planning",
+        title: "Tree protection check",
+        description: "Confirm whether tree protection reduces developable area.",
+        severity: "medium"
+      }
+    ],
+    scenario_templates: [
+      {
+        id: "scenario-template-4th-retain-one",
+        project_id: "project-1",
+        name: "4 TH retain one",
+        development_type: "townhouse",
+        dwellings: 4,
+        sell_count: 3,
+        retain_count: 1,
+        gross_floor_area_sqm: 820,
+        status: "active"
+      }
+    ],
+    feasibility_templates: [
+      {
+        id: "feasibility-template-retain-one",
+        project_id: "project-1",
+        name: "Retain one feasibility",
+        calculation_mode: "retain_one",
+        target_margin_percent: 30,
+        target_net_position_ratio: 40,
+        status: "active"
+      }
+    ],
+    scenario_options: [
+      {
+        id: "option-hampton-4th",
+        site_id: "site-hampton",
+        scenario_template_id: "scenario-template-4th-retain-one",
+        master_cost_template_id: "cost-template-townhouse",
+        name: "4 Townhouse Premium",
+        configuration: "4 townhouses, retain 1 / sell 3",
+        dwellings: 4,
+        gross_floor_area_sqm: 820,
+        planning_fit: "moderate",
+        status: "testing",
+        target_margin_percent: 30
+      }
+    ],
+    feasibility_branches: [
+      {
+        id: "branch-hampton-base",
+        project_id: "project-1",
+        site_id: "site-hampton",
+        scenario_option_id: "option-hampton-4th",
+        feasibility_template_id: "feasibility-template-retain-one",
+        name: "Hampton 4TH base retain-one",
+        status: "testing",
+        target_margin_percent: 30,
+        target_net_position_ratio: 40
+      }
+    ],
+    scenario_cost_ranges: [
+      {
+        id: "range-hampton-mid",
+        scenario_option_id: "option-hampton-4th",
+        range_key: "mid",
+        label: "Mid",
+        construction_cost: 3_440_000,
+        professional_fees: 280_000,
+        contingency: 250_000,
+        statutory_fees: 120_000,
+        finance_cost: 350_000,
+        other_costs: 2_060_000
+      }
+    ],
+    sales_assumptions: [
+      {
+        id: "sales-hampton",
+        scenario_option_id: "option-hampton-4th",
+        gross_realisation: 6_350_000,
+        average_sale_price: 2_100_000,
+        settlement_months: 5
+      }
+    ],
+    master_cost_templates: [
+      {
+        id: "cost-template-townhouse",
+        project_id: "project-1",
+        name: "Townhouse Standard",
+        status: "active"
+      }
+    ],
+    assumption_templates: [
+      {
+        id: "assumption-sale-risk",
+        project_id: "project-1",
+        name: "Sale price optimism",
+        category: "Risk Challenge",
+        assumption_kind: "market_risk",
+        impact_area: "revenue",
+        value_type: "fixed",
+        default_value: 2_100_000,
+        formula_key: "sale_price_per_dwelling",
+        status: "active"
+      },
+      {
+        id: "assumption-size-lever",
+        project_id: "project-1",
+        name: "Reduce average unit size",
+        category: "Feasibility Lever Library",
+        assumption_kind: "design_lever",
+        impact_area: "cost",
+        value_type: "fixed",
+        default_value: 250_000,
+        formula_key: "reduce_average_unit_size",
+        status: "active"
+      }
+    ],
+    assumption_applications: [
+      {
+        id: "app-sale-risk",
+        project_id: "project-1",
+        assumption_template_id: "assumption-sale-risk",
+        applied_ref_type: "scenario_option",
+        applied_ref_id: "option-hampton-4th",
+        feasibility_branch_id: "branch-hampton-base",
+        local_value: 2_100_000,
+        confidence: "medium",
+        status: "pending_validation"
+      },
+      {
+        id: "app-size-lever",
+        project_id: "project-1",
+        assumption_template_id: "assumption-size-lever",
+        applied_ref_type: "scenario_option",
+        applied_ref_id: "option-hampton-4th",
+        feasibility_branch_id: "branch-hampton-base",
+        local_value: 250_000,
+        confidence: "medium",
+        status: "testing",
+        calculation_impact_json: { direction: "decrease", metric: "all_in_cost" }
+      }
+    ],
+    assumption_validations: [
+      {
+        id: "validation-challenge",
+        project_id: "project-1",
+        assumption_application_id: "app-sale-risk",
+        profile_id: "profile-sales",
+        relationship_type: "challenges",
+        status: "open"
+      }
+    ],
+    assumption_evidence: [],
+    assumption_actions: [],
+    master_cost_template_items: [],
+    master_cost_item_links: [],
+    scenario_cost_plan_items: [],
+    archicad_links: [],
+    work_packages: [],
+    scenarios: [{ id: "baseline-1", name: "Baseline", status: "baseline", scenario_kind: "legacy" }],
+    zones: [],
+    model_objects: [],
+    hotlink_instances: [],
+    operational_state: [],
+    change_sets: [],
+    change_set_items: [],
+    approvals: [],
+    sync_runs: [],
+    audit_events: [],
+    archicad_writes: [],
+    location_axes: [],
+    linear_schedule_views: [],
+    linear_schedule_activities: [],
+    linear_progress_points: []
+  });
+
+  const run = buildFeasibilityMethodRuns(state)[0];
+
+  assert.equal(run.site.locality, "Hampton East");
+  assert.equal(run.targets.standardDeveloperMarginPercent, 30);
+  assert.equal(run.targets.netRetainedPositionRatio, 40);
+  assert.equal(run.metrics.allInCost, 6_500_000);
+  assert.equal(run.metrics.soldRevenue, 6_350_000);
+  assert.equal(run.challenges[0].title, "Sale price optimism");
+  assert.equal(run.levers[0].title, "Reduce average unit size");
+  assert.equal(run.templateStack.feasibilityTemplate?.id, "feasibility-template-retain-one");
 });
 
 test("site create, update, and archive preserves linked feasibility records", () => {

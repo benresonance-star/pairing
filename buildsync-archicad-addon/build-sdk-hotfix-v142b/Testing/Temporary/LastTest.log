@@ -1,0 +1,63 @@
+Start testing: May 15 23:14 AUS Eastern Standard Time
+----------------------------------------------------------
+1/4 Testing: buildsync_core_tests
+1/4 Test: buildsync_core_tests
+Command: "C:/Users/User/Desktop/Pairing/buildsync-archicad-addon/build-sdk-hotfix-v142b/Release/buildsync_core_tests.exe"
+Directory: C:/Users/User/Desktop/Pairing/buildsync-archicad-addon/build-sdk-hotfix-v142b
+"buildsync_core_tests" start time: May 15 23:14 AUS Eastern Standard Time
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.01 sec
+----------------------------------------------------------
+Test Passed.
+"buildsync_core_tests" end time: May 15 23:14 AUS Eastern Standard Time
+"buildsync_core_tests" time elapsed: 00:00:00
+----------------------------------------------------------
+
+2/4 Testing: buildsync_sync_tests
+2/4 Test: buildsync_sync_tests
+Command: "C:/Users/User/Desktop/Pairing/buildsync-archicad-addon/build-sdk-hotfix-v142b/Release/buildsync_sync_tests.exe"
+Directory: C:/Users/User/Desktop/Pairing/buildsync-archicad-addon/build-sdk-hotfix-v142b
+"buildsync_sync_tests" start time: May 15 23:14 AUS Eastern Standard Time
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.01 sec
+----------------------------------------------------------
+Test Passed.
+"buildsync_sync_tests" end time: May 15 23:14 AUS Eastern Standard Time
+"buildsync_sync_tests" time elapsed: 00:00:00
+----------------------------------------------------------
+
+3/4 Testing: buildsync_addon_shell_tests
+3/4 Test: buildsync_addon_shell_tests
+Command: "C:/Users/User/Desktop/Pairing/buildsync-archicad-addon/build-sdk-hotfix-v142b/Release/buildsync_addon_shell_tests.exe"
+Directory: C:/Users/User/Desktop/Pairing/buildsync-archicad-addon/build-sdk-hotfix-v142b
+"buildsync_addon_shell_tests" start time: May 15 23:14 AUS Eastern Standard Time
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.01 sec
+----------------------------------------------------------
+Test Passed.
+"buildsync_addon_shell_tests" end time: May 15 23:14 AUS Eastern Standard Time
+"buildsync_addon_shell_tests" time elapsed: 00:00:00
+----------------------------------------------------------
+
+4/4 Testing: buildsync_native_runtime_tests
+4/4 Test: buildsync_native_runtime_tests
+Command: "C:/Users/User/Desktop/Pairing/buildsync-archicad-addon/build-sdk-hotfix-v142b/Release/buildsync_native_runtime_tests.exe"
+Directory: C:/Users/User/Desktop/Pairing/buildsync-archicad-addon/build-sdk-hotfix-v142b
+"buildsync_native_runtime_tests" start time: May 15 23:14 AUS Eastern Standard Time
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.01 sec
+----------------------------------------------------------
+Test Passed.
+"buildsync_native_runtime_tests" end time: May 15 23:14 AUS Eastern Standard Time
+"buildsync_native_runtime_tests" time elapsed: 00:00:00
+----------------------------------------------------------
+
+End testing: May 15 23:14 AUS Eastern Standard Time

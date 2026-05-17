@@ -1,0 +1,32 @@
+^C:\USERS\USER\DESKTOP\PAIRING\BUILDSYNC-ARCHICAD-ADDON\BUILD-SDK-DIALOG\CMAKEFILES\058951EB9750BC51BEF37ED4C4FEBB53\BUILDSYNCASSEMBLYWRAPPER.RES.RULE
+setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -E make_directory C:/Users/User/Desktop/Pairing/buildsync-archicad-addon/build-sdk-dialog/ResourceObjects
+if %errorlevel% neq 0 goto :cmEnd
+C:\Users\User\AppData\Local\Python\pythoncore-3.14-64\python.exe "C:/Program Files/Graphisoft/API Development Kit 28.4001/Support/Tools/CompileResources.py" INT "C:/Program Files/Graphisoft/API Development Kit 28.4001" C:/Users/User/Desktop/Pairing/buildsync-archicad-addon/src C:/Users/User/Desktop/Pairing/buildsync-archicad-addon C:/Users/User/Desktop/Pairing/buildsync-archicad-addon/build-sdk-dialog/ResourceObjects C:/Users/User/Desktop/Pairing/buildsync-archicad-addon/build-sdk-dialog/ResourceObjects/BuildSyncAssemblyWrapper.res
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" -E touch C:/Users/User/Desktop/Pairing/buildsync-archicad-addon/build-sdk-dialog/ResourceObjects/AddOnResources.stamp
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
+^C:\USERS\USER\DESKTOP\PAIRING\BUILDSYNC-ARCHICAD-ADDON\BUILD-SDK-DIALOG\CMAKEFILES\C85886E00354F90B93DA78925EB8E4EC\BUILDSYNC_ARCHICAD_RESOURCES.RULE
+setlocal
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
+^C:\USERS\USER\DESKTOP\PAIRING\BUILDSYNC-ARCHICAD-ADDON\CMAKELISTS.TXT
+setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -SC:/Users/User/Desktop/Pairing/buildsync-archicad-addon -BC:/Users/User/Desktop/Pairing/buildsync-archicad-addon/build-sdk-dialog --check-stamp-file C:/Users/User/Desktop/Pairing/buildsync-archicad-addon/build-sdk-dialog/CMakeFiles/generate.stamp
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd

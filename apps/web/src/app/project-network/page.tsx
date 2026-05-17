@@ -4,7 +4,9 @@ import {
   archiveNetworkKnowledgePack,
   archiveNetworkOrganisation,
   archiveNetworkProfile,
+  assignAssumptionParticipant,
   assignKnowledgePackToProfile,
+  createAssumptionAction,
   createNetworkKnowledgePack,
   createNetworkInquiry,
   createNetworkInquiryMessage,
@@ -15,7 +17,9 @@ import {
   deleteNetworkOrganisation,
   deleteNetworkProfile,
   deleteNetworkProfileCapability,
+  getAssumptionGraphData,
   getProjectNetworkData,
+  unassignAssumptionParticipant,
   unassignKnowledgePackFromProfile,
   updateNetworkKnowledgePack,
   updateNetworkOrganisation,
@@ -24,6 +28,10 @@ import {
   upsertNetworkProfileCapability
 } from "../../lib/demo-store";
 import { ProjectNetworkWorkspace } from "./project-network-workspace";
+
+type PageProps = {
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+};
 
 function nullableString(formData: FormData, key: string): string | null {
   const value = String(formData.get(key) ?? "").trim();
@@ -55,8 +63,12 @@ function objectFromForm(formData: FormData, key: string): Record<string, unknown
   return value as Record<string, unknown>;
 }
 
-export default async function ProjectNetworkPage() {
-  const network = await getProjectNetworkData();
+export default async function ProjectNetworkPage({ searchParams }: PageProps) {
+  const [network, assumptionGraph] = await Promise.all([getProjectNetworkData(), getAssumptionGraphData()]);
+  const params = (await searchParams) ?? {};
+  const linkedRefType = typeof params.linkedRefType === "string" ? params.linkedRefType : "";
+  const linkedRefId = typeof params.linkedRefId === "string" ? params.linkedRefId : "";
+  const initialLinkedRef = linkedRefType && linkedRefId ? { type: linkedRefType, id: linkedRefId } : null;
 
   async function createInquiryAction(formData: FormData) {
     "use server";
@@ -274,9 +286,49 @@ export default async function ProjectNetworkPage() {
     revalidatePath("/project-network");
   }
 
+  async function assignAssumptionParticipantAction(formData: FormData) {
+    "use server";
+    await assignAssumptionParticipant({
+      assumptionApplicationId: String(formData.get("assumptionApplicationId") ?? ""),
+      profileId: String(formData.get("profileId") ?? ""),
+      relationshipType: String(formData.get("relationshipType") ?? ""),
+      status: nullableString(formData, "status") ?? "pending",
+      confidence: nullableString(formData, "confidence"),
+      notes: nullableString(formData, "notes"),
+      actionTitle: nullableString(formData, "actionTitle"),
+      actionPriority: nullableString(formData, "actionPriority"),
+      actionStage: nullableString(formData, "actionStage"),
+      actionRiskIfDelayed: nullableString(formData, "actionRiskIfDelayed")
+    });
+    revalidatePath("/project-network");
+  }
+
+  async function unassignAssumptionParticipantAction(formData: FormData) {
+    "use server";
+    await unassignAssumptionParticipant(String(formData.get("validationId") ?? ""));
+    revalidatePath("/project-network");
+  }
+
+  async function createAssumptionActionAction(formData: FormData) {
+    "use server";
+    await createAssumptionAction({
+      assumptionApplicationId: String(formData.get("assumptionApplicationId") ?? ""),
+      responsibleProfileId: nullableString(formData, "responsibleProfileId"),
+      title: String(formData.get("title") ?? ""),
+      priority: nullableString(formData, "priority") ?? "MEDIUM",
+      stage: nullableString(formData, "stage"),
+      riskIfDelayed: nullableString(formData, "riskIfDelayed"),
+      notes: nullableString(formData, "notes"),
+      status: nullableString(formData, "status") ?? "open"
+    });
+    revalidatePath("/project-network");
+  }
+
   return (
     <ProjectNetworkWorkspace
       network={network}
+      assumptionGraph={assumptionGraph}
+      initialLinkedRef={initialLinkedRef}
       actions={{
         createInquiryAction,
         createMessageAction,
@@ -297,7 +349,10 @@ export default async function ProjectNetworkPage() {
         deleteKnowledgePackAction,
         assignKnowledgePackAction,
         unassignKnowledgePackAction,
-        upsertAgentCardAction
+        upsertAgentCardAction,
+        assignAssumptionParticipantAction,
+        unassignAssumptionParticipantAction,
+        createAssumptionActionAction
       }}
     />
   );

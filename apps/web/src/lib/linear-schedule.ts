@@ -64,6 +64,14 @@ export type LinearScheduleGanttRow = {
   sequenceOrder: number | null;
 };
 
+export type LinearScheduleDependencyRow = {
+  id: string;
+  predecessorActivityId: string;
+  successorActivityId: string;
+  dependencyType: "finish_to_start";
+  lagDays: number;
+};
+
 export type LinearScheduleFlowNode = {
   id: string;
   label: string;
@@ -113,6 +121,7 @@ export type LinearScheduleData = {
   progressPoints: LinearProgressPointRow[];
   progressByActivityId: Record<string, LinearProgressPointRow[]>;
   ganttRows: LinearScheduleGanttRow[];
+  dependencies: LinearScheduleDependencyRow[];
   flow: {
     nodes: LinearScheduleFlowNode[];
     edges: LinearScheduleFlowEdge[];
@@ -413,6 +422,7 @@ export function buildLinearScheduleData(
     childNodeIds: string[];
     startDate: string;
     finishDate: string;
+    sortOrder: number | null;
   };
 
   const packageIdsForGantt = [
@@ -435,7 +445,8 @@ export function buildLinearScheduleData(
       descendantActivityIds: [],
       childNodeIds: [],
       startDate: "",
-      finishDate: ""
+      finishDate: "",
+      sortOrder: null
     });
     directActivityIdsByNodeId.set(packageNodeId, new Set<string>());
   }
@@ -493,7 +504,8 @@ export function buildLinearScheduleData(
       descendantActivityIds: [],
       childNodeIds: [],
       startDate: "",
-      finishDate: ""
+      finishDate: "",
+      sortOrder: readNumber(entry.sort_order)
     });
     directActivityIdsByNodeId.set(nodeId, directActivityIds);
   }
@@ -697,6 +709,7 @@ export function buildLinearScheduleData(
       ...visibleChildNodeIds.map((childNodeId) => ({
         kind: "node" as const,
         childNodeId,
+        sortOrder: hierarchyNodes.get(childNodeId)?.sortOrder ?? null,
         startDate: hierarchyNodes.get(childNodeId)?.startDate ?? "9999-12-31",
         finishDate: hierarchyNodes.get(childNodeId)?.finishDate ?? "9999-12-31",
         label: hierarchyNodes.get(childNodeId)?.label ?? childNodeId
@@ -704,11 +717,17 @@ export function buildLinearScheduleData(
       ...directLeafRows.map((row) => ({
         kind: "activity" as const,
         row,
+        sortOrder: row.sequenceOrder,
         startDate: row.startDate,
         finishDate: row.finishDate,
         label: row.label
       }))
     ].sort((left, right) => {
+      const leftSort = left.sortOrder ?? 9999;
+      const rightSort = right.sortOrder ?? 9999;
+      if (leftSort !== rightSort) {
+        return leftSort - rightSort;
+      }
       const startCompare = left.startDate.localeCompare(right.startDate);
       if (startCompare !== 0) {
         return startCompare;
@@ -754,6 +773,11 @@ export function buildLinearScheduleData(
   const rootNodeIds = visibleHierarchyNodes
     .filter((node) => node.parentId === null || !visibleNodeIds.has(node.parentId))
     .sort((left, right) => {
+      const leftSort = left.sortOrder ?? 9999;
+      const rightSort = right.sortOrder ?? 9999;
+      if (leftSort !== rightSort) {
+        return leftSort - rightSort;
+      }
       const startCompare = left.startDate.localeCompare(right.startDate);
       if (startCompare !== 0) {
         return startCompare;
@@ -769,6 +793,26 @@ export function buildLinearScheduleData(
   for (const rootNodeId of rootNodeIds) {
     flattenNode(rootNodeId);
   }
+  const dependencies = Array.isArray(ganttHierarchy?.dependencies)
+    ? ganttHierarchy.dependencies
+        .map((entry) => readObject(entry))
+        .filter((entry): entry is Record<string, unknown> => entry !== null)
+        .map((entry) => ({
+          id:
+            readString(entry.id) ??
+            `${String(entry.predecessor_activity_id)}-${String(entry.successor_activity_id)}`,
+          predecessorActivityId: String(entry.predecessor_activity_id),
+          successorActivityId: String(entry.successor_activity_id),
+          dependencyType: "finish_to_start" as const,
+          lagDays: readNumber(entry.lag_days) ?? 0
+        }))
+        .filter(
+          (dependency) =>
+            activityById.has(dependency.predecessorActivityId) &&
+            activityById.has(dependency.successorActivityId) &&
+            dependency.predecessorActivityId !== dependency.successorActivityId
+        )
+    : [];
   const flowNodes = Array.isArray(flowDiagram?.nodes)
     ? flowDiagram.nodes
         .map((entry) => readObject(entry))
@@ -830,6 +874,7 @@ export function buildLinearScheduleData(
     progressPoints,
     progressByActivityId,
     ganttRows,
+    dependencies,
     flow: {
       nodes: flowNodes,
       edges: flowEdges

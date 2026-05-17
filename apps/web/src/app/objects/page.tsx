@@ -51,10 +51,16 @@ export default async function ObjectsPage({ searchParams }: PageProps) {
 
   return (
     <section className="panel">
-      <h2>Objects And Zones</h2>
-      <p className="muted">
-        Draft a package assignment change set for any synced zone or first-slice model object.
-      </p>
+      <div className="app-title-panel app-title-panel--compact">
+        <div className="app-title-panel__content">
+          <p className="eyebrow">Model Inventory</p>
+          <h2>Inventory</h2>
+          <p className="muted">
+            Inspect the synced Archicad-linked inventory: model objects, zones, packages, and current CCP metadata.
+            Draft package metadata changes only when they need governed Archicad write-back.
+          </p>
+        </div>
+      </div>
       {selectedScenario ? (
         <div className="notice">
           Active scenario: <strong>{selectedScenario.name}</strong> ({selectedScenario.status})
@@ -84,7 +90,7 @@ export default async function ObjectsPage({ searchParams }: PageProps) {
             <th>Zone Key</th>
             <th>Current Package</th>
             <th>Construction State</th>
-            <th>Draft Package Change</th>
+            <th>Draft Model Change</th>
           </tr>
         </thead>
         <tbody>
@@ -121,7 +127,7 @@ export default async function ObjectsPage({ searchParams }: PageProps) {
                             </option>
                           ))}
                         </select>
-                        <button type="submit">Create Draft</button>
+                        <button type="submit">Draft approval</button>
                       </form>
                     )}
                   </td>

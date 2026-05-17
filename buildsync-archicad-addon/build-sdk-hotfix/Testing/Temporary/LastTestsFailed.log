@@ -1,0 +1,4 @@
+1:buildsync_core_tests
+2:buildsync_sync_tests
+3:buildsync_addon_shell_tests
+4:buildsync_native_runtime_tests

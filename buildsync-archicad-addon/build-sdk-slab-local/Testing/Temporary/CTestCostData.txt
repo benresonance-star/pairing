@@ -1,0 +1,5 @@
+buildsync_core_tests 3 0.00385767
+buildsync_sync_tests 3 0.00337483
+buildsync_addon_shell_tests 3 0.0035652
+buildsync_native_runtime_tests 2 0.0065553
+---

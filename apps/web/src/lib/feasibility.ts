@@ -7,9 +7,18 @@ import type {
   MasterCostTemplateRecord,
   RuntimeState,
   SalesAssumptionRecord,
+  ScenarioTemplateRecord,
   ScenarioCostPlanItemRecord,
   ScenarioCostRangeRecord,
   ScenarioOptionRecord,
+  FeasibilityBranchRecord,
+  FeasibilityTemplateRecord,
+  AssumptionActionRecord,
+  AssumptionApplicationRecord,
+  AssumptionEvidenceRecord,
+  AssumptionTemplateRecord,
+  AssumptionValidationRecord,
+  SiteTemplateRecord,
   SiteConstraintRecord,
   SitePlanningHighlightRecord,
   SiteResourceRecord
@@ -26,6 +35,100 @@ export type FeasibilityCostBand = ScenarioCostRangeRecord & {
   totalCost: number;
   marginAmount: number;
   marginPercent: number;
+};
+
+export const FEASIBILITY_METHOD_STAGES = [
+  "goal",
+  "site_basis",
+  "planning_envelope",
+  "yield_scheme",
+  "cost_plan",
+  "revenue_model",
+  "funding_retain",
+  "verdict",
+  "evaluator_challenge",
+  "improvement_levers"
+] as const;
+
+export type FeasibilityMethodStage = (typeof FEASIBILITY_METHOD_STAGES)[number];
+
+export type FeasibilityMethodMetricTargets = {
+  standardDeveloperMarginPercent: number | null;
+  netRetainedPositionRatio: number | null;
+};
+
+export type FeasibilityMethodMetrics = {
+  allInCost: number;
+  soldRevenue: number;
+  grossRealisation: number;
+  grossProfit: number;
+  cashProfit: number;
+  cashSurplusAfterSales: number;
+  requiredResidualDebt: number;
+  retainedDwellingValue: number;
+  retainedDebt: number;
+  netRetainedEquity: number;
+  standardDeveloperMarginPercent: number | null;
+  marginOnCostPercent: number | null;
+  netRetainedPositionRatio: number | null;
+};
+
+export type FeasibilityMethodVerdict = "pass" | "near_miss" | "risk" | "incomplete";
+
+export type FeasibilityMethodTemplateStack = {
+  siteTemplate: SiteTemplateRecord | null;
+  scenarioTemplate: ScenarioTemplateRecord | null;
+  costTemplate: MasterCostTemplateRecord | null;
+  feasibilityTemplate: FeasibilityTemplateRecord | null;
+};
+
+export type FeasibilityKnowledgeKind = "source" | "fact" | "assumption" | "rule" | "challenge" | "decision";
+
+export type FeasibilityKnowledgeItem = {
+  id: string;
+  kind: FeasibilityKnowledgeKind;
+  title: string;
+  sourceRef: string;
+  confidence: string | null;
+  status: string | null;
+};
+
+export type FeasibilityMethodChallenge = {
+  id: string;
+  title: string;
+  area: string;
+  confidence: string | null;
+  status: string;
+  notes: string | null;
+  validationCount: number;
+};
+
+export type FeasibilityMethodLever = {
+  id: string;
+  title: string;
+  area: string;
+  value: number | string | boolean | null;
+  confidence: string | null;
+  status: string;
+  notes: string | null;
+  actionCount: number;
+};
+
+export type FeasibilityMethodRun = {
+  id: string;
+  projectName: string;
+  site: SiteFeasibility;
+  option: ScenarioOptionFeasibility;
+  branch: FeasibilityBranchRecord | null;
+  costBand: FeasibilityCostBand | null;
+  targets: FeasibilityMethodMetricTargets;
+  metrics: FeasibilityMethodMetrics;
+  verdict: FeasibilityMethodVerdict;
+  templateStack: FeasibilityMethodTemplateStack;
+  methodStages: FeasibilityMethodStage[];
+  knowledgeItems: FeasibilityKnowledgeItem[];
+  challenges: FeasibilityMethodChallenge[];
+  levers: FeasibilityMethodLever[];
 };
 
 export type ScenarioOptionFeasibility = ScenarioOptionRecord & {
@@ -102,6 +205,20 @@ export type FeasibilityPortfolio = {
   };
 };
 
+export type PinnedScenarioOption = {
+  site: Pick<SiteFeasibility, "id" | "name" | "locality" | "status" | "priority">;
+  option: ScenarioOptionFeasibility;
+  pinnedAt: string | null;
+  pinnedReason: string | null;
+};
+
+type MethodApplication = AssumptionApplicationRecord & {
+  template: AssumptionTemplateRecord | null;
+  validations: AssumptionValidationRecord[];
+  evidence: AssumptionEvidenceRecord[];
+  actions: AssumptionActionRecord[];
+};
+
 const COST_BAND_ORDER: Record<string, number> = {
   low: 0,
   mid: 1,
@@ -111,6 +228,10 @@ const COST_BAND_ORDER: Record<string, number> = {
 
 function numeric(value: number | null | undefined): number {
   return typeof value === "number" && Number.isFinite(value) ? value : 0;
+}
+
+function percent(numerator: number, denominator: number): number | null {
+  return denominator > 0 ? (numerator / denominator) * 100 : null;
 }
 
 export function googleMapsSearchUrl(address: string, locality?: string | null): string {
@@ -143,6 +264,53 @@ export function calculateFeasibilityMetrics(
   const marginAmount = revenue - totalCost;
   const marginPercent = revenue > 0 ? (marginAmount / revenue) * 100 : 0;
   return { totalCost, revenue, marginAmount, marginPercent };
+}
+
+export function calculateFeasibilityMethodMetrics(input: {
+  allInCost: number;
+  grossRealisation: number;
+  soldRevenue?: number | null;
+  retainedDwellingValue?: number | null;
+  retainedDebt?: number | null;
+}): FeasibilityMethodMetrics {
+  const allInCost = numeric(input.allInCost);
+  const grossRealisation = numeric(input.grossRealisation);
+  const soldRevenue = numeric(input.soldRevenue ?? grossRealisation);
+  const retainedDwellingValue = numeric(input.retainedDwellingValue);
+  const retainedDebt = numeric(input.retainedDebt);
+  const grossProfit = grossRealisation + retainedDwellingValue - allInCost;
+  const cashProfit = soldRevenue - allInCost;
+  const cashSurplusAfterSales = Math.max(cashProfit, 0);
+  const requiredResidualDebt = Math.max(allInCost - soldRevenue, 0);
+  const netRetainedEquity = Math.max(retainedDwellingValue - retainedDebt, 0);
+
+  return {
+    allInCost,
+    soldRevenue,
+    grossRealisation,
+    grossProfit,
+    cashProfit,
+    cashSurplusAfterSales,
+    requiredResidualDebt,
+    retainedDwellingValue,
+    retainedDebt,
+    netRetainedEquity,
+    standardDeveloperMarginPercent: percent(cashProfit, soldRevenue),
+    marginOnCostPercent: percent(grossProfit, allInCost),
+    netRetainedPositionRatio: percent(cashSurplusAfterSales + netRetainedEquity, allInCost)
+  };
+}
+
+export function methodVerdict(
+  value: number | null,
+  target: number | null,
+  fallbackTarget: number
+): FeasibilityMethodVerdict {
+  if (value === null) return "incomplete";
+  const comparisonTarget = target ?? fallbackTarget;
+  if (value >= comparisonTarget) return "pass";
+  if (value >= comparisonTarget * 0.75) return "near_miss";
+  return "risk";
 }
 
 function daysBetween(startDate: string, finishDate: string): number {
@@ -217,6 +385,140 @@ function costBandsForOption(
 
 function isScenarioTemplate(scenario: RuntimeState["scenarios"][number]): boolean {
   return scenario.scenario_kind === "template" || scenario.status === "template";
+}
+
+function valueFromApplication(applications: MethodApplication[], formulaKey: string): number {
+  const application = applications.find((item) => item.template?.formula_key === formulaKey);
+  const value = application?.local_value ?? application?.template?.default_value;
+  return typeof value === "number" && Number.isFinite(value) ? value : 0;
+}
+
+function methodApplicationsForRun(
+  state: RuntimeState,
+  option: ScenarioOptionFeasibility,
+  branch: FeasibilityBranchRecord | null
+): MethodApplication[] {
+  const templatesById = new Map(state.assumption_templates.map((template) => [template.id, template]));
+  const validationsByApplication = new Map<string, AssumptionValidationRecord[]>();
+  const evidenceByApplication = new Map<string, AssumptionEvidenceRecord[]>();
+  const actionsByApplication = new Map<string, AssumptionActionRecord[]>();
+
+  for (const validation of state.assumption_validations) {
+    validationsByApplication.set(validation.assumption_application_id, [
+      ...(validationsByApplication.get(validation.assumption_application_id) ?? []),
+      validation
+    ]);
+  }
+  for (const evidence of state.assumption_evidence) {
+    evidenceByApplication.set(evidence.assumption_application_id, [
+      ...(evidenceByApplication.get(evidence.assumption_application_id) ?? []),
+      evidence
+    ]);
+  }
+  for (const action of state.assumption_actions) {
+    actionsByApplication.set(action.assumption_application_id, [
+      ...(actionsByApplication.get(action.assumption_application_id) ?? []),
+      action
+    ]);
+  }
+
+  return state.assumption_applications
+    .filter(
+      (application) =>
+        application.feasibility_branch_id === branch?.id ||
+        (application.applied_ref_type === "scenario_option" && application.applied_ref_id === option.id) ||
+        (application.applied_ref_type === "site" && application.applied_ref_id === option.site_id)
+    )
+    .map((application) => ({
+      ...application,
+      template: templatesById.get(application.assumption_template_id) ?? null,
+      validations: validationsByApplication.get(application.id) ?? [],
+      evidence: evidenceByApplication.get(application.id) ?? [],
+      actions: actionsByApplication.get(application.id) ?? []
+    }));
+}
+
+function knowledgeItemsForRun(
+  site: SiteFeasibility,
+  option: ScenarioOptionFeasibility,
+  applications: MethodApplication[]
+): FeasibilityKnowledgeItem[] {
+  return [
+    ...site.resources.slice(0, 4).map((resource): FeasibilityKnowledgeItem => ({
+      id: resource.id,
+      kind: "source",
+      title: resource.title,
+      sourceRef: `site_resources.${resource.id}`,
+      confidence: null,
+      status: resource.status
+    })),
+    ...option.costPlanItems.slice(0, 4).map((item): FeasibilityKnowledgeItem => ({
+      id: item.id,
+      kind: "fact",
+      title: item.title,
+      sourceRef: `scenario_cost_plan_items.${item.id}`,
+      confidence: item.confidence ?? null,
+      status: item.inclusion_status ?? null
+    })),
+    ...applications.flatMap((application): FeasibilityKnowledgeItem[] => [
+      {
+        id: application.id,
+        kind: "assumption",
+        title: application.template?.name ?? application.assumption_template_id,
+        sourceRef: `assumption_applications.${application.id}`,
+        confidence: application.confidence ?? null,
+        status: application.status
+      },
+      ...application.evidence.map((evidence) => ({
+        id: evidence.id,
+        kind: "source" as const,
+        title: evidence.title,
+        sourceRef: `assumption_evidence.${evidence.id}`,
+        confidence: application.confidence ?? null,
+        status: evidence.status
+      }))
+    ])
+  ].slice(0, 16);
+}
+
+function challengesForRun(applications: MethodApplication[]): FeasibilityMethodChallenge[] {
+  return applications
+    .filter(
+      (application) =>
+        application.validations.some((validation) => validation.relationship_type === "challenges") ||
+        application.template?.assumption_kind?.toLowerCase().includes("risk") ||
+        application.template?.category?.toLowerCase().includes("risk")
+    )
+    .map((application) => ({
+      id: application.id,
+      title: application.template?.name ?? application.assumption_template_id,
+      area: String(application.template?.impact_area ?? application.template?.category ?? "risk"),
+      confidence: application.confidence ?? null,
+      status: application.status,
+      notes: application.notes ?? application.template?.evidence_requirement ?? null,
+      validationCount: application.validations.length
+    }));
+}
+
+function leversForRun(applications: MethodApplication[]): FeasibilityMethodLever[] {
+  return applications
+    .filter(
+      (application) =>
+        application.template?.category?.toLowerCase().includes("lever") ||
+        application.template?.assumption_kind?.toLowerCase().includes("lever") ||
+        application.calculation_impact_json?.direction === "increase" ||
+        application.calculation_impact_json?.direction === "decrease"
+    )
+    .map((application) => ({
+      id: application.id,
+      title: application.template?.name ?? application.assumption_template_id,
+      area: String(application.template?.impact_area ?? application.template?.category ?? "lever"),
+      value: application.local_value ?? application.template?.default_value ?? null,
+      confidence: application.confidence ?? null,
+      status: application.status,
+      notes: application.notes ?? application.template?.evidence_requirement ?? null,
+      actionCount: application.actions.length
+    }));
 }
 
 export function buildFeasibilityPortfolio(state: RuntimeState): FeasibilityPortfolio {
@@ -363,4 +665,117 @@ export function buildFeasibilityPortfolio(state: RuntimeState): FeasibilityPortf
       )
     }
   };
+}
+
+export function buildFeasibilityMethodRuns(state: RuntimeState): FeasibilityMethodRun[] {
+  const portfolio = buildFeasibilityPortfolio(state);
+  const siteTemplates = [...state.site_templates].sort((left, right) => left.name.localeCompare(right.name));
+  const scenarioTemplatesById = new Map(state.scenario_templates.map((template) => [template.id, template]));
+  const feasibilityTemplatesById = new Map(state.feasibility_templates.map((template) => [template.id, template]));
+  const scenarioRecordsById = new Map(state.scenarios.map((scenario) => [String(scenario.id), scenario]));
+  const costTemplatesById = new Map(portfolio.masterCostTemplates.map((template) => [template.id, template]));
+
+  return portfolio.sites.flatMap((site) =>
+    site.scenarioOptions.map((option): FeasibilityMethodRun => {
+      const branch =
+        state.feasibility_branches.find((item) => item.scenario_option_id === option.id) ??
+        state.feasibility_branches.find((item) => item.site_id === site.id && item.scenario_id === option.scenario_id) ??
+        null;
+      const costBand = option.costBands.find((band) => band.range_key === "mid") ?? option.costBands[0] ?? null;
+      const applications = methodApplicationsForRun(state, option, branch);
+      const linkedScenario = option.scenario_id ? scenarioRecordsById.get(option.scenario_id) ?? null : null;
+      const scenarioTemplate =
+        option.scenario_template_id
+          ? scenarioTemplatesById.get(option.scenario_template_id) ?? null
+          : linkedScenario?.template_scenario_id
+            ? scenarioTemplatesById.get(linkedScenario.template_scenario_id) ?? null
+            : null;
+      const feasibilityTemplate = branch?.feasibility_template_id
+        ? feasibilityTemplatesById.get(branch.feasibility_template_id) ?? null
+        : null;
+      const retainedDwellingValue =
+        valueFromApplication(applications, "retained_townhouse_value") ||
+        valueFromApplication(applications, "retained_townhouse_refinance_saving") ||
+        (String(option.configuration).toLowerCase().includes("retain") || String(branch?.name ?? "").toLowerCase().includes("retain")
+          ? option.salesAssumption?.average_sale_price ?? (option.dwellings ? Math.round((option.salesAssumption?.gross_realisation ?? 0) / option.dwellings) : 0)
+          : 0);
+      const retainedDebt = valueFromApplication(applications, "retained_townhouse_debt");
+      const soldRevenue = option.salesAssumption?.gross_realisation ?? 0;
+      const metrics = calculateFeasibilityMethodMetrics({
+        allInCost: costBand?.totalCost ?? 0,
+        grossRealisation: option.salesAssumption?.gross_realisation ?? 0,
+        soldRevenue,
+        retainedDwellingValue,
+        retainedDebt
+      });
+      const targets = {
+        standardDeveloperMarginPercent:
+          branch?.target_margin_percent ?? option.target_margin_percent ?? feasibilityTemplate?.target_margin_percent ?? null,
+        netRetainedPositionRatio:
+          branch?.target_net_position_ratio ?? feasibilityTemplate?.target_net_position_ratio ?? null
+      };
+      const standardVerdict = methodVerdict(metrics.standardDeveloperMarginPercent, targets.standardDeveloperMarginPercent, 18);
+      const retainedVerdict = retainedDwellingValue > 0
+        ? methodVerdict(metrics.netRetainedPositionRatio, targets.netRetainedPositionRatio, 40)
+        : "incomplete";
+
+      return {
+        id: branch?.id ?? option.id,
+        projectName: portfolio.projectName,
+        site,
+        option,
+        branch,
+        costBand,
+        targets,
+        metrics,
+        verdict: standardVerdict === "risk" || retainedVerdict === "risk"
+          ? "risk"
+          : standardVerdict === "near_miss" || retainedVerdict === "near_miss"
+            ? "near_miss"
+            : standardVerdict === "incomplete" && retainedVerdict === "incomplete"
+              ? "incomplete"
+              : "pass",
+        templateStack: {
+          siteTemplate: siteTemplates[0] ?? null,
+          scenarioTemplate,
+          costTemplate: option.master_cost_template_id ? costTemplatesById.get(option.master_cost_template_id) ?? null : null,
+          feasibilityTemplate
+        },
+        methodStages: [...FEASIBILITY_METHOD_STAGES],
+        knowledgeItems: knowledgeItemsForRun(site, option, applications),
+        challenges: challengesForRun(applications),
+        levers: leversForRun(applications)
+      };
+    })
+  );
+}
+
+export function pinnedScenarioOptionsFromPortfolio(portfolio: FeasibilityPortfolio): PinnedScenarioOption[] {
+  const options = portfolio.sites.flatMap((site) =>
+    site.scenarioOptions.map((option) => ({
+      site: {
+        id: site.id,
+        name: site.name,
+        locality: site.locality,
+        status: site.status,
+        priority: site.priority
+      },
+      option,
+      pinnedAt: option.pinned_at ?? null,
+      pinnedReason: option.pinned_reason ?? null
+    }))
+  );
+  const explicitlyPinned = options.filter((item) => item.pinnedAt);
+  const source = explicitlyPinned.length > 0 ? explicitlyPinned : options.filter((item) => item.option.status === "preferred");
+
+  return source
+    .sort((left, right) => {
+      if (left.pinnedAt || right.pinnedAt) {
+        return String(right.pinnedAt ?? "").localeCompare(String(left.pinnedAt ?? ""));
+      }
+      const leftMid = left.option.costBands.find((band) => band.range_key === "mid");
+      const rightMid = right.option.costBands.find((band) => band.range_key === "mid");
+      return (rightMid?.marginPercent ?? -Infinity) - (leftMid?.marginPercent ?? -Infinity);
+    })
+    .slice(0, 4);
 }

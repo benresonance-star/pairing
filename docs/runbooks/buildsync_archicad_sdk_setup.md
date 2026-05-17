@@ -30,8 +30,14 @@ The smoke script expects:
 
 ```text
 %ARCHICAD_SDK_ROOT%\Support\Inc\ACAPinc.h
-%ARCHICAD_SDK_ROOT%\Support\Inc\APIEnvir.h
+%ARCHICAD_SDK_ROOT%\Support\Tools\CompileResources.py
+%ARCHICAD_SDK_ROOT%\Support\Lib\ACAP_STAT.lib
+buildsync-archicad-addon\src\APIEnvir.h
 ```
+
+Graphisoft SDK 28 examples keep `APIEnvir.h` inside each example `Src` folder, so this repo carries its own minimal `buildsync-archicad-addon/src/APIEnvir.h` for the BuildSync add-on target.
+
+If `ACAP_STAT.lib` is missing from `Support\Lib`, the SDK target cannot link. Re-run the Graphisoft SDK installer or repair the SDK installation before treating the `.apx` build as valid.
 
 ## SDK Build Check
 
@@ -47,6 +53,10 @@ That builds the normal native tests first, then configures the optional SDK targ
 cmake --preset vs2026-x64-sdk
 cmake --build --preset sdk-debug
 ```
+
+The SDK preset requests the `v142` MSVC toolset because Graphisoft SDK 28 headers require the Visual C++ 2019 toolset, even when the generator is a newer Visual Studio installation.
+
+If the SDK smoke reports that v142 is missing, open Visual Studio Installer and add the **MSVC v142 - VS 2019 C++ x64/x86 build tools** component to the installed Visual Studio instance.
 
 ## Readiness Gates
 

@@ -1,0 +1,10 @@
+C:/Users/User/Desktop/Pairing/buildsync-archicad-addon/build-apx-instance-coordinate-recheck-v142/CMakeFiles/buildsync_core.dir
+C:/Users/User/Desktop/Pairing/buildsync-archicad-addon/build-apx-instance-coordinate-recheck-v142/CMakeFiles/buildsync_core_tests.dir
+C:/Users/User/Desktop/Pairing/buildsync-archicad-addon/build-apx-instance-coordinate-recheck-v142/CMakeFiles/buildsync_sync_tests.dir
+C:/Users/User/Desktop/Pairing/buildsync-archicad-addon/build-apx-instance-coordinate-recheck-v142/CMakeFiles/buildsync_addon_shell_tests.dir
+C:/Users/User/Desktop/Pairing/buildsync-archicad-addon/build-apx-instance-coordinate-recheck-v142/CMakeFiles/buildsync_native_runtime_tests.dir
+C:/Users/User/Desktop/Pairing/buildsync-archicad-addon/build-apx-instance-coordinate-recheck-v142/CMakeFiles/buildsync_archicad_resources.dir
+C:/Users/User/Desktop/Pairing/buildsync-archicad-addon/build-apx-instance-coordinate-recheck-v142/CMakeFiles/buildsync_archicad_addon.dir
+C:/Users/User/Desktop/Pairing/buildsync-archicad-addon/build-apx-instance-coordinate-recheck-v142/CMakeFiles/RUN_TESTS.dir
+C:/Users/User/Desktop/Pairing/buildsync-archicad-addon/build-apx-instance-coordinate-recheck-v142/CMakeFiles/ALL_BUILD.dir
+C:/Users/User/Desktop/Pairing/buildsync-archicad-addon/build-apx-instance-coordinate-recheck-v142/CMakeFiles/ZERO_CHECK.dir

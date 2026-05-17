@@ -5,8 +5,17 @@ import path from "node:path";
 
 import seedState from "../../../../shared/examples/demo_state.seed.json";
 import { vocab } from "../../../../shared/contracts/api/index";
+import { buildAssumptionGraphData, type AssumptionGraphData } from "./assumption-graph";
 import { isSupabaseMode } from "./data-source";
-import { buildFeasibilityPortfolio, type FeasibilityPortfolio, type SiteFeasibility } from "./feasibility";
+import {
+  buildFeasibilityPortfolio,
+  buildFeasibilityMethodRuns,
+  pinnedScenarioOptionsFromPortfolio,
+  type FeasibilityMethodRun,
+  type FeasibilityPortfolio,
+  type PinnedScenarioOption,
+  type SiteFeasibility
+} from "./feasibility";
 import { buildLinearScheduleData, type LinearScheduleData, type LinearScheduleFilters } from "./linear-schedule";
 import { buildProjectNetworkData, type ProjectNetworkData } from "./project-network";
 import {
@@ -23,6 +32,8 @@ import {
   requireActiveScenario,
   transitionChangeSet as applyChangeSetTransition,
   updateDevelopmentSite,
+  ASSUMPTION_PARTICIPANT_ROLES,
+  type AssumptionParticipantRole,
   type ChangeSetAction,
   type GovernedOperationalPatch,
   type MasterCodeItemRecord,
@@ -31,6 +42,11 @@ import {
   type RuntimeState,
   type SitePatch
 } from "./runtime-state";
+import type {
+  CreateOverviewActionTaskInput,
+  OverviewActionTask,
+  UpdateOverviewActionTaskInput
+} from "./overview-action-tasks-types";
 
 async function getSupabaseStore() {
   return import("./supabase-store");
@@ -105,6 +121,37 @@ export type UpdateScenarioOptionInput = {
   targetMarginPercent?: number | null;
 };
 
+export type UpdateSalesAssumptionInput = {
+  scenarioOptionId: string;
+  grossRealisation: number;
+  averageSalePrice?: number | null;
+  saleRatePerMonth?: number | null;
+  settlementMonths?: number | null;
+  notes?: string | null;
+};
+
+export type UpdateScenarioCostRangeInput = {
+  rangeId: string;
+  scenarioOptionId: string;
+  constructionCost: number;
+  professionalFees?: number | null;
+  contingency?: number | null;
+  statutoryFees?: number | null;
+  financeCost?: number | null;
+  otherCosts?: number | null;
+  notes?: string | null;
+};
+
+export type UpsertFeasibilityBranchTargetsInput = {
+  branchId?: string | null;
+  siteId: string;
+  scenarioOptionId: string;
+  scenarioId?: string | null;
+  feasibilityTemplateId?: string | null;
+  targetMarginPercent?: number | null;
+  targetNetPositionRatio?: number | null;
+};
+
 export type CreateSiteInput = Omit<SitePatch, "status"> & {
   status?: string;
 };
@@ -148,10 +195,12 @@ export type UpsertSitePlanningHighlightInput = {
   floodStatus?: string | null;
   bushfireStatus?: string | null;
   vegetationStatus?: string | null;
+  utilitiesStatus?: string | null;
   easements?: string | null;
   planningSummary?: string | null;
   sourceDate?: string | null;
   status?: string | null;
+  matrixCellFlags?: Record<string, boolean> | null;
 };
 
 export type CreateMasterCostTemplateInput = {
@@ -382,6 +431,30 @@ export type UpsertNetworkAgentCardInput = {
   status?: string | null;
 };
 
+export type AssignAssumptionParticipantInput = {
+  assumptionApplicationId: string;
+  profileId: string;
+  relationshipType: string;
+  status?: string | null;
+  confidence?: string | null;
+  notes?: string | null;
+  actionTitle?: string | null;
+  actionPriority?: string | null;
+  actionStage?: string | null;
+  actionRiskIfDelayed?: string | null;
+};
+
+export type CreateAssumptionActionInput = {
+  assumptionApplicationId: string;
+  responsibleProfileId?: string | null;
+  title: string;
+  priority?: string | null;
+  stage?: string | null;
+  riskIfDelayed?: string | null;
+  notes?: string | null;
+  status?: string | null;
+};
+
 export type ScenarioEditorOperationalRow = {
   id: string;
   objectRefType: "zone" | "model_object";
@@ -455,6 +528,12 @@ async function ensureRuntimeState(): Promise<void> {
     return;
   }
 
+  const refreshFromSeed =
+    process.env.CCP_REFRESH_RUNTIME_FROM_SEED === "1" || process.env.CCP_REFRESH_RUNTIME_FROM_SEED === "true";
+  if (!refreshFromSeed) {
+    return;
+  }
+
   const [seedStat, runtimeStat] = await Promise.all([
     stat(runtimePaths.seed),
     stat(runtimePaths.runtime)
@@ -488,16 +567,18 @@ function isLikelySupabaseTransportError(error: unknown): boolean {
   return false;
 }
 
-async function shouldUseSupabaseFeasibility(siteId?: string | null): Promise<boolean> {
+function isLikelySupabaseMissingRelationError(error: unknown): boolean {
+  const msg = error instanceof Error ? error.message : String(error);
+  return msg.includes("Could not find the table") || msg.includes("schema cache");
+}
+
+async function shouldUseSupabaseFeasibility(_siteId?: string | null): Promise<boolean> {
   if (!isSupabaseMode()) {
     return false;
   }
   try {
-    const portfolio = await (await getSupabaseStore()).getFeasibilityPortfolio();
-    if (siteId) {
-      return portfolio.sites.some((site) => site.id === siteId);
-    }
-    return portfolio.sites.length > 0;
+    await (await getSupabaseStore()).getFeasibilityPortfolio();
+    return true;
   } catch (error) {
     if (isLikelySupabaseTransportError(error)) {
       return false;
@@ -506,13 +587,13 @@ async function shouldUseSupabaseFeasibility(siteId?: string | null): Promise<boo
   }
 }
 
-async function shouldUseSupabaseScenarioOption(optionId: string): Promise<boolean> {
+async function shouldUseSupabaseScenarioOption(_optionId: string): Promise<boolean> {
   if (!isSupabaseMode()) {
     return false;
   }
   try {
-    const portfolio = await (await getSupabaseStore()).getFeasibilityPortfolio();
-    return portfolio.sites.some((site) => site.scenarioOptions.some((option) => option.id === optionId));
+    await (await getSupabaseStore()).getFeasibilityPortfolio();
+    return true;
   } catch (error) {
     if (isLikelySupabaseTransportError(error)) {
       return false;
@@ -521,20 +602,13 @@ async function shouldUseSupabaseScenarioOption(optionId: string): Promise<boolea
   }
 }
 
-async function shouldUseSupabaseBaseCosts(templateOrItemId?: string | null): Promise<boolean> {
+async function shouldUseSupabaseBaseCosts(_templateOrItemId?: string | null): Promise<boolean> {
   if (!isSupabaseMode()) {
     return false;
   }
   try {
-    const portfolio = await (await getSupabaseStore()).getFeasibilityPortfolio();
-    if (!templateOrItemId) {
-      return portfolio.masterCostTemplates.length > 0 || portfolio.masterCostItems.length > 0;
-    }
-    return portfolio.masterCostItems.some((item) => item.id === templateOrItemId) || portfolio.masterCostTemplates.some(
-      (template) =>
-        template.id === templateOrItemId ||
-        template.items.some((item) => item.id === templateOrItemId || item.master_cost_item_id === templateOrItemId)
-    );
+    await (await getSupabaseStore()).getFeasibilityPortfolio();
+    return true;
   } catch (error) {
     if (isLikelySupabaseTransportError(error)) {
       return false;
@@ -961,6 +1035,60 @@ function validateScheduleDates(startDate: string, finishDate: string) {
   }
 }
 
+function objectValue(value: unknown): Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value)
+    ? { ...(value as Record<string, unknown>) }
+    : {};
+}
+
+function hierarchyForView(view: Record<string, unknown>) {
+  const metadata = objectValue(view.metadata_json);
+  const hierarchy = objectValue(metadata.gantt_hierarchy);
+  const nodes = Array.isArray(hierarchy.nodes)
+    ? hierarchy.nodes
+        .map((entry) => objectValue(entry))
+        .filter((entry) => typeof entry.id === "string")
+    : [];
+  const activityLinks = Array.isArray(hierarchy.activity_links)
+    ? hierarchy.activity_links.map((entry) => objectValue(entry))
+    : [];
+  const dependencies = Array.isArray(hierarchy.dependencies)
+    ? hierarchy.dependencies.map((entry) => objectValue(entry))
+    : [];
+
+  return { metadata, hierarchy, nodes, activityLinks, dependencies };
+}
+
+function saveHierarchyForView(
+  view: Record<string, unknown>,
+  next: {
+    metadata: Record<string, unknown>;
+    hierarchy: Record<string, unknown>;
+    nodes: Record<string, unknown>[];
+    activityLinks: Record<string, unknown>[];
+    dependencies: Record<string, unknown>[];
+  }
+) {
+  view.metadata_json = {
+    ...next.metadata,
+    gantt_hierarchy: {
+      ...next.hierarchy,
+      nodes: next.nodes,
+      activity_links: next.activityLinks,
+      dependencies: next.dependencies
+    }
+  };
+}
+
+function scheduleViewForScenario(state: RuntimeState, scenarioId: string) {
+  getScenarioById(state, scenarioId);
+  const view = state.linear_schedule_views.find((item) => String(item.scenario_id ?? "") === scenarioId);
+  if (!view) {
+    throw new Error("No scenario schedule view exists for this scenario");
+  }
+  return view;
+}
+
 function validateOperationalDates(record: {
   plannedStart?: string | null;
   plannedFinish?: string | null;
@@ -1010,18 +1138,138 @@ export async function getScenarios(): Promise<ScenarioRow[]> {
 export async function getFeasibilityPortfolio(): Promise<FeasibilityPortfolio> {
   if (isSupabaseMode()) {
     try {
-      const supabasePortfolio = await (await getSupabaseStore()).getFeasibilityPortfolio();
-      if (supabasePortfolio.sites.length > 0) {
-        return supabasePortfolio;
-      }
+      return await (await getSupabaseStore()).getFeasibilityPortfolio();
     } catch (error) {
-      if (!isLikelySupabaseTransportError(error)) {
-        throw error;
+      if (isLikelySupabaseTransportError(error)) {
+        const state = await readState();
+        return buildFeasibilityPortfolio(state);
       }
+      throw error;
     }
   }
   const state = await readState();
   return buildFeasibilityPortfolio(state);
+}
+
+export async function getFeasibilityMethodRuns(): Promise<FeasibilityMethodRun[]> {
+  if (isSupabaseMode()) {
+    try {
+      return await (await getSupabaseStore()).getFeasibilityMethodRuns();
+    } catch (error) {
+      if (isLikelySupabaseTransportError(error)) {
+        const state = await readState();
+        return buildFeasibilityMethodRuns(state);
+      }
+      throw error;
+    }
+  }
+  const state = await readState();
+  return buildFeasibilityMethodRuns(state);
+}
+
+export async function getAssumptionGraphData(): Promise<AssumptionGraphData> {
+  if (isSupabaseMode()) {
+    return (await getSupabaseStore()).getAssumptionGraphData();
+  }
+  const state = await readState();
+  return buildAssumptionGraphData(state);
+}
+
+export async function getPinnedScenarioOptions(): Promise<PinnedScenarioOption[]> {
+  return pinnedScenarioOptionsFromPortfolio(await getFeasibilityPortfolio());
+}
+
+export type {
+  CreateOverviewActionTaskInput,
+  OverviewActionTask,
+  OverviewActionTaskPriority,
+  UpdateOverviewActionTaskInput
+} from "./overview-action-tasks-types";
+
+type OverviewActionTaskSummaryInput = {
+  siteCount: number;
+  queuedCount: number;
+  syncFailureCount: number;
+};
+
+function demoOverviewActionTasksFromSummary(summary: OverviewActionTaskSummaryInput): OverviewActionTask[] {
+  return [
+    {
+      id: "demo-overview-task-1",
+      title: "Review site pipeline",
+      notes: `${summary.siteCount} active sites need option triage`,
+      priority: "HIGH",
+      linkPath: "/sites",
+      sortOrder: 0
+    },
+    {
+      id: "demo-overview-task-2",
+      title: "Validate scenario evidence",
+      notes: "Check cost, planning fit, programme, and margin",
+      priority: "MEDIUM",
+      linkPath: "/feasibility",
+      sortOrder: 1
+    },
+    {
+      id: "demo-overview-task-3",
+      title: "Clear queued approvals",
+      notes: `${summary.queuedCount} changes waiting for model sync`,
+      priority: summary.queuedCount > 0 ? "MEDIUM" : "LOW",
+      linkPath: "/change-sets",
+      sortOrder: 2
+    },
+    {
+      id: "demo-overview-task-4",
+      title: "Investigate sync failures",
+      notes:
+        summary.syncFailureCount > 0
+          ? `${summary.syncFailureCount} failures need attention`
+          : "No failures recorded",
+      priority: summary.syncFailureCount > 0 ? "HIGH" : "LOW",
+      linkPath: "/integrations/archicad",
+      sortOrder: 3
+    }
+  ];
+}
+
+export async function getOverviewActionTasks(summary: OverviewActionTaskSummaryInput): Promise<OverviewActionTask[]> {
+  if (isSupabaseMode()) {
+    try {
+      return await (await getSupabaseStore()).listOverviewActionTasks();
+    } catch (error) {
+      if (isLikelySupabaseTransportError(error) || isLikelySupabaseMissingRelationError(error)) {
+        return demoOverviewActionTasksFromSummary(summary);
+      }
+      throw error;
+    }
+  }
+  return demoOverviewActionTasksFromSummary(summary);
+}
+
+function assertSupabaseForOverviewTasks(): void {
+  if (!isSupabaseMode()) {
+    throw new Error("Overview action tasks can only be edited when CCP_DATA_SOURCE=supabase.");
+  }
+}
+
+export async function createOverviewActionTask(input: CreateOverviewActionTaskInput): Promise<OverviewActionTask> {
+  assertSupabaseForOverviewTasks();
+  return (await getSupabaseStore()).createOverviewActionTask(input);
+}
+
+export async function updateOverviewActionTask(id: string, patch: UpdateOverviewActionTaskInput): Promise<void> {
+  assertSupabaseForOverviewTasks();
+  return (await getSupabaseStore()).updateOverviewActionTask(id, patch);
+}
+
+export async function deleteOverviewActionTask(id: string): Promise<void> {
+  assertSupabaseForOverviewTasks();
+  return (await getSupabaseStore()).deleteOverviewActionTask(id);
+}
+
+export async function reorderOverviewActionTasks(orderedIds: string[]): Promise<void> {
+  assertSupabaseForOverviewTasks();
+  return (await getSupabaseStore()).reorderOverviewActionTasks(orderedIds);
 }
 
 export async function getProjectNetworkData(): Promise<ProjectNetworkData> {
@@ -1055,6 +1303,38 @@ function requireNetworkKnowledgePack(state: RuntimeState, knowledgePackId: strin
     throw new Error(`Knowledge pack '${knowledgePackId}' was not found`);
   }
   return pack;
+}
+
+function requireAssumptionApplication(state: RuntimeState, assumptionApplicationId: string) {
+  const application = state.assumption_applications.find((item) => item.id === assumptionApplicationId);
+  if (!application) {
+    throw new Error(`Assumption application '${assumptionApplicationId}' was not found`);
+  }
+  return application;
+}
+
+function requireAssumptionValidation(state: RuntimeState, validationId: string) {
+  const validation = state.assumption_validations.find((item) => item.id === validationId);
+  if (!validation) {
+    throw new Error(`Assumption participant assignment '${validationId}' was not found`);
+  }
+  return validation;
+}
+
+function normalizeAssumptionParticipantRole(role: string): AssumptionParticipantRole {
+  if ((ASSUMPTION_PARTICIPANT_ROLES as readonly string[]).includes(role)) {
+    return role as AssumptionParticipantRole;
+  }
+  throw new Error(`Unsupported assumption participant role '${role}'`);
+}
+
+function hasOpenAssumptionActionForProfile(state: RuntimeState, assumptionApplicationId: string, profileId: string): boolean {
+  return state.assumption_actions.some(
+    (action) =>
+      action.assumption_application_id === assumptionApplicationId &&
+      action.responsible_profile_id === profileId &&
+      !["done", "completed", "cancelled", "archived"].includes(action.status)
+  );
 }
 
 function assertUnusedNetworkOrganisation(state: RuntimeState, organisationId: string) {
@@ -1339,6 +1619,111 @@ export async function unassignKnowledgePackFromProfile(profileId: string, knowle
   await writeState(state);
 }
 
+export async function assignAssumptionParticipant(input: AssignAssumptionParticipantInput): Promise<{ validationId: string; actionId?: string }> {
+  if (isSupabaseMode()) {
+    return (await getSupabaseStore()).assignAssumptionParticipant(input);
+  }
+  const role = normalizeAssumptionParticipantRole(input.relationshipType);
+  const state = await readState();
+  requireAssumptionApplication(state, input.assumptionApplicationId);
+  requireNetworkProfile(state, input.profileId);
+
+  const existingOwner = state.assumption_validations.find(
+    (item) => item.assumption_application_id === input.assumptionApplicationId && item.relationship_type === "accountable_owner"
+  );
+
+  let validation =
+    role === "accountable_owner" && existingOwner
+      ? existingOwner
+      : state.assumption_validations.find(
+          (item) =>
+            item.assumption_application_id === input.assumptionApplicationId &&
+            item.profile_id === input.profileId &&
+            item.relationship_type === role
+        );
+  if (!validation) {
+    validation = {
+      id: randomUUID(),
+      project_id: state.project.id,
+      assumption_application_id: input.assumptionApplicationId,
+      profile_id: input.profileId,
+      relationship_type: role,
+      status: "pending"
+    };
+    state.assumption_validations.push(validation);
+  }
+  validation.profile_id = input.profileId;
+  validation.relationship_type = role;
+  validation.status = input.status?.trim() || "pending";
+  validation.confidence = input.confidence?.trim() || null;
+  validation.notes = input.notes?.trim() || null;
+
+  const actionTitle = input.actionTitle?.trim();
+  const actionId = actionTitle
+    ? await createAssumptionActionInState(state, {
+        assumptionApplicationId: input.assumptionApplicationId,
+        responsibleProfileId: input.profileId,
+        title: actionTitle,
+        priority: input.actionPriority,
+        stage: input.actionStage,
+        riskIfDelayed: input.actionRiskIfDelayed,
+        status: "open"
+      })
+    : undefined;
+
+  await writeState(state);
+  return { validationId: validation.id, actionId };
+}
+
+async function createAssumptionActionInState(state: RuntimeState, input: CreateAssumptionActionInput): Promise<string> {
+  requireAssumptionApplication(state, input.assumptionApplicationId);
+  if (input.responsibleProfileId) {
+    requireNetworkProfile(state, input.responsibleProfileId);
+  }
+  const title = input.title.trim();
+  if (!title) throw new Error("Assumption action title is required");
+  const actionId = randomUUID();
+  state.assumption_actions.push({
+    id: actionId,
+    project_id: state.project.id,
+    assumption_application_id: input.assumptionApplicationId,
+    title,
+    priority: input.priority?.trim() || "MEDIUM",
+    responsible_profile_id: input.responsibleProfileId || null,
+    stage: input.stage?.trim() || null,
+    risk_if_delayed: input.riskIfDelayed?.trim() || null,
+    status: input.status?.trim() || "open",
+    notes: input.notes?.trim() || null
+  });
+  return actionId;
+}
+
+export async function createAssumptionAction(input: CreateAssumptionActionInput): Promise<{ actionId: string }> {
+  if (isSupabaseMode()) {
+    return (await getSupabaseStore()).createAssumptionAction(input);
+  }
+  const state = await readState();
+  const actionId = await createAssumptionActionInState(state, input);
+  await writeState(state);
+  return { actionId };
+}
+
+export async function unassignAssumptionParticipant(validationId: string): Promise<void> {
+  if (isSupabaseMode()) {
+    return (await getSupabaseStore()).unassignAssumptionParticipant(validationId);
+  }
+  const state = await readState();
+  const validation = requireAssumptionValidation(state, validationId);
+  if (
+    validation.relationship_type === "accountable_owner" &&
+    hasOpenAssumptionActionForProfile(state, validation.assumption_application_id, validation.profile_id)
+  ) {
+    throw new Error("Resolve or reassign open actions before removing the accountable owner");
+  }
+  state.assumption_validations = state.assumption_validations.filter((item) => item.id !== validationId);
+  await writeState(state);
+}
+
 export async function upsertNetworkAgentCard(input: UpsertNetworkAgentCardInput): Promise<{ agentCardId: string }> {
   if (isSupabaseMode()) {
     return (await getSupabaseStore()).upsertNetworkAgentCard(input);
@@ -1615,10 +2000,12 @@ export async function upsertSitePlanningHighlight(input: UpsertSitePlanningHighl
   highlight.flood_status = input.floodStatus?.trim() || null;
   highlight.bushfire_status = input.bushfireStatus?.trim() || null;
   highlight.vegetation_status = input.vegetationStatus?.trim() || null;
+  highlight.utilities_status = input.utilitiesStatus?.trim() || null;
   highlight.easements = input.easements?.trim() || null;
   highlight.planning_summary = input.planningSummary?.trim() || null;
   highlight.source_date = input.sourceDate?.trim() || null;
   highlight.status = input.status?.trim() || "active";
+  highlight.matrix_cell_flags_json = input.matrixCellFlags ?? {};
   await writeState(state);
   return { highlightId: highlight.id };
 }
@@ -2193,6 +2580,96 @@ export async function updateScenarioOption(input: UpdateScenarioOptionInput): Pr
   await writeState(state);
 }
 
+export async function updateSalesAssumption(input: UpdateSalesAssumptionInput): Promise<void> {
+  if (await shouldUseSupabaseScenarioOption(input.scenarioOptionId)) {
+    return (await getSupabaseStore()).updateSalesAssumption(input);
+  }
+  const state = await readState();
+  const option = state.scenario_options.find((item) => item.id === input.scenarioOptionId);
+  if (!option) {
+    throw new Error(`Scenario option '${input.scenarioOptionId}' was not found`);
+  }
+  let assumption = state.sales_assumptions.find((item) => item.scenario_option_id === input.scenarioOptionId);
+  if (!assumption) {
+    assumption = {
+      id: randomUUID(),
+      scenario_option_id: input.scenarioOptionId,
+      gross_realisation: input.grossRealisation,
+      average_sale_price: null,
+      sale_rate_per_month: null,
+      settlement_months: null,
+      notes: null
+    };
+    state.sales_assumptions.push(assumption);
+  }
+  assumption.gross_realisation = input.grossRealisation;
+  assumption.average_sale_price =
+    input.averageSalePrice ??
+    (option.dwellings && input.grossRealisation ? Math.round(input.grossRealisation / option.dwellings) : null);
+  assumption.sale_rate_per_month = input.saleRatePerMonth ?? null;
+  assumption.settlement_months = input.settlementMonths ?? null;
+  assumption.notes = input.notes ?? null;
+  await writeState(state);
+}
+
+export async function updateScenarioCostRange(input: UpdateScenarioCostRangeInput): Promise<void> {
+  if (await shouldUseSupabaseScenarioOption(input.scenarioOptionId)) {
+    return (await getSupabaseStore()).updateScenarioCostRange(input);
+  }
+  const state = await readState();
+  const range = state.scenario_cost_ranges.find((item) => item.id === input.rangeId);
+  if (!range) {
+    throw new Error(`Scenario cost range '${input.rangeId}' was not found`);
+  }
+  range.construction_cost = input.constructionCost;
+  range.professional_fees = input.professionalFees ?? null;
+  range.contingency = input.contingency ?? null;
+  range.statutory_fees = input.statutoryFees ?? null;
+  range.finance_cost = input.financeCost ?? null;
+  range.other_costs = input.otherCosts ?? null;
+  range.notes = input.notes ?? null;
+  await writeState(state);
+}
+
+export async function upsertFeasibilityBranchTargets(
+  input: UpsertFeasibilityBranchTargetsInput
+): Promise<{ branchId: string }> {
+  if (await shouldUseSupabaseScenarioOption(input.scenarioOptionId)) {
+    return (await getSupabaseStore()).upsertFeasibilityBranchTargets(input);
+  }
+  const state = await readState();
+  const site = state.sites.find((item) => item.id === input.siteId);
+  const option = state.scenario_options.find((item) => item.id === input.scenarioOptionId);
+  if (!site || !option) {
+    throw new Error("Site or scenario option was not found");
+  }
+  let branch =
+    (input.branchId ? state.feasibility_branches.find((item) => item.id === input.branchId) : null) ??
+    state.feasibility_branches.find((item) => item.scenario_option_id === input.scenarioOptionId);
+  if (!branch) {
+    branch = {
+      id: randomUUID(),
+      project_id: state.project.id,
+      site_id: input.siteId,
+      scenario_option_id: input.scenarioOptionId,
+      scenario_id: input.scenarioId ?? option.scenario_id ?? null,
+      feasibility_template_id: input.feasibilityTemplateId ?? null,
+      name: `${site.name} - ${option.name} method branch`,
+      status: "testing",
+      summary: "Created from the Feasibility Method workspace.",
+      target_margin_percent: input.targetMarginPercent ?? option.target_margin_percent ?? null,
+      target_net_position_ratio: input.targetNetPositionRatio ?? null,
+      created_at: new Date().toISOString()
+    };
+    state.feasibility_branches.push(branch);
+  } else {
+    branch.target_margin_percent = input.targetMarginPercent ?? null;
+    branch.target_net_position_ratio = input.targetNetPositionRatio ?? null;
+  }
+  await writeState(state);
+  return { branchId: branch.id };
+}
+
 export async function archiveScenarioOption(optionId: string): Promise<void> {
   if (await shouldUseSupabaseScenarioOption(optionId)) {
     return (await getSupabaseStore()).archiveScenarioOption(optionId);
@@ -2564,6 +3041,34 @@ export async function updateOperationalStateRow(
   await writeState(state);
 }
 
+export type GanttHierarchyLevelInput = "subtask" | "task";
+
+export type CreateGanttHierarchyNodeInput = {
+  scenarioId: string;
+  label: string;
+  packageId: string;
+  parentId?: string | null;
+  hierarchyLevel?: GanttHierarchyLevelInput;
+};
+
+export type UpdateGanttHierarchyNodeInput = {
+  scenarioId: string;
+  nodeId: string;
+  label: string;
+};
+
+export type MoveGanttHierarchyNodeInput = {
+  scenarioId: string;
+  nodeId: string;
+  direction: "up" | "down" | "indent" | "outdent";
+};
+
+export type CreateScheduleDependencyInput = {
+  scenarioId: string;
+  predecessorActivityId: string;
+  successorActivityId: string;
+};
+
 export async function createScheduleActivity(input: {
   scenarioId: string;
   activityName: string;
@@ -2623,6 +3128,165 @@ export async function createScheduleActivity(input: {
 
   await writeState(state);
   return { activityId };
+}
+
+export async function createGanttHierarchyNode(input: CreateGanttHierarchyNodeInput): Promise<{ nodeId: string }> {
+  if (isSupabaseMode()) {
+    return (await getSupabaseStore()).createGanttHierarchyNode(input);
+  }
+  const state = await readState();
+  const view = scheduleViewForScenario(state, input.scenarioId);
+  const trimmed = input.label.trim();
+  if (!trimmed) {
+    throw new Error("Hierarchy row label is required");
+  }
+  if (!input.packageId) {
+    throw new Error("Hierarchy row package is required");
+  }
+
+  const current = hierarchyForView(view);
+  const nodeId = randomUUID();
+  current.nodes.push({
+    id: nodeId,
+    label: trimmed,
+    package_id: input.packageId,
+    parent_id: input.parentId || `package:${input.packageId}`,
+    hierarchy_level: input.hierarchyLevel ?? "task",
+    sort_order: current.nodes.length + 1
+  });
+  saveHierarchyForView(view, current);
+  await writeState(state);
+  return { nodeId };
+}
+
+export async function updateGanttHierarchyNode(input: UpdateGanttHierarchyNodeInput): Promise<void> {
+  if (isSupabaseMode()) {
+    return (await getSupabaseStore()).updateGanttHierarchyNode(input);
+  }
+  const state = await readState();
+  const view = scheduleViewForScenario(state, input.scenarioId);
+  const current = hierarchyForView(view);
+  const node = current.nodes.find((item) => item.id === input.nodeId);
+  if (!node) {
+    throw new Error(`Hierarchy row '${input.nodeId}' was not found`);
+  }
+  const trimmed = input.label.trim();
+  if (!trimmed) {
+    throw new Error("Hierarchy row label is required");
+  }
+  node.label = trimmed;
+  saveHierarchyForView(view, current);
+  await writeState(state);
+}
+
+export async function moveGanttHierarchyNode(input: MoveGanttHierarchyNodeInput): Promise<void> {
+  if (isSupabaseMode()) {
+    return (await getSupabaseStore()).moveGanttHierarchyNode(input);
+  }
+  const state = await readState();
+  const view = scheduleViewForScenario(state, input.scenarioId);
+  const current = hierarchyForView(view);
+  const nodeIndex = current.nodes.findIndex((item) => item.id === input.nodeId);
+  const node = current.nodes[nodeIndex];
+  if (!node) {
+    throw new Error(`Hierarchy row '${input.nodeId}' was not found`);
+  }
+
+  if (input.direction === "up" || input.direction === "down") {
+    const targetIndex = input.direction === "up" ? nodeIndex - 1 : nodeIndex + 1;
+    const target = current.nodes[targetIndex];
+    if (target) {
+      const currentSort = Number(node.sort_order ?? nodeIndex + 1);
+      node.sort_order = Number(target.sort_order ?? targetIndex + 1);
+      target.sort_order = currentSort;
+    }
+  } else if (input.direction === "indent") {
+    const previous = current.nodes
+      .slice(0, nodeIndex)
+      .reverse()
+      .find((item) => item.package_id === node.package_id && item.id !== node.id);
+    if (previous) {
+      node.parent_id = previous.id;
+      node.hierarchy_level = "task";
+    }
+  } else {
+    const parent = current.nodes.find((item) => item.id === node.parent_id);
+    node.parent_id = parent?.parent_id ?? `package:${String(node.package_id)}`;
+    node.hierarchy_level = node.parent_id === `package:${String(node.package_id)}` ? "subtask" : "task";
+  }
+
+  saveHierarchyForView(view, current);
+  await writeState(state);
+}
+
+export async function deleteGanttHierarchyNode(scenarioId: string, nodeId: string): Promise<void> {
+  if (isSupabaseMode()) {
+    return (await getSupabaseStore()).deleteGanttHierarchyNode(scenarioId, nodeId);
+  }
+  const state = await readState();
+  const view = scheduleViewForScenario(state, scenarioId);
+  const current = hierarchyForView(view);
+  const node = current.nodes.find((item) => item.id === nodeId);
+  if (!node) {
+    throw new Error(`Hierarchy row '${nodeId}' was not found`);
+  }
+  current.nodes = current.nodes
+    .filter((item) => item.id !== nodeId)
+    .map((item) => (item.parent_id === nodeId ? { ...item, parent_id: node.parent_id ?? null } : item));
+  current.activityLinks = current.activityLinks.filter((item) => item.node_id !== nodeId);
+  saveHierarchyForView(view, current);
+  await writeState(state);
+}
+
+export async function createScheduleDependency(input: CreateScheduleDependencyInput): Promise<{ dependencyId: string }> {
+  if (isSupabaseMode()) {
+    return (await getSupabaseStore()).createScheduleDependency(input);
+  }
+  if (input.predecessorActivityId === input.successorActivityId) {
+    throw new Error("Dependency requires two different activities");
+  }
+  const state = await readState();
+  const view = scheduleViewForScenario(state, input.scenarioId);
+  const activityIds = new Set(
+    state.linear_schedule_activities
+      .filter((item) => String(item.scenario_id ?? "") === input.scenarioId)
+      .map((item) => String(item.id))
+  );
+  if (!activityIds.has(input.predecessorActivityId) || !activityIds.has(input.successorActivityId)) {
+    throw new Error("Dependency activities must belong to the selected scenario");
+  }
+  const current = hierarchyForView(view);
+  const alreadyExists = current.dependencies.some(
+    (item) =>
+      item.predecessor_activity_id === input.predecessorActivityId &&
+      item.successor_activity_id === input.successorActivityId
+  );
+  if (alreadyExists) {
+    throw new Error("Dependency already exists");
+  }
+  const dependencyId = randomUUID();
+  current.dependencies.push({
+    id: dependencyId,
+    predecessor_activity_id: input.predecessorActivityId,
+    successor_activity_id: input.successorActivityId,
+    dependency_type: "finish_to_start",
+    lag_days: 0
+  });
+  saveHierarchyForView(view, current);
+  await writeState(state);
+  return { dependencyId };
+}
+
+export async function deleteScheduleDependency(scenarioId: string, dependencyId: string): Promise<void> {
+  if (isSupabaseMode()) {
+    return (await getSupabaseStore()).deleteScheduleDependency(scenarioId, dependencyId);
+  }
+  const state = await readState();
+  const view = scheduleViewForScenario(state, scenarioId);
+  const current = hierarchyForView(view);
+  current.dependencies = current.dependencies.filter((item) => item.id !== dependencyId);
+  saveHierarchyForView(view, current);
+  await writeState(state);
 }
 
 export async function updateScheduleActivity(

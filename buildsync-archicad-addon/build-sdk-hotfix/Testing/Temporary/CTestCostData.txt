@@ -1,0 +1,9 @@
+buildsync_core_tests 0 0
+buildsync_sync_tests 0 0
+buildsync_addon_shell_tests 0 0
+buildsync_native_runtime_tests 0 0
+---
+buildsync_core_tests
+buildsync_sync_tests
+buildsync_addon_shell_tests
+buildsync_native_runtime_tests

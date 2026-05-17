@@ -9,7 +9,7 @@
 
 ## Initial setup
 
-1. Run `npm install` from `apps/web/`.
+1. Run `npm install` from the repo root.
 2. Create a Python virtual environment if desired, then install connector dev dependencies with `python -m pip install -e ".\\services\\connector[dev]"`.
 3. Copy `.env.example` values into local environment variables if live services are being used.
 4. Use the demo adapters and fixture data under `shared/examples/` when live services are not available.
@@ -35,6 +35,10 @@ Use the root scripts:
 - `npm run demo:inbound`
 - `npm run demo:outbound`
 
+### Primary workflow acceptance
+
+Use `docs/runbooks/primary_workflow_acceptance.md` when checking whether the app is still focused on the site-to-scenario-to-change-set-to-Archicad loop.
+
 ### Connector dry-run mode
 
 Use `python scripts/dev/connector_cli.py outbound --dry-run` before enabling any outbound write behavior.
@@ -48,7 +52,12 @@ Demo runtime state lives under `shared/examples/runtime/`:
 
 The seed file is `shared/examples/demo_state.seed.json`.
 
-When the web app starts, it refreshes `demo_state.json` automatically if the seed file is newer. This keeps demo-data spec changes and seed updates visible without requiring manual file replacement. Use `npm run demo:reset` when you want to discard local runtime mutations explicitly.
+On first run, if `demo_state.json` is missing, it is copied from the seed file. After that, **`demo_state.json` is not overwritten when the seed file is updated** (so local edits and new sites are not lost when you pull repo changes).
+
+To **refresh runtime from seed** when you intentionally want the bundled demo data again:
+
+- run `npm run demo:reset` or `npm run demo:seed` (see package.json / connector CLI), or  
+- set **`CCP_REFRESH_RUNTIME_FROM_SEED=1`** (or `true`) in the environment before starting the web app; then, if the seed file is newer than `demo_state.json`, the app will copy seed over runtime on the next read.
 
 ## Recommended local sequence
 

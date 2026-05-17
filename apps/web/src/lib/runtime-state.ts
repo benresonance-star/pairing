@@ -74,6 +74,8 @@ export type ScenarioOptionRecord = {
   status: string;
   summary?: string | null;
   target_margin_percent?: number | null;
+  pinned_at?: string | null;
+  pinned_reason?: string | null;
 };
 
 export type MasterCostTemplateRecord = {
@@ -231,6 +233,198 @@ export type SalesAssumptionRecord = {
   notes?: string | null;
 };
 
+export type AssumptionValueType = "fixed" | "range" | "distribution" | "discrete";
+export type AssumptionImpactArea = "revenue" | "cost" | "finance" | "timing" | "tax" | "risk";
+export type AssumptionDistributionType = "uniform" | "triangular" | "normal" | "discrete";
+export const ASSUMPTION_PARTICIPANT_ROLES = [
+  "accountable_owner",
+  "validates_assumption",
+  "provides_evidence",
+  "approves_strategy",
+  "challenges",
+  "watcher"
+] as const;
+export type AssumptionParticipantRole = (typeof ASSUMPTION_PARTICIPANT_ROLES)[number];
+
+export type SiteTemplateRecord = {
+  id: string;
+  project_id: string;
+  name: string;
+  description?: string | null;
+  locality_profile?: string | null;
+  planning_authority?: string | null;
+  acquisition_strategy?: string | null;
+  default_finance_pack_id?: string | null;
+  default_tax_rule_set_id?: string | null;
+  target_margin_percent?: number | null;
+  required_participant_roles_json?: string[];
+  status: string;
+};
+
+export type ScenarioTemplateRecord = {
+  id: string;
+  project_id: string;
+  name: string;
+  description?: string | null;
+  development_type?: string | null;
+  dwellings?: number | null;
+  sell_count?: number | null;
+  retain_count?: number | null;
+  gross_floor_area_sqm?: number | null;
+  planning_pathway?: string | null;
+  master_cost_template_id?: string | null;
+  unit_schedule_json?: Array<Record<string, unknown>>;
+  status: string;
+};
+
+export type FeasibilityTemplateRecord = {
+  id: string;
+  project_id: string;
+  name: string;
+  description?: string | null;
+  calculation_mode: string;
+  target_margin_percent?: number | null;
+  target_net_position_ratio?: number | null;
+  sensitivity_ranges_json?: Record<string, unknown>;
+  required_validation_rules_json?: Array<Record<string, unknown>>;
+  status: string;
+};
+
+export type FeasibilityBranchRecord = {
+  id: string;
+  project_id: string;
+  site_id: string;
+  scenario_option_id?: string | null;
+  scenario_id?: string | null;
+  feasibility_template_id?: string | null;
+  name: string;
+  status: string;
+  summary?: string | null;
+  target_margin_percent?: number | null;
+  target_net_position_ratio?: number | null;
+  created_at?: string | null;
+};
+
+export type AssumptionTemplateRecord = {
+  id: string;
+  project_id: string;
+  name: string;
+  category: string;
+  assumption_kind: string;
+  impact_area: AssumptionImpactArea | string;
+  value_type: AssumptionValueType | string;
+  unit?: string | null;
+  default_value?: number | string | boolean | null;
+  min_value?: number | null;
+  max_value?: number | null;
+  most_likely_value?: number | null;
+  step?: number | null;
+  distribution_type?: AssumptionDistributionType | string | null;
+  formula_key?: string | null;
+  source_type?: string | null;
+  source_ref?: string | null;
+  default_validator_profile_id?: string | null;
+  evidence_requirement?: string | null;
+  task_trigger_json?: Record<string, unknown> | null;
+  enabled_for_simulation?: boolean | null;
+  correlation_group?: string | null;
+  notes?: string | null;
+  status: string;
+};
+
+export type AssumptionApplicationRecord = {
+  id: string;
+  project_id: string;
+  assumption_template_id: string;
+  applied_ref_type: string;
+  applied_ref_id: string;
+  feasibility_branch_id?: string | null;
+  local_value?: number | string | boolean | null;
+  local_min_value?: number | null;
+  local_max_value?: number | null;
+  local_most_likely_value?: number | null;
+  enabled_for_simulation?: boolean | null;
+  confidence?: string | null;
+  status: string;
+  calculation_impact_json?: Record<string, unknown> | null;
+  notes?: string | null;
+};
+
+export type AssumptionValidationRecord = {
+  id: string;
+  project_id: string;
+  assumption_application_id: string;
+  profile_id: string;
+  relationship_type: AssumptionParticipantRole | string;
+  status: string;
+  confidence?: string | null;
+  notes?: string | null;
+};
+
+export type AssumptionEvidenceRecord = {
+  id: string;
+  project_id: string;
+  assumption_application_id: string;
+  evidence_type: string;
+  title: string;
+  linked_ref_type?: string | null;
+  linked_ref_id?: string | null;
+  url?: string | null;
+  notes?: string | null;
+  status: string;
+};
+
+export type AssumptionActionRecord = {
+  id: string;
+  project_id: string;
+  assumption_application_id: string;
+  action_template_id?: string | null;
+  title: string;
+  stage?: string | null;
+  timing_offset_days?: number | null;
+  priority: string;
+  responsible_profile_id?: string | null;
+  linked_task_id?: string | null;
+  risk_if_delayed?: string | null;
+  status: string;
+  notes?: string | null;
+};
+
+export type SimulationTemplateRecord = {
+  id: string;
+  project_id: string;
+  name: string;
+  description?: string | null;
+  sample_count: number;
+  target_metrics_json?: string[];
+  enabled_assumption_categories_json?: string[];
+  optimisation_constraints_json?: Record<string, unknown>;
+  status: string;
+};
+
+export type SimulationRunRecord = {
+  id: string;
+  project_id: string;
+  feasibility_branch_id: string;
+  simulation_template_id?: string | null;
+  name: string;
+  status: string;
+  sample_count: number;
+  started_at?: string | null;
+  completed_at?: string | null;
+  summary_json?: Record<string, unknown> | null;
+};
+
+export type SimulationSampleRecord = {
+  id: string;
+  project_id: string;
+  simulation_run_id: string;
+  sample_index: number;
+  sampled_values_json: Record<string, unknown>;
+  result_json: Record<string, unknown>;
+  verdict?: string | null;
+};
+
 export type ArchicadLinkRecord = {
   id: string;
   site_id: string;
@@ -273,9 +467,12 @@ export type SitePlanningHighlightRecord = {
   flood_status?: string | null;
   bushfire_status?: string | null;
   vegetation_status?: string | null;
+  utilities_status?: string | null;
   easements?: string | null;
   planning_summary?: string | null;
   source_date?: string | null;
+  /** Keys like council, zoning, overlays — true marks the matrix cell as flagged in the UI. */
+  matrix_cell_flags_json?: Record<string, boolean> | null;
   status: string;
   created_at?: string | null;
 };
@@ -482,6 +679,18 @@ export type RuntimeState = {
   archicad_links: ArchicadLinkRecord[];
   site_resources: SiteResourceRecord[];
   site_planning_highlights: SitePlanningHighlightRecord[];
+  site_templates: SiteTemplateRecord[];
+  scenario_templates: ScenarioTemplateRecord[];
+  feasibility_templates: FeasibilityTemplateRecord[];
+  feasibility_branches: FeasibilityBranchRecord[];
+  assumption_templates: AssumptionTemplateRecord[];
+  assumption_applications: AssumptionApplicationRecord[];
+  assumption_validations: AssumptionValidationRecord[];
+  assumption_evidence: AssumptionEvidenceRecord[];
+  assumption_actions: AssumptionActionRecord[];
+  simulation_templates: SimulationTemplateRecord[];
+  simulation_runs: SimulationRunRecord[];
+  simulation_samples: SimulationSampleRecord[];
   network_organisations: NetworkOrganisationRecord[];
   network_profiles: NetworkProfileRecord[];
   network_profile_capabilities: NetworkProfileCapabilityRecord[];
@@ -540,6 +749,18 @@ const ARRAY_KEYS = [
   "archicad_links",
   "site_resources",
   "site_planning_highlights",
+  "site_templates",
+  "scenario_templates",
+  "feasibility_templates",
+  "feasibility_branches",
+  "assumption_templates",
+  "assumption_applications",
+  "assumption_validations",
+  "assumption_evidence",
+  "assumption_actions",
+  "simulation_templates",
+  "simulation_runs",
+  "simulation_samples",
   "network_organisations",
   "network_profiles",
   "network_profile_capabilities",
@@ -591,6 +812,18 @@ const FEASIBILITY_ARRAY_KEYS = new Set<string>([
   "archicad_links",
   "site_resources",
   "site_planning_highlights",
+  "site_templates",
+  "scenario_templates",
+  "feasibility_templates",
+  "feasibility_branches",
+  "assumption_templates",
+  "assumption_applications",
+  "assumption_validations",
+  "assumption_evidence",
+  "assumption_actions",
+  "simulation_templates",
+  "simulation_runs",
+  "simulation_samples",
   "network_organisations",
   "network_profiles",
   "network_profile_capabilities",
@@ -675,56 +908,7 @@ export function normalizeRuntimeState(raw: unknown): RuntimeState {
       }
       return [key, value];
     })
-  ) as Record<(typeof ARRAY_KEYS)[number], RuntimeState[keyof Pick<RuntimeState,
-    | "sites"
-    | "site_constraints"
-    | "scenario_options"
-    | "scenario_cost_ranges"
-    | "sales_assumptions"
-    | "archicad_links"
-    | "site_resources"
-    | "site_planning_highlights"
-    | "network_organisations"
-    | "network_profiles"
-    | "network_profile_capabilities"
-    | "network_knowledge_packs"
-    | "network_profile_knowledge_packs"
-    | "network_inquiries"
-    | "network_inquiry_messages"
-    | "network_work_products"
-    | "network_work_product_links"
-    | "network_agent_cards"
-    | "network_agent_sessions"
-    | "network_agent_session_participants"
-    | "network_agent_messages"
-    | "network_agent_tool_calls"
-    | "network_agent_outputs"
-    | "master_code_catalogs"
-    | "master_code_items"
-    | "master_cost_templates"
-    | "master_cost_items"
-    | "master_cost_item_sources"
-    | "master_cost_item_target_links"
-    | "master_cost_template_items"
-    | "master_cost_item_links"
-    | "scenario_cost_plan_items"
-    | "work_packages"
-    | "scenarios"
-    | "zones"
-    | "model_objects"
-    | "hotlink_instances"
-    | "operational_state"
-    | "change_sets"
-    | "change_set_items"
-    | "approvals"
-    | "sync_runs"
-    | "audit_events"
-    | "archicad_writes"
-    | "location_axes"
-    | "linear_schedule_views"
-    | "linear_schedule_activities"
-    | "linear_progress_points"
-  >]>;
+  ) as { [K in (typeof ARRAY_KEYS)[number]]: RuntimeState[K] };
 
   const state = {
     project: {
@@ -740,6 +924,18 @@ export function normalizeRuntimeState(raw: unknown): RuntimeState {
     archicad_links: arrayValues.archicad_links as RuntimeState["archicad_links"],
     site_resources: arrayValues.site_resources as RuntimeState["site_resources"],
     site_planning_highlights: arrayValues.site_planning_highlights as RuntimeState["site_planning_highlights"],
+    site_templates: arrayValues.site_templates as RuntimeState["site_templates"],
+    scenario_templates: arrayValues.scenario_templates as RuntimeState["scenario_templates"],
+    feasibility_templates: arrayValues.feasibility_templates as RuntimeState["feasibility_templates"],
+    feasibility_branches: arrayValues.feasibility_branches as RuntimeState["feasibility_branches"],
+    assumption_templates: arrayValues.assumption_templates as RuntimeState["assumption_templates"],
+    assumption_applications: arrayValues.assumption_applications as RuntimeState["assumption_applications"],
+    assumption_validations: arrayValues.assumption_validations as RuntimeState["assumption_validations"],
+    assumption_evidence: arrayValues.assumption_evidence as RuntimeState["assumption_evidence"],
+    assumption_actions: arrayValues.assumption_actions as RuntimeState["assumption_actions"],
+    simulation_templates: arrayValues.simulation_templates as RuntimeState["simulation_templates"],
+    simulation_runs: arrayValues.simulation_runs as RuntimeState["simulation_runs"],
+    simulation_samples: arrayValues.simulation_samples as RuntimeState["simulation_samples"],
     network_organisations: arrayValues.network_organisations as RuntimeState["network_organisations"],
     network_profiles: arrayValues.network_profiles as RuntimeState["network_profiles"],
     network_profile_capabilities: arrayValues.network_profile_capabilities as RuntimeState["network_profile_capabilities"],

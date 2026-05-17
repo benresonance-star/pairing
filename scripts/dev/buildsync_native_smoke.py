@@ -28,10 +28,46 @@ def run(args: list[str], cwd: Path) -> None:
     subprocess.run(normalized, cwd=cwd, check=True)
 
 
-def sdk_headers_present(sdk_root: Path) -> bool:
-    return (sdk_root / "Support" / "Inc" / "ACAPinc.h").exists() and (
-        sdk_root / "Support" / "Inc" / "APIEnvir.h"
-    ).exists()
+def require_sdk_layout(sdk_root: Path, addon_dir: Path) -> None:
+    missing = []
+    if not (sdk_root / "Support" / "Inc" / "ACAPinc.h").exists():
+        missing.append("Support/Inc/ACAPinc.h")
+    if not (sdk_root / "Support" / "Tools" / "CompileResources.py").exists():
+        missing.append("Support/Tools/CompileResources.py")
+    if not (sdk_root / "Support" / "Lib" / "ACAP_STAT.lib").exists():
+        missing.append("Support/Lib/ACAP_STAT.lib")
+    if not (addon_dir / "src" / "APIEnvir.h").exists():
+        missing.append("buildsync-archicad-addon/src/APIEnvir.h")
+
+    if missing:
+        formatted = ", ".join(missing)
+        raise RuntimeError(f"Archicad SDK/add-on build prerequisites are missing under {sdk_root}: {formatted}.")
+
+
+def require_v142_toolset() -> None:
+    roots = [
+        Path(os.environ.get("ProgramFiles(x86)", "C:/Program Files (x86)")) / "Microsoft Visual Studio",
+        Path(os.environ.get("ProgramFiles", "C:/Program Files")) / "Microsoft Visual Studio",
+    ]
+    for root in roots:
+        if not root.exists():
+            continue
+        for version_dir in root.iterdir():
+            if not version_dir.is_dir():
+                continue
+            for edition_dir in version_dir.iterdir():
+                if not edition_dir.is_dir():
+                    continue
+                toolset_root = edition_dir / "VC" / "Tools" / "MSVC"
+                if not toolset_root.exists():
+                    continue
+                if any(child.is_dir() and child.name.startswith("14.2") for child in toolset_root.iterdir()):
+                    return
+
+    raise RuntimeError(
+        "Graphisoft SDK 28 requires the Visual Studio 2019 v142 C++ build tools. "
+        "Install the v142 toolset with the Visual Studio Installer, then rerun the SDK smoke."
+    )
 
 
 def run_default(cmake: str, addon_dir: Path) -> None:
@@ -41,11 +77,11 @@ def run_default(cmake: str, addon_dir: Path) -> None:
 
 
 def run_sdk(cmake: str, addon_dir: Path, sdk_root: Path) -> None:
-    if not sdk_headers_present(sdk_root):
-        raise RuntimeError(
-            f"Archicad SDK headers were not found under {sdk_root}. "
-            "Expected Support/Inc/ACAPinc.h and Support/Inc/APIEnvir.h."
-        )
+    require_sdk_layout(sdk_root, addon_dir)
+    require_v142_toolset()
+    sdk_build_dir = addon_dir / "build-sdk"
+    if sdk_build_dir.exists():
+        shutil.rmtree(sdk_build_dir)
     env = os.environ.copy()
     env["ARCHICAD_SDK_ROOT"] = str(sdk_root)
     print(f"Using ARCHICAD_SDK_ROOT={sdk_root}", flush=True)

@@ -2,19 +2,35 @@ from __future__ import annotations
 
 from typing import Any
 
-from .shared_contracts import construction_states, unit_values
+from .shared_contracts import archicad_writable_fields, construction_states, operational_writable_fields
 
 
-ALLOWED_FIRST_SLICE_FIELDS = {
-    "package_id",
-    "construction_state",
-    "sequence_group",
-    "sequence_order",
-    "planned_start",
-    "planned_finish",
-    "actual_start",
-    "actual_finish",
+OPERATIONAL_TO_ARCHICAD_FIELD = {
+    "package_id": "CCP_PackageID",
+    "construction_state": "CCP_ConstructionState",
+    "sequence_group": "CCP_SequenceGroup",
+    "sequence_order": "CCP_SequenceOrder",
+    "planned_start": "CCP_PlannedStart",
+    "planned_finish": "CCP_PlannedFinish",
+    "actual_start": "CCP_ActualStart",
+    "actual_finish": "CCP_ActualFinish",
 }
+
+ALLOWED_FIRST_SLICE_FIELDS = set(OPERATIONAL_TO_ARCHICAD_FIELD)
+
+
+def validate_writable_field_contract() -> list[str]:
+    errors: list[str] = []
+    operational_fields = operational_writable_fields()
+    archicad_fields = archicad_writable_fields()
+
+    for operational_field, archicad_field in OPERATIONAL_TO_ARCHICAD_FIELD.items():
+        if operational_field not in operational_fields:
+            errors.append(f"{operational_field} is missing from operationalWritableFields")
+        if archicad_field not in archicad_fields:
+            errors.append(f"{archicad_field} is missing from archicadWritableFields")
+
+    return errors
 
 
 def validate_outbound_item(item: dict[str, Any], work_packages: set[str]) -> str | None:
@@ -30,21 +46,8 @@ def validate_outbound_item(item: dict[str, Any], work_packages: set[str]) -> str
     if field_name == "construction_state" and new_value is not None and new_value not in construction_states():
         return "invalid construction_state"
 
-    if field_name == "unit" and new_value is not None and new_value not in unit_values():
-        return "invalid unit"
-
     return None
 
 
 def archicad_field_name(field_name: str) -> str:
-    mapping = {
-        "package_id": "CCP_PackageID",
-        "construction_state": "CCP_ConstructionState",
-        "sequence_group": "CCP_SequenceGroup",
-        "sequence_order": "CCP_SequenceOrder",
-        "planned_start": "CCP_PlannedStart",
-        "planned_finish": "CCP_PlannedFinish",
-        "actual_start": "CCP_ActualStart",
-        "actual_finish": "CCP_ActualFinish",
-    }
-    return mapping[field_name]
+    return OPERATIONAL_TO_ARCHICAD_FIELD[field_name]

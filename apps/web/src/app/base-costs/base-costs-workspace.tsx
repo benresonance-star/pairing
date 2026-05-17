@@ -18,7 +18,7 @@ type MasterItemLike = NonNullable<TemplateItem["sourceItem"]> & {
   targetLinks?: MasterDatabaseItem["targetLinks"];
 };
 
-type Actions = {
+export type BaseCostsActions = {
   createTemplateAction: ServerAction;
   updateTemplateAction: ServerAction;
   archiveTemplateAction: ServerAction;
@@ -371,8 +371,9 @@ function CodeCatalogView({
 }) {
   return (
     <section className="master-cost-list">
-      <div className="section-heading">
-        <div>
+      <div className="section-heading app-title-panel app-title-panel--compact">
+        <div className="app-title-panel__content">
+          <p className="eyebrow">Code System</p>
           <h2>Global Code Catalogue</h2>
           <p className="muted">Shared cost, construction, trade, and package codes used by every project.</p>
         </div>
@@ -753,7 +754,7 @@ function Drawer({
 }: {
   state: DrawerState | null;
   portfolio: FeasibilityPortfolio;
-  actions: Actions;
+  actions: BaseCostsActions;
   onClose: () => void;
 }) {
   const [tab, setTab] = useState("details");
@@ -1136,7 +1137,7 @@ function Drawer({
   );
 }
 
-export function BaseCostsWorkspace({ portfolio, actions }: { portfolio: FeasibilityPortfolio; actions: Actions }) {
+export function BaseCostsWorkspace({ portfolio, actions }: { portfolio: FeasibilityPortfolio; actions: BaseCostsActions }) {
   const activeTemplates = portfolio.masterCostTemplates.filter((template) => template.status !== "archived");
   const [mode, setMode] = useState<"master" | "templates" | "catalog">("catalog");
   const [activeTemplateId, setActiveTemplateId] = useState(activeTemplates[0]?.id ?? "");
@@ -1148,11 +1149,13 @@ export function BaseCostsWorkspace({ portfolio, actions }: { portfolio: Feasibil
   return (
     <section className="base-costs-shell">
       <div className="base-costs-main">
-        <div className="base-costs-toolbar">
-          <div>
+        <div className="base-costs-toolbar app-title-panel app-title-panel--compact">
+          <div className="app-title-panel__content">
+            <p className="eyebrow">Assumptions</p>
             <h2>Base Costs</h2>
             <p className="muted">
-              Master database items hold reusable unit costs and sources. Templates draw linked items from that database.
+              Reusable cost data, rate sources, code structures, and templates that feed scenario feasibility.
+              Site-specific evidence stays on the site; active review stays in Project Network.
             </p>
           </div>
           <div className="base-costs-toolbar-actions">
@@ -1172,7 +1175,7 @@ export function BaseCostsWorkspace({ portfolio, actions }: { portfolio: Feasibil
           <div className="cost-insight-card">
             <strong>Master Items</strong>
             <div>{portfolio.masterCostItems.length}</div>
-            <span className="muted">Reusable database rows</span>
+            <span className="muted">Reusable cost data rows</span>
           </div>
           <div className="cost-insight-card">
             <strong>Unit Rate Total</strong>

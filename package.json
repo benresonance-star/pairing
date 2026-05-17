@@ -13,6 +13,7 @@
     "buildsync:native:test": "python scripts/dev/buildsync_native_smoke.py",
     "buildsync:native:sdk": "python scripts/dev/buildsync_native_smoke.py --sdk",
     "supabase:bootstrap": "python scripts/dev/bootstrap_supabase.py",
+    "supabase:seed:assumptions": "python scripts/dev/seed_assumption_graph.py",
     "supabase:smoke:governed": "tsx scripts/dev/supabase_governed_smoke.ts",
     "supabase:smoke:catalog": "tsx scripts/dev/supabase_catalog_smoke.ts",
     "archicad:probe": "python scripts/dev/archicad_probe.py",
@@ -22,11 +23,13 @@
     "archicad:smoke:mock": "python scripts/dev/mock_archicad_smoke.py",
     "archicad:smoke:live": "python scripts/dev/archicad_live_smoke.py",
     "archicad:test:ingestion:first": "python scripts/dev/archicad_live_smoke.py --verify-ingestion",
+    "listener:test": "python -m pytest python_listener/tests",
     "demo:reset": "python scripts/dev/connector_cli.py reset-runtime",
     "demo:seed": "python scripts/dev/connector_cli.py seed-runtime",
     "demo:inbound": "python scripts/dev/connector_cli.py inbound",
     "demo:outbound": "python scripts/dev/connector_cli.py outbound",
     "demo:web": "npm run dev --workspace web",
-    "demo:test": "npm run test:web && npm run connector:test"
+    "demo:test": "npm run test:web && npm run connector:test",
+    "ci": "npm run build:web && npm run demo:test && npm run listener:test"
   }
 }

@@ -94,7 +94,10 @@ export function buildSiteContext(state: RuntimeState, siteId: string): ProjectCo
         source_ref: sourceRef("site_constraints", constraint.id)
       })),
       ...(planning?.flood_status ? [{ label: `Flood: ${planning.flood_status}`, severity: "planning", source_ref: sourceRef("site_planning_highlights", planning.id) }] : []),
-      ...(planning?.heritage_status ? [{ label: `Heritage: ${planning.heritage_status}`, severity: "planning", source_ref: sourceRef("site_planning_highlights", planning.id) }] : [])
+      ...(planning?.heritage_status ? [{ label: `Heritage: ${planning.heritage_status}`, severity: "planning", source_ref: sourceRef("site_planning_highlights", planning.id) }] : []),
+      ...(planning?.utilities_status?.trim()
+        ? [{ label: `Utilities: ${planning.utilities_status}`, severity: "planning", source_ref: sourceRef("site_planning_highlights", planning.id) }]
+        : [])
     ],
     related_refs: [
       ...constraints.map((item) => sourceRef("site_constraints", item.id)),

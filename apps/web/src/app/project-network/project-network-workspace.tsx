@@ -1,6 +1,8 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { AssumptionGraphPanel } from "../assumption-graph-panel";
+import { assumptionParticipantRoleLabel, isOpenAssumptionAction, type AssumptionApplicationNode, type AssumptionGraphData, type AssumptionValidationNode, type AssumptionActionNode } from "../../lib/assumption-graph";
 import type { ProjectNetworkData, NetworkProfile } from "../../lib/project-network";
 
 type ProjectNetworkActions = {
@@ -24,11 +26,19 @@ type ProjectNetworkActions = {
   assignKnowledgePackAction: (formData: FormData) => Promise<void>;
   unassignKnowledgePackAction: (formData: FormData) => Promise<void>;
   upsertAgentCardAction: (formData: FormData) => Promise<void>;
+  assignAssumptionParticipantAction: (formData: FormData) => Promise<void>;
+  unassignAssumptionParticipantAction: (formData: FormData) => Promise<void>;
+  createAssumptionActionAction: (formData: FormData) => Promise<void>;
 };
 
 type Props = {
   network: ProjectNetworkData;
+  assumptionGraph: AssumptionGraphData;
   actions: ProjectNetworkActions;
+  initialLinkedRef?: {
+    type: string;
+    id: string;
+  } | null;
 };
 
 function listValue(value: unknown[] | undefined): string {
@@ -46,7 +56,33 @@ function jsonText(value: unknown, fallback: unknown): string {
 type DrawerMode = "profile" | "newProfile" | "organisation" | "newOrganisation" | "knowledgePack" | "newKnowledgePack";
 type AgentTab = "Profile" | "Capabilities" | "Knowledge" | "Tools" | "Guardrails" | "Outputs" | "Review";
 
-function ProfileCard({ profile, selected, onSelect }: { profile: NetworkProfile; selected: boolean; onSelect: () => void }) {
+type ProfileAssumptionSummary = {
+  assumptionCount: number;
+  ownerCount: number;
+  pendingCount: number;
+};
+
+type ProfileResponsibility = {
+  application: AssumptionApplicationNode;
+  validation: AssumptionValidationNode;
+};
+
+type ProfileActionResponsibility = {
+  application: AssumptionApplicationNode;
+  action: AssumptionActionNode;
+};
+
+function ProfileCard({
+  profile,
+  selected,
+  summary,
+  onSelect
+}: {
+  profile: NetworkProfile;
+  selected: boolean;
+  summary?: ProfileAssumptionSummary;
+  onSelect: () => void;
+}) {
   return (
     <button className={`network-profile-card ${selected ? "network-profile-card--selected" : ""}`} onClick={onSelect}>
       <span className={`network-profile-avatar network-profile-avatar--${profile.profile_type}`}>
@@ -61,19 +97,23 @@ function ProfileCard({ profile, selected, onSelect }: { profile: NetworkProfile;
           {profile.contact_details ? <span className="network-chip">contact</span> : null}
           {profile.preferred_llm ? <span className="network-chip">{profile.preferred_llm}</span> : null}
           {profile.agentCard ? <span className="network-chip network-chip--accent">LLM-ready</span> : null}
+          {summary?.assumptionCount ? <span className="network-chip network-chip--accent">{summary.assumptionCount} assumptions</span> : null}
+          {summary?.ownerCount ? <span className="network-chip">{summary.ownerCount} owner</span> : null}
+          {summary?.pendingCount ? <span className="network-chip">{summary.pendingCount} pending</span> : null}
         </span>
       </span>
     </button>
   );
 }
 
-export function ProjectNetworkWorkspace({ network, actions }: Props) {
+export function ProjectNetworkWorkspace({ network, assumptionGraph, actions, initialLinkedRef = null }: Props) {
   const [selectedProfileId, setSelectedProfileId] = useState(network.profiles[0]?.id ?? "");
   const [drawerMode, setDrawerMode] = useState<DrawerMode>("profile");
   const [selectedOrganisationId, setSelectedOrganisationId] = useState(network.organisations[0]?.id ?? "");
   const [selectedKnowledgePackId, setSelectedKnowledgePackId] = useState(network.knowledgePacks[0]?.id ?? "");
   const [agentTab, setAgentTab] = useState<AgentTab>("Profile");
   const [showArchivedDirectory, setShowArchivedDirectory] = useState(false);
+  const [focusedAssumptionId, setFocusedAssumptionId] = useState<string | null>(null);
   const selectedProfile = useMemo(
     () => network.profiles.find((profile) => profile.id === selectedProfileId) ?? null,
     [network.profiles, selectedProfileId]
@@ -116,16 +156,81 @@ export function ProjectNetworkWorkspace({ network, actions }: Props) {
     network.organisations.filter((organisation) => organisation.status === "archived").length +
     network.profiles.filter((profile) => profile.status === "archived").length;
   const activeSession = network.agentSessions[0] ?? null;
+  const profileAssumptionSummaries = useMemo(() => {
+    const summaries = new Map<string, ProfileAssumptionSummary>();
+    for (const profile of network.profiles) {
+      const applicationIds = new Set<string>();
+      let ownerCount = 0;
+      let pendingCount = 0;
+      for (const application of assumptionGraph.applications) {
+        const validations = application.validations.filter((validation) => validation.profile_id === profile.id);
+        if (validations.length > 0) {
+          applicationIds.add(application.id);
+        }
+        ownerCount += validations.filter((validation) => validation.relationship_type === "accountable_owner").length;
+        pendingCount += validations.filter((validation) => validation.status === "pending").length;
+        const openActions = application.actions.filter(
+          (action) => action.responsible_profile_id === profile.id && isOpenAssumptionAction(action)
+        );
+        if (openActions.length > 0) {
+          applicationIds.add(application.id);
+          pendingCount += openActions.length;
+        }
+      }
+      summaries.set(profile.id, {
+        assumptionCount: applicationIds.size,
+        ownerCount,
+        pendingCount
+      });
+    }
+    return summaries;
+  }, [assumptionGraph.applications, network.profiles]);
+  const selectedProfileResponsibilities = useMemo(() => {
+    if (!selectedProfile) {
+      return { validations: [] as ProfileResponsibility[], actions: [] as ProfileActionResponsibility[] };
+    }
+    const validations: ProfileResponsibility[] = [];
+    const actions: ProfileActionResponsibility[] = [];
+    for (const application of assumptionGraph.applications) {
+      for (const validation of application.validations) {
+        if (validation.profile_id === selectedProfile.id) {
+          validations.push({ application, validation });
+        }
+      }
+      for (const action of application.actions) {
+        if (action.responsible_profile_id === selectedProfile.id) {
+          actions.push({ application, action });
+        }
+      }
+    }
+    return { validations, actions };
+  }, [assumptionGraph.applications, selectedProfile]);
+  const selectedProfileSummary = selectedProfile ? profileAssumptionSummaries.get(selectedProfile.id) : null;
+
+  useEffect(() => {
+    if (!focusedAssumptionId) return;
+    document.getElementById(`assumption-card-${focusedAssumptionId}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
+  }, [focusedAssumptionId]);
+
+  function selectProfile(profileId: string) {
+    setSelectedProfileId(profileId);
+    setDrawerMode("profile");
+    setAgentTab("Profile");
+  }
+
+  function focusAssumption(assumptionApplicationId: string) {
+    setFocusedAssumptionId(assumptionApplicationId);
+  }
 
   return (
     <section className="project-network-shell">
       <div className="project-network-hero">
         <div>
-          <p className="network-eyebrow">Project Network / Intelligence Directory</p>
-          <h2>Human and agentic collaboration layer</h2>
+          <p className="network-eyebrow">Project Network / Scenario Review</p>
+          <h2>Human and agentic option review layer</h2>
           <p>
-            Represent project people, authorities, market voices, and LLM-ready specialist agents with defined knowledge,
-            scope, constraints, inquiry threads, and reviewable work products.
+            Convene project people, authorities, market voices, and LLM-ready specialist agents around site
+            options, feasibility questions, risks, assumptions, and reviewable work products.
           </p>
         </div>
         <form action={actions.createInquiryAction} className="network-hero-form">
@@ -133,8 +238,8 @@ export function ProjectNetworkWorkspace({ network, actions }: Props) {
           <input name="title" placeholder="Inquiry title" required />
           <textarea name="question" placeholder="What decision, risk, or missing information should the network work through?" required />
           <div className="network-form-grid">
-            <input name="linkedRefType" placeholder="Link type e.g. site" />
-            <input name="linkedRefId" placeholder="Link id e.g. site-mews-lane" />
+            <input name="linkedRefType" placeholder="Link type e.g. scenario" defaultValue={initialLinkedRef?.type ?? ""} />
+            <input name="linkedRefId" placeholder="Link id e.g. scenario-1" defaultValue={initialLinkedRef?.id ?? ""} />
           </div>
           <input name="createdBy" placeholder="Created by" defaultValue="Developer Principal" />
           <button type="submit">Create Inquiry</button>
@@ -155,7 +260,7 @@ export function ProjectNetworkWorkspace({ network, actions }: Props) {
         <article>
           <span>{network.totals.knowledgePackCount}</span>
           <strong>Knowledge packs</strong>
-          <small>scope, constraints, tools</small>
+          <small>reference inputs, not the review itself</small>
         </article>
         <article>
           <span>{network.totals.agentSessionCount}</span>
@@ -164,12 +269,31 @@ export function ProjectNetworkWorkspace({ network, actions }: Props) {
         </article>
       </div>
 
+      <AssumptionGraphPanel
+        graph={assumptionGraph}
+        refType={initialLinkedRef?.type}
+        refId={initialLinkedRef?.id}
+        title="Participant Validation Graph"
+        description="Applied assumptions routed to project-network participants for validation, evidence, risk ownership, approval, or challenge."
+        compact
+        profiles={network.profiles}
+        selectedProfileId={selectedProfileId}
+        focusedApplicationId={focusedAssumptionId}
+        enableAssignment
+        assignmentActions={{
+          assignAssumptionParticipantAction: actions.assignAssumptionParticipantAction,
+          unassignAssumptionParticipantAction: actions.unassignAssumptionParticipantAction,
+          createAssumptionActionAction: actions.createAssumptionActionAction
+        }}
+        onSelectProfile={selectProfile}
+      />
+
       <div className="project-network-grid">
         <aside className="network-directory-panel">
           <div className="network-panel-header">
             <div>
-              <p className="network-eyebrow">Directory</p>
-              <h3>Project ecosystem</h3>
+              <p className="network-eyebrow">Review Participants</p>
+              <h3>People, agents, and organisations</h3>
             </div>
             <div className="network-chip-row">
               <button type="button" onClick={() => setDrawerMode("newProfile")}>+ Identity</button>
@@ -219,10 +343,9 @@ export function ProjectNetworkWorkspace({ network, actions }: Props) {
                     key={profile.id}
                     profile={profile}
                     selected={profile.id === selectedProfile?.id}
+                    summary={profileAssumptionSummaries.get(profile.id)}
                     onSelect={() => {
-                      setSelectedProfileId(profile.id);
-                      setDrawerMode("profile");
-                      setAgentTab("Profile");
+                      selectProfile(profile.id);
                     }}
                   />
                 ))}
@@ -475,6 +598,56 @@ export function ProjectNetworkWorkspace({ network, actions }: Props) {
                   ))}
                 </div>
               ) : null}
+
+              <div className="network-drawer-section network-assumption-responsibilities">
+                <div className="network-panel-header">
+                  <div>
+                    <p className="network-eyebrow">Assumption Responsibilities</p>
+                    <strong>{selectedProfileSummary?.assumptionCount ?? 0} linked assumptions</strong>
+                  </div>
+                  <span className="network-chip-row">
+                    <span className="network-chip">{selectedProfileSummary?.ownerCount ?? 0} owner</span>
+                    <span className="network-chip">{selectedProfileSummary?.pendingCount ?? 0} pending</span>
+                  </span>
+                </div>
+                {selectedProfileResponsibilities.validations.length === 0 && selectedProfileResponsibilities.actions.length === 0 ? (
+                  <p className="network-guard-note">No assumptions or follow-up actions are assigned to this participant yet.</p>
+                ) : null}
+                {selectedProfileResponsibilities.validations.length > 0 ? (
+                  <div className="network-assumption-stack">
+                    {selectedProfileResponsibilities.validations.map(({ application, validation }) => (
+                      <article className="network-assumption-responsibility-card" key={validation.id}>
+                        <button type="button" onClick={() => focusAssumption(application.id)}>
+                          <strong>{application.template?.name ?? application.assumption_template_id}</strong>
+                          <span>{assumptionParticipantRoleLabel(validation.relationship_type)} / {validation.status}</span>
+                          <small>{application.appliedLabel}</small>
+                        </button>
+                        <form action={actions.unassignAssumptionParticipantAction}>
+                          <input type="hidden" name="validationId" value={validation.id} />
+                          <button type="submit">Remove</button>
+                        </form>
+                      </article>
+                    ))}
+                  </div>
+                ) : null}
+                {selectedProfileResponsibilities.actions.length > 0 ? (
+                  <div className="network-assumption-stack">
+                    <strong>Open and historical actions</strong>
+                    {selectedProfileResponsibilities.actions.map(({ application, action }) => (
+                      <button
+                        className="network-assumption-action-card"
+                        key={action.id}
+                        type="button"
+                        onClick={() => focusAssumption(application.id)}
+                      >
+                        <strong>{action.title}</strong>
+                        <span>{action.priority} / {action.status}</span>
+                        <small>{application.template?.name ?? application.assumption_template_id}</small>
+                      </button>
+                    ))}
+                  </div>
+                ) : null}
+              </div>
 
               {agentTab === "Profile" ? (
                 <>

@@ -5,19 +5,29 @@ import { isRedirectError } from "next/dist/client/components/redirect-error";
 
 import {
   archiveScenario,
-  createScheduleActivity,
   createScenarioOperationalChangeSet,
   deleteScenario,
-  deleteScheduleActivity,
+  getAssumptionGraphData,
   getFeasibilityPortfolio,
   getScenarioEditorData,
   updateScenario,
-  updateScheduleActivity,
   type ScenarioEditorOperationalRow
 } from "../../../lib/demo-store";
+import { AssumptionGraphPanel } from "../../assumption-graph-panel";
 import ConfirmSubmitButton from "./confirm-submit-button";
 import PreserveScrollSubmitButton from "./preserve-scroll-submit-button";
 import RestoreScrollOnLoad from "./restore-scroll-on-load";
+import {
+  createGanttHierarchyNodeAction,
+  createScheduleActivityAction,
+  createScheduleDependencyAction,
+  deleteGanttHierarchyNodeAction,
+  deleteScheduleActivityAction,
+  deleteScheduleDependencyAction,
+  moveGanttHierarchyNodeAction,
+  saveScheduleActivityAction,
+  updateGanttHierarchyNodeAction
+} from "./schedule-actions";
 import SelectedActivityFields from "./selected-activity-fields";
 import ScenarioEditorVisuals from "./scenario-visuals";
 import type {
@@ -73,6 +83,24 @@ function optionalNumber(value: FormDataEntryValue | null) {
     throw new Error("Expected a numeric value");
   }
   return parsed;
+}
+
+function formatCurrency(value: number | null | undefined): string {
+  if (typeof value !== "number" || !Number.isFinite(value)) {
+    return "n/a";
+  }
+  return new Intl.NumberFormat("en-AU", {
+    style: "currency",
+    currency: "AUD",
+    maximumFractionDigits: 0
+  }).format(value);
+}
+
+function formatPercent(value: number | null | undefined): string {
+  if (typeof value !== "number" || !Number.isFinite(value)) {
+    return "n/a";
+  }
+  return `${value.toFixed(1)}%`;
 }
 
 function revalidateScenarioEditorPaths(scenarioId: string) {
@@ -200,114 +228,6 @@ async function saveOperationalRowAction(formData: FormData) {
         selectedActivityId,
         selectedOperationalId: operationalRowId,
         error: getActionErrorMessage(error, "Unable to create operational change set")
-      })
-    );
-  }
-}
-
-async function saveScheduleActivityAction(formData: FormData) {
-  "use server";
-
-  const scenarioId = String(formData.get("scenarioId") ?? "");
-  const activityId = String(formData.get("activityId") ?? "");
-  const selectedOperationalId = emptyToNull(formData.get("selectedOperationalId"));
-
-  try {
-    await updateScheduleActivity(activityId, {
-      activityName: String(formData.get("activityName") ?? ""),
-      packageId: emptyToNull(formData.get("packageId")),
-      workfront: emptyToNull(formData.get("workfront")),
-      colorKey: emptyToNull(formData.get("colorKey")),
-      startDate: String(formData.get("startDate") ?? ""),
-      finishDate: String(formData.get("finishDate") ?? ""),
-      locationRef: emptyToNull(formData.get("locationRef")),
-      startLocationRef: emptyToNull(formData.get("startLocationRef")),
-      finishLocationRef: emptyToNull(formData.get("finishLocationRef")),
-      sequenceGroup: emptyToNull(formData.get("sequenceGroup")),
-      sequenceOrder: optionalNumber(formData.get("sequenceOrder"))
-    });
-    revalidateScenarioEditorPaths(scenarioId);
-    redirect(
-      editorUrl(scenarioId, {
-        selectedActivityId: activityId,
-        selectedOperationalId,
-        status: "Schedule activity updated"
-      })
-    );
-  } catch (error) {
-    redirect(
-      editorUrl(scenarioId, {
-        selectedActivityId: activityId,
-        selectedOperationalId,
-        error: getActionErrorMessage(error, "Unable to update schedule activity")
-      })
-    );
-  }
-}
-
-async function createScheduleActivityAction(formData: FormData) {
-  "use server";
-
-  const scenarioId = String(formData.get("scenarioId") ?? "");
-  const selectedOperationalId = emptyToNull(formData.get("selectedOperationalId"));
-
-  try {
-    const result = await createScheduleActivity({
-      scenarioId,
-      activityName: String(formData.get("activityName") ?? ""),
-      packageId: emptyToNull(formData.get("packageId")),
-      workfront: emptyToNull(formData.get("workfront")),
-      colorKey: emptyToNull(formData.get("colorKey")),
-      activityType: String(formData.get("activityType") ?? "linear"),
-      displayLayer: String(formData.get("displayLayer") ?? "planned"),
-      startDate: String(formData.get("startDate") ?? ""),
-      finishDate: String(formData.get("finishDate") ?? ""),
-      locationRef: emptyToNull(formData.get("locationRef")),
-      startLocationRef: emptyToNull(formData.get("startLocationRef")),
-      finishLocationRef: emptyToNull(formData.get("finishLocationRef")),
-      sequenceGroup: emptyToNull(formData.get("sequenceGroup")),
-      sequenceOrder: optionalNumber(formData.get("sequenceOrder"))
-    });
-    revalidateScenarioEditorPaths(scenarioId);
-    redirect(
-      editorUrl(scenarioId, {
-        selectedActivityId: result.activityId,
-        selectedOperationalId,
-        status: "Schedule activity created"
-      })
-    );
-  } catch (error) {
-    redirect(
-      editorUrl(scenarioId, {
-        selectedOperationalId,
-        error: getActionErrorMessage(error, "Unable to create schedule activity")
-      })
-    );
-  }
-}
-
-async function deleteScheduleActivityAction(formData: FormData) {
-  "use server";
-
-  const scenarioId = String(formData.get("scenarioId") ?? "");
-  const activityId = String(formData.get("activityId") ?? "");
-  const selectedOperationalId = emptyToNull(formData.get("selectedOperationalId"));
-
-  try {
-    await deleteScheduleActivity(activityId);
-    revalidateScenarioEditorPaths(scenarioId);
-    redirect(
-      editorUrl(scenarioId, {
-        selectedOperationalId,
-        status: "Schedule activity deleted"
-      })
-    );
-  } catch (error) {
-    redirect(
-      editorUrl(scenarioId, {
-        selectedActivityId: activityId,
-        selectedOperationalId,
-        error: getActionErrorMessage(error, "Unable to delete schedule activity")
       })
     );
   }
@@ -669,8 +589,8 @@ function OperationalEditorForm(props: {
   return (
     <>
       <p className="muted">
-        Operational edits are staged as draft change sets. Submit and approve them on the{" "}
-        <Link href="/change-sets">Change Sets</Link> page before sync.
+        Operational edits are staged as draft model approvals. Submit and approve them on the{" "}
+        <Link href="/change-sets">Model Change Approvals</Link> page before Archicad sync.
       </p>
       <form action={saveOperationalRowAction} className="stack-form">
         <input type="hidden" name="scenarioId" value={props.scenarioId} />
@@ -734,6 +654,260 @@ function OperationalEditorForm(props: {
   );
 }
 
+function durationDays(startDate: string, finishDate: string) {
+  const start = new Date(`${startDate}T00:00:00Z`).getTime();
+  const finish = new Date(`${finishDate}T00:00:00Z`).getTime();
+  return Math.max(1, Math.round((finish - start) / (24 * 60 * 60 * 1000)) + 1);
+}
+
+function ProgrammeWorkspace(props: {
+  scenarioId: string;
+  data: LinearScheduleData;
+  selectedActivityId: string | null;
+  selectedOperationalId: string | null;
+}) {
+  const { scenarioId, data, selectedActivityId, selectedOperationalId } = props;
+  const summaryRows = data.ganttRows.filter((row) => row.rowKind === "summary");
+  const editableSummaryRows = summaryRows.filter((row) => !row.id.startsWith("package:"));
+  const activityById = new Map(data.activities.map((activity) => [activity.id, activity]));
+
+  return (
+    <section className="panel programme-workspace">
+      <div className="section-heading app-title-panel app-title-panel--compact">
+        <div className="app-title-panel__content">
+          <p className="eyebrow">Programme Editor</p>
+          <h2>WBS / Task Table</h2>
+          <p className="muted">
+            Modify programme records here. The Gantt and linear schedule remain linked views of the
+            same activities, hierarchy, and dependencies.
+          </p>
+        </div>
+        <div className="programme-toolbar">
+          <a href="#programme-new-activity" className="outline-link">Add activity</a>
+          <a href="#programme-new-wbs-row" className="outline-link">Add WBS row</a>
+          <a href="#programme-dependencies" className="outline-link">Dependencies</a>
+        </div>
+      </div>
+
+      <div className="programme-grid programme-grid-header">
+        <span>#</span>
+        <span>WBS / Task</span>
+        <span>Package</span>
+        <span>Start</span>
+        <span>Finish</span>
+        <span>Dur.</span>
+        <span>Layer</span>
+        <span>Workfront</span>
+        <span>Controls</span>
+      </div>
+
+      <div className="programme-row-stack">
+        {data.ganttRows.map((row, index) => {
+          if (row.rowKind === "summary") {
+            const editable = !row.id.startsWith("package:");
+            return (
+              <div className="programme-grid programme-row programme-row-summary" key={row.id}>
+                <span>{index + 1}</span>
+                <div style={{ paddingLeft: `${row.depth * 16}px` }}>
+                  {editable ? (
+                    <form action={updateGanttHierarchyNodeAction} className="programme-inline-form">
+                      <input type="hidden" name="scenarioId" value={scenarioId} />
+                      <input type="hidden" name="nodeId" value={row.id} />
+                      <input type="hidden" name="selectedActivityId" value={selectedActivityId ?? ""} />
+                      <input type="hidden" name="selectedOperationalId" value={selectedOperationalId ?? ""} />
+                      <input name="label" defaultValue={row.label} aria-label="WBS row label" />
+                      <button type="submit" className="secondary-button">Save</button>
+                    </form>
+                  ) : (
+                    <strong>{row.label}</strong>
+                  )}
+                  <div className="muted">{row.hierarchyLevel} / {row.activityIds.length} linked activities</div>
+                </div>
+                <span>{row.packageId ?? "-"}</span>
+                <span>{row.startDate}</span>
+                <span>{row.finishDate}</span>
+                <span>{durationDays(row.startDate, row.finishDate)}d</span>
+                <span>summary</span>
+                <span>{row.groupLabel}</span>
+                <div className="programme-row-actions">
+                  {editable ? (
+                    <>
+                      {(["up", "down", "indent", "outdent"] as const).map((direction) => (
+                        <form action={moveGanttHierarchyNodeAction} key={direction}>
+                          <input type="hidden" name="scenarioId" value={scenarioId} />
+                          <input type="hidden" name="nodeId" value={row.id} />
+                          <input type="hidden" name="direction" value={direction} />
+                          <input type="hidden" name="selectedActivityId" value={selectedActivityId ?? ""} />
+                          <input type="hidden" name="selectedOperationalId" value={selectedOperationalId ?? ""} />
+                          <button type="submit" className="mini-button">{direction}</button>
+                        </form>
+                      ))}
+                      <form action={deleteGanttHierarchyNodeAction}>
+                        <input type="hidden" name="scenarioId" value={scenarioId} />
+                        <input type="hidden" name="nodeId" value={row.id} />
+                        <input type="hidden" name="selectedActivityId" value={selectedActivityId ?? ""} />
+                        <input type="hidden" name="selectedOperationalId" value={selectedOperationalId ?? ""} />
+                        <button type="submit" className="mini-button danger-button">delete</button>
+                      </form>
+                    </>
+                  ) : (
+                    <span className="muted">package root</span>
+                  )}
+                </div>
+              </div>
+            );
+          }
+
+          const activity = row.activityId ? activityById.get(row.activityId) : null;
+          if (!activity) {
+            return null;
+          }
+
+          return (
+            <form
+              action={saveScheduleActivityAction}
+              className={activity.id === selectedActivityId ? "programme-grid programme-row programme-row-active" : "programme-grid programme-row"}
+              key={row.id}
+            >
+              <input type="hidden" name="scenarioId" value={scenarioId} />
+              <input type="hidden" name="activityId" value={activity.id} />
+              <input type="hidden" name="selectedOperationalId" value={selectedOperationalId ?? ""} />
+              <span>{index + 1}</span>
+              <div style={{ paddingLeft: `${row.depth * 16}px` }}>
+                <input name="activityName" defaultValue={activity.activityName} aria-label="Activity name" />
+                <div className="muted">{activity.activityType} / {activity.locationRef ?? activity.startLocationRef ?? "no location"}</div>
+              </div>
+              <select name="packageId" defaultValue={activity.packageId ?? ""} aria-label="Activity package">
+                <option value="">Unassigned</option>
+                {data.packages.map((pkg) => (
+                  <option key={pkg.id} value={pkg.id}>{pkg.label}</option>
+                ))}
+              </select>
+              <input name="startDate" type="date" defaultValue={activity.startDate} aria-label="Start date" />
+              <input name="finishDate" type="date" defaultValue={activity.finishDate} aria-label="Finish date" />
+              <span>{durationDays(activity.startDate, activity.finishDate)}d</span>
+              <select name="displayLayer" defaultValue={activity.displayLayer} aria-label="Activity layer" disabled>
+                <option value={activity.displayLayer}>{activity.displayLayer}</option>
+              </select>
+              <input name="workfront" defaultValue={activity.workfront ?? ""} aria-label="Workfront" />
+              <div className="programme-row-actions">
+                <input type="hidden" name="colorKey" value={activity.colorKey ?? ""} />
+                <input type="hidden" name="locationRef" value={activity.locationRef ?? ""} />
+                <input type="hidden" name="startLocationRef" value={activity.startLocationRef ?? ""} />
+                <input type="hidden" name="finishLocationRef" value={activity.finishLocationRef ?? ""} />
+                <input type="hidden" name="sequenceGroup" value={activity.sequenceGroup ?? ""} />
+                <input type="hidden" name="sequenceOrder" value={activity.sequenceOrder ?? ""} />
+                <button type="submit" className="secondary-button">Save</button>
+                <Link
+                  href={editorUrl(scenarioId, {
+                    selectedActivityId: activity.id,
+                    selectedOperationalId
+                  })}
+                >
+                  Inspect
+                </Link>
+              </div>
+            </form>
+          );
+        })}
+      </div>
+
+      <div className="programme-control-grid">
+        <div className="compact-edit-panel" id="programme-new-wbs-row">
+          <h3>Create WBS Row</h3>
+          <form action={createGanttHierarchyNodeAction} className="stack-form">
+            <input type="hidden" name="scenarioId" value={scenarioId} />
+            <input type="hidden" name="selectedActivityId" value={selectedActivityId ?? ""} />
+            <input type="hidden" name="selectedOperationalId" value={selectedOperationalId ?? ""} />
+            <label><span>Label</span><input name="label" placeholder="Frame sequence" /></label>
+            <label>
+              <span>Package</span>
+              <select name="packageId" defaultValue={data.packages[0]?.id ?? ""}>
+                {data.packages.map((pkg) => (
+                  <option key={pkg.id} value={pkg.id}>{pkg.label}</option>
+                ))}
+              </select>
+            </label>
+            <label>
+              <span>Parent</span>
+              <select name="parentId" defaultValue="">
+                <option value="">Package root</option>
+                {summaryRows.map((row) => (
+                  <option key={row.id} value={row.id}>{row.label}</option>
+                ))}
+              </select>
+            </label>
+            <label>
+              <span>Level</span>
+              <select name="hierarchyLevel" defaultValue="task">
+                <option value="subtask">subtask</option>
+                <option value="task">task</option>
+              </select>
+            </label>
+            <button type="submit">Create WBS row</button>
+          </form>
+        </div>
+
+        <div className="compact-edit-panel" id="programme-dependencies">
+          <h3>Dependencies</h3>
+          <p className="muted">First pass supports finish-to-start dependencies only.</p>
+          <form action={createScheduleDependencyAction} className="stack-form">
+            <input type="hidden" name="scenarioId" value={scenarioId} />
+            <input type="hidden" name="selectedActivityId" value={selectedActivityId ?? ""} />
+            <input type="hidden" name="selectedOperationalId" value={selectedOperationalId ?? ""} />
+            <label>
+              <span>Predecessor</span>
+              <select name="predecessorActivityId" defaultValue="">
+                <option value="">Select predecessor</option>
+                {data.activities.map((activity) => (
+                  <option key={activity.id} value={activity.id}>{activity.activityName}</option>
+                ))}
+              </select>
+            </label>
+            <label>
+              <span>Successor</span>
+              <select name="successorActivityId" defaultValue={selectedActivityId ?? ""}>
+                <option value="">Select successor</option>
+                {data.activities.map((activity) => (
+                  <option key={activity.id} value={activity.id}>{activity.activityName}</option>
+                ))}
+              </select>
+            </label>
+            <button type="submit">Link finish-to-start</button>
+          </form>
+          <div className="dependency-list">
+            {data.dependencies.length === 0 ? <p className="muted">No dependencies yet.</p> : null}
+            {data.dependencies.map((dependency) => {
+              const predecessor = activityById.get(dependency.predecessorActivityId);
+              const successor = activityById.get(dependency.successorActivityId);
+              return (
+                <div className="dependency-row" key={dependency.id}>
+                  <span>
+                    {predecessor?.activityName ?? dependency.predecessorActivityId} {"->"}{" "}
+                    {successor?.activityName ?? dependency.successorActivityId}
+                  </span>
+                  <form action={deleteScheduleDependencyAction}>
+                    <input type="hidden" name="scenarioId" value={scenarioId} />
+                    <input type="hidden" name="dependencyId" value={dependency.id} />
+                    <input type="hidden" name="selectedActivityId" value={selectedActivityId ?? ""} />
+                    <input type="hidden" name="selectedOperationalId" value={selectedOperationalId ?? ""} />
+                    <button type="submit" className="mini-button danger-button">delete</button>
+                  </form>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+
+      <p className="muted">
+        Editable WBS rows: {editableSummaryRows.length}. Direct chart drag/resize remains deferred; chart
+        interaction should call these same actions when it is added.
+      </p>
+    </section>
+  );
+}
+
 export default async function ScenarioEditorPage({ params, searchParams }: PageProps) {
   const { scenarioId } = await params;
   const query = (await searchParams) ?? {};
@@ -742,11 +916,16 @@ export default async function ScenarioEditorPage({ params, searchParams }: PageP
   const selectedActivityIdParam = typeof query.activityId === "string" ? query.activityId : null;
   const selectedOperationalIdParam = typeof query.operationalId === "string" ? query.operationalId : null;
 
-  const [data, portfolio] = await Promise.all([getScenarioEditorData(scenarioId), getFeasibilityPortfolio()]);
+  const [data, portfolio, assumptionGraph] = await Promise.all([
+    getScenarioEditorData(scenarioId),
+    getFeasibilityPortfolio(),
+    getAssumptionGraphData()
+  ]);
   const siteScenarioLink =
     portfolio.sites
       .flatMap((site) => site.scenarioOptions.map((option) => ({ site, option })))
       .find((item) => item.option.scenario_id === scenarioId) ?? null;
+  const scenarioMidBand = siteScenarioLink?.option.costBands.find((band) => band.range_key === "mid") ?? null;
   const selectedActivity =
     data.linearScheduleData.activities.find((activity) => activity.id === selectedActivityIdParam) ??
     data.linearScheduleData.activities[0] ??
@@ -773,12 +952,13 @@ export default async function ScenarioEditorPage({ params, searchParams }: PageP
     <>
       <RestoreScrollOnLoad />
       <section className="panel">
-        <div className="section-heading">
-          <div>
+        <div className="section-heading app-title-panel app-title-panel--compact">
+          <div className="app-title-panel__content">
+            <p className="eyebrow">Scenario Workspace</p>
             <h2>Scenario Editor</h2>
             <p className="muted">
-              Visualize scenario-scoped schedule data through a copied Gantt and linked linear preview. Operational
-              edits are staged for approval; schedule activity edits remain scenario-local planning changes.
+              Work the option here: feasibility evidence, programme, scenario-local operational state,
+              Project Network review, and controlled Archicad metadata approvals stay connected.
             </p>
           </div>
           <Link href="/scenarios" className="secondary-link">
@@ -790,8 +970,9 @@ export default async function ScenarioEditorPage({ params, searchParams }: PageP
       </section>
 
       <section className="panel">
-        <div className="section-heading">
-          <div>
+        <div className="section-heading app-title-panel app-title-panel--compact">
+          <div className="app-title-panel__content">
+            <p className="eyebrow">Active Scenario</p>
             <h2>{data.scenario.name}</h2>
             <p className="muted">
               Parent: {data.scenario.parentScenarioId ?? "none"} | Operational rows: {data.scenario.operationalStateCount} |
@@ -800,7 +981,8 @@ export default async function ScenarioEditorPage({ params, searchParams }: PageP
             {siteScenarioLink ? (
               <p className="muted">
                 Site option: <Link href={`/sites/${siteScenarioLink.site.id}`}>{siteScenarioLink.option.name}</Link> on{" "}
-                {siteScenarioLink.site.name}
+                {siteScenarioLink.site.name} |{" "}
+                <Link href={`/project-network?linkedRefType=scenario&linkedRefId=${scenarioId}`}>review network</Link>
               </p>
             ) : null}
           </div>
@@ -867,6 +1049,61 @@ export default async function ScenarioEditorPage({ params, searchParams }: PageP
             </div>
 
             <div className="panel panel-subtle">
+              <h3>Scenario Feasibility</h3>
+              {siteScenarioLink ? (
+                <div className="detail-grid">
+                  <div className="detail-card">
+                    <strong>Planning Fit</strong>
+                    <div className="muted">{siteScenarioLink.option.planning_fit ?? "n/a"}</div>
+                  </div>
+                  <div className="detail-card">
+                    <strong>Mid Cost</strong>
+                    <div className="muted">{formatCurrency(scenarioMidBand?.totalCost)}</div>
+                  </div>
+                  <div className="detail-card">
+                    <strong>Revenue</strong>
+                    <div className="muted">{formatCurrency(siteScenarioLink.option.salesAssumption?.gross_realisation)}</div>
+                  </div>
+                  <div className="detail-card">
+                    <strong>Mid Margin</strong>
+                    <div className="muted">{formatPercent(scenarioMidBand?.marginPercent)}</div>
+                  </div>
+                  <div className="detail-card">
+                    <strong>Programme</strong>
+                    <div className="muted">
+                      {siteScenarioLink.option.scheduleSummary.activityCount > 0
+                        ? `${siteScenarioLink.option.scheduleSummary.durationDays} days`
+                        : "not scheduled"}
+                    </div>
+                  </div>
+                  <div className="detail-card">
+                    <strong>Evidence</strong>
+                    <div className="muted">{siteScenarioLink.option.costPlanItems.length} cost items</div>
+                  </div>
+                </div>
+              ) : (
+                <p className="muted">
+                  This scenario is not linked to a site option yet, so feasibility evidence is unavailable.
+                </p>
+              )}
+              <div className="inline-actions">
+                <Link href="/feasibility">Compare options</Link>
+                <Link href={`/project-network?linkedRefType=scenario&linkedRefId=${scenarioId}`}>Open review network</Link>
+              </div>
+            </div>
+
+            <div className="panel panel-subtle">
+              <AssumptionGraphPanel
+                graph={assumptionGraph}
+                refType={siteScenarioLink?.option.id ? "scenario_option" : "scenario"}
+                refId={siteScenarioLink?.option.id ?? scenarioId}
+                title="Scenario Assumption Branch"
+                description="Applied assumptions, validation owners, evidence requirements, and future simulation inputs for this scenario branch."
+                compact
+              />
+            </div>
+
+            <div className="panel panel-subtle">
               <h3>Selected Activity</h3>
               <ActivityEditorForm
                 key={selectedActivity?.id ?? "no-selected-activity"}
@@ -880,7 +1117,7 @@ export default async function ScenarioEditorPage({ params, searchParams }: PageP
               />
             </div>
 
-            <div className="panel panel-subtle">
+            <div className="panel panel-subtle" id="programme-new-activity">
               <h3>New Activity</h3>
               <form action={createScheduleActivityAction} className="stack-form">
                 <input type="hidden" name="scenarioId" value={scenarioId} />
@@ -990,8 +1227,20 @@ export default async function ScenarioEditorPage({ params, searchParams }: PageP
         </div>
       </section>
 
+      <ProgrammeWorkspace
+        scenarioId={scenarioId}
+        data={data.linearScheduleData}
+        selectedActivityId={selectedActivity?.id ?? null}
+        selectedOperationalId={selectedOperationalRow?.id ?? null}
+      />
+
       <section className="panel">
-        <h2>Operational State Rows</h2>
+        <div className="app-title-panel app-title-panel--compact">
+          <div className="app-title-panel__content">
+            <p className="eyebrow">Operational State</p>
+            <h2>Operational State Rows</h2>
+          </div>
+        </div>
         <table>
           <thead>
             <tr>
@@ -1034,46 +1283,6 @@ export default async function ScenarioEditorPage({ params, searchParams }: PageP
         </table>
       </section>
 
-      <section className="panel">
-        <h2>Schedule Activities</h2>
-        <table>
-          <thead>
-            <tr>
-              <th>Name</th>
-              <th>Package</th>
-              <th>Dates</th>
-              <th>Workfront</th>
-              <th>Sequence</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody>
-            {data.linearScheduleData.activities.map((activity) => (
-              <tr key={activity.id} className={activity.id === selectedActivity?.id ? "table-row-active" : undefined}>
-                <td>{activity.activityName}</td>
-                <td>{activity.packageId ?? "unassigned"}</td>
-                <td>
-                  {activity.startDate} to {activity.finishDate}
-                </td>
-                <td>{activity.workfront ?? "-"}</td>
-                <td>
-                  {activity.sequenceGroup ?? "-"} / {activity.sequenceOrder ?? "-"}
-                </td>
-                <td>
-                  <Link
-                    href={editorUrl(scenarioId, {
-                      selectedActivityId: activity.id,
-                      selectedOperationalId: selectedOperationalRow?.id ?? null
-                    })}
-                  >
-                    Edit
-                  </Link>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </section>
     </>
   );
 }

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from connector.validators import archicad_field_name, validate_outbound_item
+from connector.validators import archicad_field_name, validate_outbound_item, validate_writable_field_contract
 
 
 def test_validate_outbound_item_accepts_known_package() -> None:
@@ -50,3 +50,7 @@ def test_validate_outbound_item_rejects_unknown_field() -> None:
 def test_archicad_field_name_maps_scenario_operational_fields() -> None:
     assert archicad_field_name("construction_state") == "CCP_ConstructionState"
     assert archicad_field_name("planned_start") == "CCP_PlannedStart"
+
+
+def test_writable_field_contract_matches_shared_vocabularies() -> None:
+    assert validate_writable_field_contract() == []

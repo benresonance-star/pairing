@@ -9,6 +9,15 @@ const nextConfig = {
   experimental: {
     externalDir: true,
     devtoolSegmentExplorer: false
+  },
+  async redirects() {
+    return [
+      {
+        source: "/feasibility/preview.html",
+        destination: "/base-costs",
+        permanent: false
+      }
+    ];
   }
 };
 

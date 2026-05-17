@@ -1,0 +1,13 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="18.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <CustomBuild Include="C:\Users\User\Desktop\Pairing\buildsync-archicad-addon\build-apx-geometry-trace-v142b\CMakeFiles\7ad6793fb5db2be2a8dc289853b1d6ee\RUN_TESTS_force.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="CMake Rules">
+      <UniqueIdentifier>{B75E04E7-0C3F-321B-B4A3-451E58A6F057}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>

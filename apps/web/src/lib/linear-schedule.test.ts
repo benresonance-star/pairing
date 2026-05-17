@@ -104,26 +104,38 @@ function buildState() {
                 label: "Ground floor framing",
                 package_id: "PKG-STRUCTURE",
                 parent_id: "structure-subtask",
-                hierarchy_level: "task"
+                hierarchy_level: "task",
+                sort_order: 2
               },
               {
                 id: "commissioning-subtask",
                 label: "Completion",
                 package_id: "PKG-COMMISSIONING",
                 parent_id: "package:PKG-COMMISSIONING",
-                hierarchy_level: "subtask"
+                hierarchy_level: "subtask",
+                sort_order: 1
               },
               {
                 id: "commissioning-task",
                 label: "Practical completion",
                 package_id: "PKG-COMMISSIONING",
                 parent_id: "commissioning-subtask",
-                hierarchy_level: "task"
+                hierarchy_level: "task",
+                sort_order: 1
               }
             ],
             activity_links: [
               { node_id: "structure-task", stage_keys: ["frame"] },
               { node_id: "commissioning-task", stage_keys: ["fitoff"] }
+            ],
+            dependencies: [
+              {
+                id: "dep-1",
+                predecessor_activity_id: "act-1",
+                successor_activity_id: "act-2",
+                dependency_type: "finish_to_start",
+                lag_days: 0
+              }
             ]
           }
         }
@@ -315,4 +327,42 @@ test("buildLinearScheduleData derives gantt rows and progress lookup", () => {
   assert.equal(data.progressByActivityId["act-1"].length, 1);
   assert.equal(data.progressByActivityId["act-2"].length, 0);
   assert.equal(data.flow.edges[0].to, "fitoff");
+});
+
+
+test("buildLinearScheduleData exposes finish-to-start dependencies for linked Gantt rows", () => {
+  const data = buildLinearScheduleData(buildState());
+
+  assert.deepEqual(data.dependencies, [
+    {
+      id: "dep-1",
+      predecessorActivityId: "act-1",
+      successorActivityId: "act-2",
+      dependencyType: "finish_to_start",
+      lagDays: 0
+    }
+  ]);
+});
+
+
+test("programme activity edits update both Gantt rows and linear schedule activities", () => {
+  const state = buildState();
+  const activity = state.linear_schedule_activities.find((item) => item.id === "act-1");
+  assert.ok(activity);
+
+  activity.activity_name = "Updated frame flow";
+  activity.start_date = "2026-05-03";
+  activity.finish_date = "2026-05-22";
+  activity.start_location_ref = "a";
+  activity.finish_location_ref = "b";
+
+  const data = buildLinearScheduleData(state);
+  const updatedActivity = data.activities.find((item) => item.id === "act-1");
+  const updatedGanttRow = data.ganttRows.find((item) => item.activityId === "act-1");
+
+  assert.equal(updatedActivity?.activityName, "Updated frame flow");
+  assert.equal(updatedActivity?.startLocationRef, "a");
+  assert.equal(updatedActivity?.finishLocationRef, "b");
+  assert.equal(updatedGanttRow?.startDate, "2026-05-03");
+  assert.equal(updatedGanttRow?.finishDate, "2026-05-22");
 });

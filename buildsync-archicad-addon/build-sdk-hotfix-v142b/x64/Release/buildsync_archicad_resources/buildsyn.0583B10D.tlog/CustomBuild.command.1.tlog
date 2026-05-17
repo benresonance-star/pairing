@@ -1,0 +1,32 @@
+^C:\USERS\USER\DESKTOP\PAIRING\BUILDSYNC-ARCHICAD-ADDON\BUILD-SDK-HOTFIX-V142B\CMAKEFILES\237CFF02BDE6D19FB17865F8E825B257\BUILDSYNCASSEMBLYWRAPPER.RES.RULE
+setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -E make_directory C:/Users/User/Desktop/Pairing/buildsync-archicad-addon/build-sdk-hotfix-v142b/ResourceObjects
+if %errorlevel% neq 0 goto :cmEnd
+C:\Users\User\AppData\Local\Python\pythoncore-3.14-64\python.exe "C:/Program Files/Graphisoft/API Development Kit 28.4001/Support/Tools/CompileResources.py" INT "C:/Program Files/Graphisoft/API Development Kit 28.4001" C:/Users/User/Desktop/Pairing/buildsync-archicad-addon/src C:/Users/User/Desktop/Pairing/buildsync-archicad-addon C:/Users/User/Desktop/Pairing/buildsync-archicad-addon/build-sdk-hotfix-v142b/ResourceObjects C:/Users/User/Desktop/Pairing/buildsync-archicad-addon/build-sdk-hotfix-v142b/ResourceObjects/BuildSyncAssemblyWrapper.res
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" -E touch C:/Users/User/Desktop/Pairing/buildsync-archicad-addon/build-sdk-hotfix-v142b/ResourceObjects/AddOnResources.stamp
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
+^C:\USERS\USER\DESKTOP\PAIRING\BUILDSYNC-ARCHICAD-ADDON\BUILD-SDK-HOTFIX-V142B\CMAKEFILES\4E85EE0CFBF88D593230A1725F455A53\BUILDSYNC_ARCHICAD_RESOURCES.RULE
+setlocal
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
+^C:\USERS\USER\DESKTOP\PAIRING\BUILDSYNC-ARCHICAD-ADDON\CMAKELISTS.TXT
+setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -SC:/Users/User/Desktop/Pairing/buildsync-archicad-addon -BC:/Users/User/Desktop/Pairing/buildsync-archicad-addon/build-sdk-hotfix-v142b --check-stamp-file C:/Users/User/Desktop/Pairing/buildsync-archicad-addon/build-sdk-hotfix-v142b/CMakeFiles/generate.stamp
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
